@@ -10,7 +10,12 @@
     "type-check": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "pipeline:fr-backfill": "npx tsx scripts/run-fetcher.ts fr-backfill",
+    "pipeline:enforcement-backfill": "npx tsx scripts/run-fetcher.ts enforcement-backfill",
+    "pipeline:wl-backfill": "npx tsx scripts/run-fetcher.ts wl-backfill",
+    "pipeline:wl-incremental": "npx tsx scripts/run-fetcher.ts wl-incremental",
+    "pipeline:rss-poll": "npx tsx scripts/run-fetcher.ts rss-poll"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.53",
@@ -20,7 +25,10 @@
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.98.0",
     "ai": "^6.0.108",
+    "fast-xml-parser": "^5.4.2",
+    "framer-motion": "^12.34.4",
     "inngest": "^3.52.5",
+    "lucide-react": "^0.576.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",

@@ -1,1 +1,51 @@
 @import "tailwindcss";
+
+@theme {
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F8FAFC;
+  --color-surface-subtle: #F1F5F9;
+  --color-surface-dark: #0F172A;
+  --color-text-primary: #0F172A;
+  --color-text-body: #334155;
+  --color-text-secondary: #64748B;
+  --color-text-inverse: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-border-dark: #1E293B;
+  --color-canary: #EAC100;
+  --color-amber: #D97706;
+  --color-amber-muted: #FEF3C7;
+  --color-urgent: #DC2626;
+  --color-urgent-muted: #FEF2F2;
+  --color-clear: #059669;
+  --color-clear-muted: #ECFDF5;
+  --font-sans: var(--font-ibm-sans), system-ui, sans-serif;
+  --font-serif: var(--font-ibm-serif), Georgia, serif;
+  --font-mono: var(--font-ibm-mono), 'Courier New', monospace;
+}
+
+:root {
+  --gradient-dark-surface:
+    radial-gradient(ellipse at 20% 20%, rgba(234,193,0,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(217,119,6,0.09) 0%, transparent 55%),
+    #0F172A;
+}
+
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.hero-gradient {
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(234,193,0,0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(217,119,6,0.12) 0%, transparent 50%),
+    #0F172A;
+  background-size: 200% 200%;
+  animation: gradient-shift 12s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-gradient { animation: none; }
+}
