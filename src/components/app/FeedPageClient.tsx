@@ -11,51 +11,64 @@ interface FeedPageClientProps {
 }
 
 export default function FeedPageClient({ items }: FeedPageClientProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(
-    items.length > 0 ? items[0].id : null
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
+  const sidebarOpen = selectedId !== null;
+
+  function handleSelect(id: string) {
+    // Toggle: clicking the selected item closes the sidebar
+    setSelectedId((prev) => (prev === id ? null : id));
+  }
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-      {/* Left: feed list */}
-      <div className="w-[400px] flex-shrink-0 border-r border-border flex flex-col overflow-hidden bg-surface-muted">
-        {/* List header + filters */}
-        <div className="px-4 pt-5 pb-4 border-b border-border shrink-0">
-          <h1 className="font-serif text-lg font-bold text-text-primary mb-3">
-            Regulatory Feed
-          </h1>
-          <Suspense fallback={null}>
-            <FeedFilters />
-          </Suspense>
-        </div>
+      {/* Feed — always the primary surface */}
+      <div className="flex-1 overflow-y-auto min-w-0">
+        <div className="max-w-3xl mx-auto px-6 py-8">
+          <div className="mb-6">
+            <h1 className="font-serif text-2xl font-bold text-text-primary mb-3">
+              Regulatory Feed
+            </h1>
+            <Suspense fallback={null}>
+              <FeedFilters />
+            </Suspense>
+          </div>
 
-        {/* Scrollable list */}
-        <div className="overflow-y-auto flex-1 p-3 space-y-2">
           {items.length === 0 ? (
-            <div className="px-1 py-8 text-center">
+            <div className="border border-border rounded p-8 text-center">
               <p className="text-text-secondary text-sm">No items match your filters.</p>
               <p className="text-text-secondary text-xs mt-1 font-mono">
                 Try adjusting the type or date range.
               </p>
             </div>
           ) : (
-            items.map((item) => (
-              <FeedItemCard
-                key={item.id}
-                item={item}
-                isSelected={item.id === selectedId}
-                onSelect={setSelectedId}
-              />
-            ))
+            <div className="space-y-2">
+              {items.map((item) => (
+                <FeedItemCard
+                  key={item.id}
+                  item={item}
+                  isSelected={item.id === selectedId}
+                  onSelect={handleSelect}
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Right: detail panel */}
-      <div className="flex-1 overflow-hidden bg-white">
-        <FeedDetailPanel item={selectedItem} />
+      {/* Sidebar — slides in from the right when an item is selected */}
+      <div
+        className={`flex-shrink-0 border-l border-border bg-white overflow-hidden transition-all duration-200 ease-in-out ${
+          sidebarOpen ? "w-[480px]" : "w-0"
+        }`}
+      >
+        <div className="w-[480px] h-full overflow-y-auto">
+          <FeedDetailPanel
+            item={selectedItem}
+            onClose={() => setSelectedId(null)}
+          />
+        </div>
       </div>
     </div>
   );
