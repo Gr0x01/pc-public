@@ -1,19 +1,36 @@
 {
-  "name": "policy_canary_scaffold",
+  "name": "policy-canary",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "type-check": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.53",
+    "@ai-sdk/google": "^3.0.36",
+    "@ai-sdk/openai": "^3.0.39",
+    "@react-email/components": "^1.0.8",
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.98.0",
+    "ai": "^6.0.108",
+    "inngest": "^3.52.5",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-email": "^5.2.9",
+    "resend": "^6.9.3",
+    "server-only": "^0.0.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
