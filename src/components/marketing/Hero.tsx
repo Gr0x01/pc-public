@@ -2,15 +2,21 @@ import Link from "next/link";
 
 export default function Hero() {
   return (
-    <section className="hero-gradient min-h-[85vh] flex flex-col items-center justify-center px-6 text-center">
+    <section
+      className="min-h-[85vh] flex flex-col items-center justify-center px-6 text-center"
+      style={{
+        background:
+          "radial-gradient(ellipse at 70% 15%, rgba(217,119,6,0.05) 0%, transparent 55%), radial-gradient(ellipse at 25% 85%, rgba(234,193,0,0.04) 0%, transparent 55%), #FFFFFF",
+      }}
+    >
       <div className="max-w-4xl mx-auto">
-        <h1 className="font-serif text-4xl md:text-6xl font-bold text-white leading-tight">
+        <h1 className="font-serif text-4xl md:text-6xl font-bold text-text-primary leading-tight">
           The FDA changed something.
           <br />
           Was it about your products?
         </h1>
 
-        <p className="text-lg text-slate-300 max-w-2xl mx-auto mt-6 leading-relaxed">
+        <p className="text-lg text-text-secondary max-w-2xl mx-auto mt-6 leading-relaxed">
           Product-level FDA monitoring for supplement, food, and cosmetics
           brands. Know which of your products are affected — by name and
           ingredient — before the warning letter arrives.
@@ -26,7 +32,7 @@ export default function Hero() {
           </Link>
           <Link
             href="/sample"
-            className="border border-white/30 text-white font-semibold px-8 py-3.5 rounded hover:bg-white/10 transition-colors duration-150"
+            className="border border-border text-text-primary font-semibold px-8 py-3.5 rounded hover:bg-surface-subtle transition-colors duration-150"
           >
             See a Sample Report
           </Link>
@@ -63,7 +69,10 @@ export default function Hero() {
                 YOUR PRODUCTS &middot; URGENT
               </p>
               <h3 className="font-serif text-xl font-bold text-text-primary flex items-center gap-2.5">
-                <span className="h-2 w-2 rounded-full bg-urgent shrink-0" />
+                <span className="relative inline-flex shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-urgent opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-urgent" />
+                </span>
                 Marine Collagen Powder
               </h3>
             </div>

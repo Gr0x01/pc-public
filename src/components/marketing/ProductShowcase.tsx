@@ -103,22 +103,19 @@ export default function ProductShowcase() {
   const product = PRODUCTS.find((p) => p.id === selectedId)!;
 
   return (
-    <section
-      className="py-24 px-6"
-      style={{ background: "var(--gradient-dark-surface)" }}
-    >
+    <section className="bg-surface-muted py-24 px-6">
       <div className="max-w-6xl mx-auto">
         {/* Section header */}
         <div className="text-center mb-12">
           <p className="font-mono text-xs text-amber uppercase tracking-widest mb-3">
             THE PRODUCT
           </p>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
             You know exactly which products
             <br className="hidden md:block" />
             need attention today.
           </h2>
-          <p className="text-slate-400 max-w-xl mx-auto">
+          <p className="text-text-secondary max-w-xl mx-auto">
             Not a regulatory summary. Your products, matched against every FDA
             action — with the analysis and action items already written.
           </p>
@@ -270,7 +267,7 @@ export default function ProductShowcase() {
           </div>
         </div>
 
-        <p className="text-center text-slate-600 text-xs mt-4 font-mono">
+        <p className="text-center text-text-secondary text-xs mt-4 font-mono">
           Interactive demo · click any product to see its intelligence
         </p>
       </div>
