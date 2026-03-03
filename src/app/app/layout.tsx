@@ -30,7 +30,7 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-surface-dark text-text-inverse flex flex-col">
+    <div className="min-h-screen bg-surface-muted text-text-primary flex flex-col">
       <AppNav email={email} signOut={signOut} />
       <main className="flex-1">{children}</main>
     </div>

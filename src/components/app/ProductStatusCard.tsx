@@ -13,9 +13,9 @@ const STATUS_CONFIG: Record<
 };
 
 const TYPE_STYLES: Record<string, string> = {
-  supplement: "bg-blue-500/10 text-blue-300 border-blue-500/20",
-  food: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
-  cosmetic: "bg-purple-500/10 text-purple-300 border-purple-500/20",
+  supplement: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+  food: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
+  cosmetic: "bg-purple-500/10 text-purple-700 border-purple-500/20",
 };
 
 function formatProductType(type: string): string {
@@ -36,17 +36,17 @@ export default function ProductStatusCard({
   const cfg = STATUS_CONFIG[status];
   const typeStyle =
     TYPE_STYLES[product.product_type] ??
-    "bg-slate-500/10 text-slate-300 border-slate-500/20";
+    "bg-slate-500/10 text-slate-600 border-slate-500/20";
 
   return (
     <Link href={`/app/feed?myProducts=true`} className="block group">
-      <div className="border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 rounded p-4 transition-all duration-150">
+      <div className="border border-border bg-white hover:bg-surface-muted hover:border-border-strong rounded p-4 transition-all duration-150">
         <div className="flex items-start gap-3">
           <span
             className={`h-2 w-2 rounded-full mt-1.5 shrink-0 ${cfg.dot}`}
           />
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-white leading-snug mb-1">
+            <h3 className="text-sm font-semibold text-text-primary leading-snug mb-1">
               {product.name}
             </h3>
             <div className="flex items-center gap-2 mb-2">
@@ -60,11 +60,11 @@ export default function ProductStatusCard({
               </span>
             </div>
             {product.brand && (
-              <p className="font-mono text-[10px] text-slate-500 mb-1">
+              <p className="font-mono text-[10px] text-text-secondary mb-1">
                 {product.brand}
               </p>
             )}
-            <p className="font-mono text-[11px] text-slate-400">
+            <p className="font-mono text-[11px] text-text-secondary">
               {matchCount} regulatory match{matchCount !== 1 ? "es" : ""}
             </p>
           </div>

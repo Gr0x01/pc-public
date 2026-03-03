@@ -55,7 +55,7 @@ export default function FeedFilters() {
   const pillActive =
     "bg-amber/20 text-amber border-amber/40";
   const pillInactive =
-    "bg-white/5 text-slate-400 border-white/10 hover:border-white/20";
+    "bg-white text-text-secondary border-border hover:bg-surface-muted hover:border-border-strong";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -72,7 +72,7 @@ export default function FeedFilters() {
         </button>
       ))}
 
-      <span className="w-px h-4 bg-white/10 mx-1" />
+      <span className="w-px h-4 bg-border mx-1" />
 
       {/* Date range pills */}
       {RANGE_FILTERS.map((f) => (
@@ -87,7 +87,7 @@ export default function FeedFilters() {
         </button>
       ))}
 
-      <span className="w-px h-4 bg-white/10 mx-1" />
+      <span className="w-px h-4 bg-border mx-1" />
 
       {/* My Products toggle */}
       <button

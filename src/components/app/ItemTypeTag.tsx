@@ -10,27 +10,27 @@ const TAG_STYLES: Record<string, { className: string; label: string }> = {
     label: "Recall",
   },
   rule: {
-    className: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+    className: "bg-blue-500/10 text-blue-700 border-blue-500/25",
     label: "Rule",
   },
   proposed_rule: {
-    className: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+    className: "bg-blue-500/10 text-blue-700 border-blue-500/25",
     label: "Proposed Rule",
   },
   notice: {
-    className: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+    className: "bg-slate-500/10 text-slate-600 border-slate-500/25",
     label: "Notice",
   },
   guidance: {
-    className: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+    className: "bg-slate-500/10 text-slate-600 border-slate-500/25",
     label: "Guidance",
   },
   draft_guidance: {
-    className: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+    className: "bg-slate-500/10 text-slate-600 border-slate-500/25",
     label: "Draft Guidance",
   },
   press_release: {
-    className: "bg-slate-500/15 text-slate-400 border-slate-500/20",
+    className: "bg-slate-500/10 text-slate-500 border-slate-500/20",
     label: "Press Release",
   },
   safety_alert: {
@@ -46,7 +46,7 @@ const TAG_STYLES: Record<string, { className: string; label: string }> = {
     label: "483 Observation",
   },
   state_regulation: {
-    className: "bg-slate-500/15 text-slate-400 border-slate-500/20",
+    className: "bg-slate-500/10 text-slate-500 border-slate-500/20",
     label: "State Regulation",
   },
 };
@@ -63,7 +63,7 @@ interface ItemTypeTagProps {
 
 export default function ItemTypeTag({ type }: ItemTypeTagProps) {
   const config = TAG_STYLES[type] ?? {
-    className: "bg-slate-500/15 text-slate-400 border-slate-500/20",
+    className: "bg-slate-500/10 text-slate-500 border-slate-500/20",
     label: formatType(type),
   };
 

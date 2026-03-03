@@ -99,10 +99,10 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
       <div className="mb-8">
-        <h1 className="font-serif text-2xl font-bold text-white mb-1">
+        <h1 className="font-serif text-2xl font-bold text-text-primary mb-1">
           Regulatory Feed
         </h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-text-secondary">
           FDA actions, rules, and enforcement affecting your products.
         </p>
       </div>
@@ -114,11 +114,11 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       </Suspense>
 
       {items.length === 0 ? (
-        <div className="border border-white/10 rounded p-8 text-center">
-          <p className="text-slate-400 text-sm">
+        <div className="border border-border rounded p-8 text-center">
+          <p className="text-text-secondary text-sm">
             No items match your filters.
           </p>
-          <p className="text-slate-500 text-xs mt-1 font-mono">
+          <p className="text-text-secondary text-xs mt-1 font-mono">
             Try adjusting the type or date range.
           </p>
         </div>

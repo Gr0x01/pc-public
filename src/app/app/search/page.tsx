@@ -117,10 +117,10 @@ export default function SearchPage() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
       <div className="mb-8">
-        <h1 className="font-serif text-2xl font-bold text-white mb-1">
+        <h1 className="font-serif text-2xl font-bold text-text-primary mb-1">
           Search
         </h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-text-secondary">
           Ask questions about FDA regulatory intelligence.
         </p>
       </div>
@@ -134,10 +134,10 @@ export default function SearchPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search regulatory intelligence..."
-            className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 pr-20 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-amber/50 focus:ring-0 transition-colors"
+            className="w-full bg-white border border-border rounded px-4 py-3 pr-20 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-amber/50 focus:ring-0 transition-colors"
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-            <kbd className="hidden sm:inline-block font-mono text-[10px] text-slate-500 bg-white/5 border border-white/10 rounded px-1.5 py-0.5">
+            <kbd className="hidden sm:inline-block font-mono text-[10px] text-text-secondary bg-surface-subtle border border-border rounded px-1.5 py-0.5">
               {typeof navigator !== "undefined" &&
               /Mac/i.test(navigator.userAgent)
                 ? "\u2318K"
@@ -157,20 +157,20 @@ export default function SearchPage() {
       {/* Loading */}
       {isLoading && !answer && (
         <div className="space-y-3 mb-8">
-          <div className="h-4 bg-white/5 rounded w-3/4 animate-pulse" />
-          <div className="h-4 bg-white/5 rounded w-full animate-pulse" />
-          <div className="h-4 bg-white/5 rounded w-5/6 animate-pulse" />
-          <div className="h-4 bg-white/5 rounded w-2/3 animate-pulse" />
+          <div className="h-4 bg-surface-subtle rounded w-3/4 animate-pulse" />
+          <div className="h-4 bg-surface-subtle rounded w-full animate-pulse" />
+          <div className="h-4 bg-surface-subtle rounded w-5/6 animate-pulse" />
+          <div className="h-4 bg-surface-subtle rounded w-2/3 animate-pulse" />
         </div>
       )}
 
       {/* Answer */}
       {answer && (
         <section className="mb-8">
-          <h2 className="font-mono text-[10px] uppercase tracking-wider text-slate-500 mb-3">
+          <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
             Answer
           </h2>
-          <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+          <div className="text-sm text-text-body leading-relaxed whitespace-pre-wrap">
             {answer}
           </div>
         </section>
@@ -179,7 +179,7 @@ export default function SearchPage() {
       {/* Citations */}
       {citations.length > 0 && (
         <section className="mb-8">
-          <h2 className="font-mono text-[10px] uppercase tracking-wider text-slate-500 mb-3">
+          <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
             Sources ({citations.length})
           </h2>
           <div className="space-y-2">
@@ -187,18 +187,18 @@ export default function SearchPage() {
               <Link
                 key={`${c.item_id}-${i}`}
                 href={`/app/items/${c.item_id}`}
-                className="block border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 rounded p-3 transition-all"
+                className="block border border-border bg-white hover:bg-surface-muted hover:border-border-strong rounded p-3 transition-all"
               >
                 <div className="flex items-center gap-2 mb-1.5">
                   <ItemTypeTag type={c.item_type as ItemType} />
-                  <span className="font-mono text-[10px] text-slate-500">
+                  <span className="font-mono text-[10px] text-text-secondary">
                     {formatDate(c.published_date)}
                   </span>
                 </div>
-                <p className="text-sm text-white font-medium leading-snug line-clamp-2 mb-1">
+                <p className="text-sm text-text-primary font-medium leading-snug line-clamp-2 mb-1">
                   {c.title}
                 </p>
-                <p className="text-xs text-slate-400 line-clamp-2">
+                <p className="text-xs text-text-body line-clamp-2">
                   {c.chunk_content}
                 </p>
               </Link>
@@ -210,7 +210,7 @@ export default function SearchPage() {
       {/* Empty/suggested state */}
       {!hasResults && !isLoading && !error && (
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500 mb-3">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
             Try a question
           </p>
           <div className="flex flex-wrap gap-2">
@@ -221,7 +221,7 @@ export default function SearchPage() {
                   setQuery(eq);
                   handleSearch(eq);
                 }}
-                className="px-3 py-2 rounded border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-sm text-slate-300 transition-all text-left"
+                className="px-3 py-2 rounded border border-border bg-white hover:bg-surface-muted hover:border-border-strong text-sm text-text-body transition-all text-left"
               >
                 {eq}
               </button>

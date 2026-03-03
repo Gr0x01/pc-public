@@ -34,7 +34,7 @@ function urgencyColor(score: number | null | undefined): string {
   if (score == null) return "";
   if (score >= 80) return "bg-urgent/15 text-urgent border-urgent/30";
   if (score >= 60) return "bg-amber/15 text-amber border-amber/30";
-  return "bg-slate-500/15 text-slate-400 border-slate-500/20";
+  return "bg-slate-500/10 text-slate-600 border-slate-500/20";
 }
 
 function relevanceLabel(rel: string | null): string | null {
@@ -59,12 +59,12 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
       <div className="max-w-3xl mx-auto px-6 py-8">
         <Link
           href="/app/feed"
-          className="font-mono text-sm text-slate-400 hover:text-white transition-colors inline-flex items-center gap-1 mb-6"
+          className="font-mono text-sm text-text-secondary hover:text-text-primary transition-colors inline-flex items-center gap-1 mb-6"
         >
           &larr; Feed
         </Link>
-        <div className="border border-white/10 rounded p-8 text-center">
-          <p className="text-slate-400">Item not found.</p>
+        <div className="border border-border rounded p-8 text-center">
+          <p className="text-text-secondary">Item not found.</p>
         </div>
       </div>
     );
@@ -84,7 +84,7 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
       {/* Breadcrumb */}
       <Link
         href="/app/feed"
-        className="font-mono text-sm text-slate-400 hover:text-white transition-colors inline-flex items-center gap-1 mb-6"
+        className="font-mono text-sm text-text-secondary hover:text-text-primary transition-colors inline-flex items-center gap-1 mb-6"
       >
         &larr; Feed
       </Link>
@@ -101,24 +101,24 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
             </span>
           )}
           {segment_impact?.relevance && (
-            <span className="inline-block rounded px-2 py-0.5 border bg-slate-500/15 text-slate-300 border-slate-500/30 font-mono text-[10px] uppercase tracking-wide leading-relaxed">
+            <span className="inline-block rounded px-2 py-0.5 border bg-slate-500/10 text-slate-600 border-slate-500/25 font-mono text-[10px] uppercase tracking-wide leading-relaxed">
               {relevanceLabel(segment_impact.relevance)}
             </span>
           )}
         </div>
 
-        <h1 className="font-serif text-xl md:text-2xl font-bold text-white leading-snug mb-2">
+        <h1 className="font-serif text-xl md:text-2xl font-bold text-text-primary leading-snug mb-2">
           {item.title}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-3 text-slate-400">
+        <div className="flex flex-wrap items-center gap-3 text-text-secondary">
           <span className="font-mono text-xs">
             {formatDate(item.published_date)}
           </span>
           {item.issuing_office && (
             <>
-              <span className="text-slate-600">|</span>
-              <span className="font-mono text-xs text-slate-500">
+              <span className="text-border-strong">|</span>
+              <span className="font-mono text-xs text-text-secondary">
                 {item.issuing_office}
               </span>
             </>
@@ -130,7 +130,7 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
             href={item.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 mt-3 font-mono text-xs text-slate-400 hover:text-amber transition-colors"
+            className="inline-flex items-center gap-1 mt-3 font-mono text-xs text-text-secondary hover:text-amber transition-colors"
           >
             View on FDA.gov
             <span aria-hidden="true">&nearr;</span>
@@ -149,10 +149,10 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
 
       {/* 3. What happened */}
       <section className="mb-6">
-        <h2 className="font-mono text-[10px] uppercase tracking-wider text-slate-500 mb-2">
+        <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-2">
           What Happened
         </h2>
-        <div className="text-sm text-slate-300 leading-relaxed">
+        <div className="text-sm text-text-body leading-relaxed">
           {enrichment?.summary
             ? enrichment.summary
             : item.action_text
@@ -164,16 +164,16 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
       {/* 4. Action items */}
       {segment_impact?.action_items && segment_impact.action_items.length > 0 && (
         <section className="mb-6">
-          <h2 className="font-mono text-[10px] uppercase tracking-wider text-slate-500 mb-3">
+          <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
             Action Items
           </h2>
-          <ol className="space-y-2 border-t border-white/10 pt-3">
+          <ol className="space-y-2 border-t border-border pt-3">
             {segment_impact.action_items.map((action, i) => (
               <li key={i} className="flex gap-3 text-sm">
                 <span className="font-mono text-amber font-semibold shrink-0 w-4">
                   {i + 1}.
                 </span>
-                <span className="text-slate-300">{action}</span>
+                <span className="text-text-body">{action}</span>
               </li>
             ))}
           </ol>
@@ -183,7 +183,7 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
       {/* 5. Your products affected */}
       {matched_products.length > 0 && (
         <section className="mb-6">
-          <h2 className="font-mono text-[10px] uppercase tracking-wider text-slate-500 mb-3">
+          <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
             Your Products Affected
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -203,14 +203,14 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
       {/* 6. Substances */}
       {substances.length > 0 && (
         <section className="mb-6">
-          <h2 className="font-mono text-[10px] uppercase tracking-wider text-slate-500 mb-3">
+          <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
             Substances
           </h2>
           <div className="flex flex-wrap gap-2">
             {substances.map((s, i) => (
               <span
                 key={i}
-                className="font-mono text-xs bg-white/5 border border-white/10 rounded px-2.5 py-1 text-slate-300"
+                className="font-mono text-xs bg-surface-subtle border border-border rounded px-2.5 py-1 text-text-body"
               >
                 {s.raw_substance_name}
               </span>
@@ -222,18 +222,18 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
       {/* 7. Enforcement details */}
       {enforcement && (
         <section className="mb-6">
-          <h2 className="font-mono text-[10px] uppercase tracking-wider text-slate-500 mb-3">
+          <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
             Enforcement Details
           </h2>
-          <div className="border border-white/10 bg-white/[0.03] rounded p-4 space-y-3 text-sm">
+          <div className="border border-border bg-surface-muted rounded p-4 space-y-3 text-sm">
             {enforcement.company_name && (
               <div>
-                <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wide">
+                <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                   Company
                 </span>
-                <p className="text-slate-300 mt-0.5">{enforcement.company_name}</p>
+                <p className="text-text-body mt-0.5">{enforcement.company_name}</p>
                 {enforcement.company_address && (
-                  <p className="font-mono text-xs text-slate-500 mt-0.5">
+                  <p className="font-mono text-xs text-text-secondary mt-0.5">
                     {enforcement.company_address}
                   </p>
                 )}
@@ -241,12 +241,12 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
             )}
             {enforcement.products && enforcement.products.length > 0 && (
               <div>
-                <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wide">
+                <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                   Products Cited
                 </span>
                 <ul className="mt-1 space-y-1">
                   {enforcement.products.map((p, i) => (
-                    <li key={i} className="text-slate-300 text-sm">
+                    <li key={i} className="text-text-body text-sm">
                       {p}
                     </li>
                   ))}
@@ -255,12 +255,12 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
             )}
             {enforcement.violation_types && enforcement.violation_types.length > 0 && (
               <div>
-                <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wide">
+                <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                   Violations
                 </span>
                 <ul className="mt-1 space-y-1">
                   {enforcement.violation_types.map((v, i) => (
-                    <li key={i} className="text-slate-300 text-sm">
+                    <li key={i} className="text-text-body text-sm">
                       {v}
                     </li>
                   ))}
@@ -269,10 +269,10 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
             )}
             {enforcement.recall_classification && (
               <div>
-                <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wide">
+                <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                   Recall Classification
                 </span>
-                <p className="text-slate-300 mt-0.5">
+                <p className="text-text-body mt-0.5">
                   {enforcement.recall_classification}
                 </p>
               </div>
@@ -280,19 +280,19 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
             {enforcement.fei_number && (
               <div className="flex gap-4">
                 <div>
-                  <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wide">
+                  <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                     FEI
                   </span>
-                  <p className="font-mono text-xs text-slate-400 mt-0.5">
+                  <p className="font-mono text-xs text-text-secondary mt-0.5">
                     {enforcement.fei_number}
                   </p>
                 </div>
                 {enforcement.marcs_cms_number && (
                   <div>
-                    <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wide">
+                    <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                       MARCS-CMS
                     </span>
-                    <p className="font-mono text-xs text-slate-400 mt-0.5">
+                    <p className="font-mono text-xs text-text-secondary mt-0.5">
                       {enforcement.marcs_cms_number}
                     </p>
                   </div>
@@ -304,15 +304,15 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
       )}
 
       {/* 8. Source footer */}
-      <div className="border-t border-white/10 pt-4 mt-8">
-        <p className="font-mono text-xs text-slate-500">
+      <div className="border-t border-border pt-4 mt-8">
+        <p className="font-mono text-xs text-text-secondary">
           Source:{" "}
           {item.source_url ? (
             <a
               href={item.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-400 hover:text-amber transition-colors"
+              className="text-text-secondary hover:text-amber transition-colors"
             >
               {item.source_url}
             </a>
@@ -320,11 +320,11 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
             "N/A"
           )}
           {" "}
-          <span className="text-slate-600">|</span>{" "}
+          <span className="text-border-strong">|</span>{" "}
           Published {formatDate(item.published_date)}
         </p>
         {item.cfr_references && item.cfr_references.length > 0 && (
-          <p className="font-mono text-xs text-slate-500 mt-1">
+          <p className="font-mono text-xs text-text-secondary mt-1">
             CFR References:{" "}
             {item.cfr_references
               .map((ref) => `${ref.title} CFR Part ${ref.part}`)

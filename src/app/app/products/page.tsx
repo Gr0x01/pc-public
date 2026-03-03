@@ -68,18 +68,18 @@ export default async function ProductsPage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
       <div className="mb-8">
-        <h1 className="font-serif text-2xl font-bold text-white mb-1">
+        <h1 className="font-serif text-2xl font-bold text-text-primary mb-1">
           Your Products
         </h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-text-secondary">
           Monitored products and their regulatory status.
         </p>
       </div>
 
       {products.length === 0 ? (
-        <div className="border border-white/10 rounded p-8 text-center">
-          <p className="text-slate-400 text-sm">No products added yet.</p>
-          <p className="text-slate-500 text-xs mt-1 font-mono">
+        <div className="border border-border rounded p-8 text-center">
+          <p className="text-text-secondary text-sm">No products added yet.</p>
+          <p className="text-text-secondary text-xs mt-1 font-mono">
             Product onboarding coming soon.
           </p>
         </div>
@@ -87,7 +87,7 @@ export default async function ProductsPage() {
         <div className="space-y-8">
           {sections.map((section) => (
             <div key={section.key}>
-              <h2 className="font-mono text-[10px] uppercase tracking-wider text-slate-500 mb-3">
+              <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
                 {section.title}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
