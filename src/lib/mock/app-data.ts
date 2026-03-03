@@ -31,6 +31,8 @@ export interface FeedItemEnriched {
   // From segment_impacts (null if no match)
   relevance: RelevanceLevel | null;
   impact_summary: string | null;
+  action_items: string[] | null;
+  deadline: string | null;
   // From product_matches (for current user)
   matched_products: Array<{ id: string; name: string }>;
 }
@@ -78,6 +80,12 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     relevance: "critical",
     impact_summary:
       "Direct substance match: marine collagen. Your Marine Collagen Powder uses the same ingredient cited in this warning letter. Audit identity testing protocols immediately.",
+    action_items: [
+      "Audit identity testing protocols against 21 CFR 111.75(a)(1)(ii)",
+      "Verify COA includes marine collagen-specific identity tests, not generic protein analysis",
+      "Confirm per-batch testing with your contract manufacturer",
+    ],
+    deadline: null,
     matched_products: [{ id: "prod-001", name: "Marine Collagen Powder" }],
   },
   {
@@ -95,6 +103,11 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     relevance: "high",
     impact_summary:
       "Category overlap: collagen supplements. Review your allergen declaration for Marine Collagen Powder against current labeling requirements.",
+    action_items: [
+      "Review allergen declaration on Marine Collagen Powder label against current requirements",
+      "Confirm finished product testing for milk allergens with your contract manufacturer",
+    ],
+    deadline: null,
     matched_products: [{ id: "prod-001", name: "Marine Collagen Powder" }],
   },
   {
@@ -112,6 +125,11 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     relevance: "high",
     impact_summary:
       "Your BHA Eye Cream SPF 15 contains BHA at concentrations that may require reformulation before final guidance.",
+    action_items: [
+      "Review current BHA concentration against proposed thresholds in the draft guidance",
+      "Consult formulation team on reformulation feasibility before comment period closes",
+    ],
+    deadline: "2026-06-15",
     matched_products: [{ id: "prod-002", name: "BHA Eye Cream SPF 15" }],
   },
   {
@@ -129,6 +147,11 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     relevance: "critical",
     impact_summary:
       "Direct impact: strengthened identity testing requirements for marine-sourced materials affect your Marine Collagen Powder formulation.",
+    action_items: [
+      "Ensure identity testing procedures are updated to comply with new requirements by August 15, 2026",
+      "Document all testing protocols in your SOP with effective date notation",
+    ],
+    deadline: "2026-08-15",
     matched_products: [{ id: "prod-001", name: "Marine Collagen Powder" }],
   },
   {
@@ -145,6 +168,8 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     urgency_score: 40,
     relevance: "medium",
     impact_summary: null,
+    action_items: null,
+    deadline: null,
     matched_products: [],
   },
   {
@@ -160,6 +185,8 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     urgency_score: null,
     relevance: null,
     impact_summary: null,
+    action_items: null,
+    deadline: null,
     matched_products: [],
   },
   {
@@ -177,6 +204,10 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     relevance: "medium",
     impact_summary:
       "Your Turmeric Joint Formula uses turmeric extract. Verify heavy metal testing certificates with your supplier.",
+    action_items: [
+      "Request updated heavy metal testing certificates from your turmeric extract supplier",
+    ],
+    deadline: null,
     matched_products: [{ id: "prod-004", name: "Turmeric Joint Formula" }],
   },
   {
@@ -192,6 +223,8 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     urgency_score: null,
     relevance: null,
     impact_summary: null,
+    action_items: null,
+    deadline: null,
     matched_products: [],
   },
   {
@@ -209,6 +242,11 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     relevance: "high",
     impact_summary:
       "All supplement products affected. You have 4 supplement products that would require listing under this proposed rule.",
+    action_items: [
+      "Review the proposed mandatory listing requirements and assess compliance timelines",
+      "Submit comments by April 28, 2026 if you want to influence the final rule",
+    ],
+    deadline: "2026-04-28",
     matched_products: [
       { id: "prod-001", name: "Marine Collagen Powder" },
       { id: "prod-003", name: "Biotin Complex 5000mcg" },
@@ -231,6 +269,10 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     relevance: "medium",
     impact_summary:
       "Your BHA Eye Cream SPF 15 is a cosmetic with SPF claims. Review safety substantiation documentation against updated guidance.",
+    action_items: [
+      "Review safety substantiation documentation for BHA Eye Cream against updated MoCRA guidance",
+    ],
+    deadline: null,
     matched_products: [{ id: "prod-002", name: "BHA Eye Cream SPF 15" }],
   },
 ];
@@ -282,6 +324,8 @@ export const MOCK_ITEM_DETAIL: ItemDetailData = {
     enrichment_model: "claude-sonnet-4-6",
     enrichment_version: 1,
     confidence: 0.95,
+    regulatory_action_type: "cgmp_violation",
+    deadline: null,
     verification_status: "verified",
     raw_response: null,
     created_at: "2026-02-28T14:30:00Z",
