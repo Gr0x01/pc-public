@@ -1,5 +1,6 @@
-import { MOCK_PRODUCTS, MOCK_PRODUCT_MATCHES } from "@/lib/mock/app-data";
+import { MOCK_PRODUCTS, MOCK_PRODUCT_MATCHES, MOCK_FEED_ITEMS } from "@/lib/mock/app-data";
 import type { SubscriberProduct } from "@/types/database";
+import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import ProductsPageClient from "@/components/app/ProductsPageClient";
 
 const USE_MOCK = true;
@@ -10,6 +11,7 @@ interface ProductWithStatus {
   product: SubscriberProduct;
   matchCount: number;
   status: ProductStatus;
+  matches: FeedItemEnriched[];
 }
 
 function deriveStatus(product: SubscriberProduct): ProductStatus {
@@ -30,11 +32,17 @@ export default async function ProductsPage() {
   let products: ProductWithStatus[] = [];
 
   if (USE_MOCK) {
-    products = MOCK_PRODUCTS.map((p) => ({
-      product: p,
-      matchCount: MOCK_PRODUCT_MATCHES.filter((m) => m.product_id === p.id).length,
-      status: deriveStatus(p),
-    }));
+    products = MOCK_PRODUCTS.map((p) => {
+      const matches = MOCK_FEED_ITEMS.filter((item) =>
+        item.matched_products.some((mp) => mp.id === p.id)
+      );
+      return {
+        product: p,
+        matchCount: matches.length,
+        status: deriveStatus(p),
+        matches,
+      };
+    });
   }
 
   const urgent = products.filter((p) => p.status === "urgent");

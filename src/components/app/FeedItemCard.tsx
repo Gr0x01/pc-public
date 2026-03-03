@@ -1,15 +1,7 @@
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
+import { formatDateShort } from "@/lib/utils/format";
 import ItemTypeTag from "./ItemTypeTag";
 import ProductMatchBadge from "./ProductMatchBadge";
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 interface FeedItemCardProps {
   item: FeedItemEnriched;
@@ -19,7 +11,7 @@ interface FeedItemCardProps {
 
 export default function FeedItemCard({ item, isSelected, onSelect }: FeedItemCardProps) {
   const hasEnrichment = item.summary !== null;
-  const isUrgent = item.urgency_score !== null && item.urgency_score >= 70;
+  const isUrgent = item.urgency_score !== null && item.urgency_score >= 80;
 
   return (
     <button
@@ -39,7 +31,7 @@ export default function FeedItemCard({ item, isSelected, onSelect }: FeedItemCar
           )}
         </div>
         <span className="font-mono text-[10px] text-text-secondary shrink-0">
-          {formatDate(item.published_date)}
+          {formatDateShort(item.published_date)}
         </span>
       </div>
 

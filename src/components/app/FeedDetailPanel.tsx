@@ -1,24 +1,8 @@
+import Link from "next/link";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
+import { formatDate } from "@/lib/utils/format";
 import ItemTypeTag from "./ItemTypeTag";
 import ProductMatchBadge from "./ProductMatchBadge";
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatDeadline(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 function urgencyBadge(score: number): { label: string; className: string } | null {
   if (score >= 80) return { label: "Urgent", className: "bg-urgent/10 text-urgent border-urgent/30" };
@@ -92,7 +76,7 @@ export default function FeedDetailPanel({ item, onClose }: FeedDetailPanelProps)
       {item.deadline && (
         <div className="border border-amber/20 bg-amber/5 rounded px-4 py-3 mb-6">
           <p className="font-semibold text-sm text-amber">
-            Deadline: {formatDeadline(item.deadline)}
+            Deadline: {formatDate(item.deadline)}
           </p>
         </div>
       )}
@@ -146,14 +130,23 @@ export default function FeedDetailPanel({ item, onClose }: FeedDetailPanelProps)
         </div>
       )}
 
-      {/* Source footer */}
+      {/* View full detail */}
       <div className="border-t border-border pt-4 mt-2">
-        <p className="font-mono text-xs text-text-secondary break-all">
-          Published {formatDate(item.published_date)}
-          {item.source_url && (
-            <> · <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="hover:text-amber transition-colors">{item.source_url}</a></>
-          )}
-        </p>
+        <Link
+          href={`/app/items/${item.id}`}
+          className="inline-flex items-center gap-1 font-mono text-xs text-text-secondary hover:text-amber transition-colors"
+        >
+          View full detail &rarr;
+        </Link>
+        {item.source_url && (
+          <p className="font-mono text-xs text-text-secondary mt-2 break-all">
+            Published {formatDate(item.published_date)}
+            {" · "}
+            <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="hover:text-amber transition-colors">
+              {item.source_url}
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );

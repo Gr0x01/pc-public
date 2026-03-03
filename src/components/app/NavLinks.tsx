@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/app/feed", label: "Feed" },
-  { href: "/app/search", label: "Search" },
-  { href: "/app/products", label: "Products" },
+  { href: "/app/feed", label: "Feed", matchPrefixes: ["/app/feed", "/app/items"] },
+  { href: "/app/search", label: "Search", matchPrefixes: ["/app/search"] },
+  { href: "/app/products", label: "Products", matchPrefixes: ["/app/products"] },
 ] as const;
 
 export default function NavLinks() {
@@ -15,7 +15,7 @@ export default function NavLinks() {
   return (
     <nav className="flex items-center gap-1">
       {NAV_ITEMS.map((item) => {
-        const isActive = pathname.startsWith(item.href);
+        const isActive = item.matchPrefixes.some((p) => pathname.startsWith(p));
         return (
           <Link
             key={item.href}

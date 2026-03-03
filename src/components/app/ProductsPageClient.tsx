@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { SubscriberProduct } from "@/types/database";
+import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import ProductStatusCard from "./ProductStatusCard";
 import ProductDetailPanel from "./ProductDetailPanel";
 
@@ -11,6 +12,7 @@ interface ProductWithStatus {
   product: SubscriberProduct;
   matchCount: number;
   status: ProductStatus;
+  matches: FeedItemEnriched[];
 }
 
 interface ProductsPageClientProps {
@@ -21,7 +23,6 @@ interface ProductsPageClientProps {
 export default function ProductsPageClient({ sections, isEmpty }: ProductsPageClientProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Find the selected product + its status across all sections
   const allProducts = sections.flatMap((s) => s.items);
   const selectedEntry = allProducts.find((p) => p.product.id === selectedId) ?? null;
   const sidebarOpen = selectedId !== null;
@@ -87,6 +88,7 @@ export default function ProductsPageClient({ sections, isEmpty }: ProductsPageCl
           <ProductDetailPanel
             product={selectedEntry?.product ?? null}
             status={selectedEntry?.status ?? null}
+            matches={selectedEntry?.matches ?? []}
             onClose={() => setSelectedId(null)}
           />
         </div>

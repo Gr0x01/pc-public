@@ -1,33 +1,16 @@
 import Link from "next/link";
-import { MOCK_ITEM_DETAIL } from "@/lib/mock/app-data";
+import { MOCK_ITEM_DETAIL, MOCK_FEED_ITEMS } from "@/lib/mock/app-data";
 import type { ItemDetailData } from "@/lib/mock/app-data";
+import { formatDate } from "@/lib/utils/format";
 import ItemTypeTag from "@/components/app/ItemTypeTag";
 
 const USE_MOCK = true;
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatDeadline(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 function urgencyLabel(score: number | null | undefined): string | null {
   if (score == null) return null;
   if (score >= 80) return "Urgent";
   if (score >= 60) return "Watch";
-  return "Informational";
+  return null;
 }
 
 function urgencyColor(score: number | null | undefined): string {
@@ -44,24 +27,103 @@ function relevanceLabel(rel: string | null): string | null {
 
 interface ItemDetailPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }
 
-export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
+export default async function ItemDetailPage({ params, searchParams }: ItemDetailPageProps) {
   const { id } = await params;
+  const { from } = await searchParams;
+
+  const backHref = from === "products" ? "/app/products" : "/app/feed";
+  const backLabel = from === "products" ? "Products" : "Feed";
+
   let detail: ItemDetailData | null = null;
+  // urgency_score comes from FeedItemEnriched directly; ItemEnrichment uses confidence
+  let urgencyScore: number | null = null;
 
   if (USE_MOCK) {
-    detail = MOCK_ITEM_DETAIL;
+    const feedItem = MOCK_FEED_ITEMS.find((i) => i.id === id);
+    if (feedItem) {
+      urgencyScore = feedItem.urgency_score;
+      detail = {
+        item: {
+          id: feedItem.id,
+          source_id: "mock",
+          source_ref: feedItem.id,
+          title: feedItem.title,
+          item_type: feedItem.item_type,
+          published_date: feedItem.published_date,
+          source_url: feedItem.source_url,
+          issuing_office: feedItem.issuing_office,
+          action_text: feedItem.summary,
+          cfr_references: null,
+          raw_content: null,
+          jurisdiction: "federal",
+          jurisdiction_state: null,
+          effective_date: null,
+          comment_deadline: null,
+          docket_number: null,
+          fr_citation: null,
+          page_views: null,
+          significant: null,
+          processing_status: "ok",
+          processing_error: null,
+          created_at: feedItem.published_date,
+          updated_at: feedItem.published_date,
+        },
+        enrichment: feedItem.summary
+          ? {
+              id: `enr-${feedItem.id}`,
+              item_id: feedItem.id,
+              summary: feedItem.summary,
+              key_regulations: null,
+              key_entities: null,
+              enrichment_model: "mock",
+              enrichment_version: 1,
+              confidence: feedItem.urgency_score ? feedItem.urgency_score / 100 : null,
+              verification_status: "unverified",
+              raw_response: null,
+              regulatory_action_type: null,
+              deadline: feedItem.deadline ?? null,
+              created_at: feedItem.published_date,
+            }
+          : null,
+        segment_impact: feedItem.impact_summary
+          ? {
+              id: `si-${feedItem.id}`,
+              item_id: feedItem.id,
+              category_id: "seg-001",
+              relevance: feedItem.relevance ?? "medium",
+              impact_summary: feedItem.impact_summary,
+              action_items: feedItem.action_items,
+              who_affected: null,
+              deadline: feedItem.deadline ?? null,
+              published_date: feedItem.published_date,
+              verification_status: "unverified",
+              created_at: feedItem.published_date,
+            }
+          : null,
+        substances: [],
+        enforcement: null,
+        matched_products: feedItem.matched_products,
+      };
+    } else {
+      // Fallback for IDs not in MOCK_FEED_ITEMS
+      detail = MOCK_ITEM_DETAIL;
+      urgencyScore = detail.enrichment?.confidence
+        ? Math.round(detail.enrichment.confidence * 100)
+        : null;
+    }
   }
 
   if (!detail) {
     return (
       <div className="max-w-3xl mx-auto px-6 py-8">
         <Link
-          href="/app/feed"
+          href={backHref}
           className="font-mono text-sm text-text-secondary hover:text-text-primary transition-colors inline-flex items-center gap-1 mb-6"
         >
-          &larr; Feed
+          &larr; {backLabel}
         </Link>
         <div className="border border-border rounded p-8 text-center">
           <p className="text-text-secondary">Item not found.</p>
@@ -70,23 +132,16 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
     );
   }
 
-  const { item, enrichment, segment_impact, substances, enforcement, matched_products } =
-    detail;
-
-  // Derive urgency from enrichment confidence or a mock score
-  // In the mock, we derive it from the feed item's urgency_score
-  const urgencyScore = enrichment?.confidence
-    ? Math.round(enrichment.confidence * 100)
-    : 92; // fallback for the mock collagen item
+  const { item, enrichment, segment_impact, substances, enforcement, matched_products } = detail;
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
       {/* Breadcrumb */}
       <Link
-        href="/app/feed"
+        href={backHref}
         className="font-mono text-sm text-text-secondary hover:text-text-primary transition-colors inline-flex items-center gap-1 mb-6"
       >
-        &larr; Feed
+        &larr; {backLabel}
       </Link>
 
       {/* 1. Header */}
@@ -142,7 +197,7 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
       {segment_impact?.deadline && (
         <div className="border border-amber/20 bg-amber/5 rounded px-4 py-3 mb-6">
           <p className="font-semibold text-sm text-amber">
-            Deadline: {formatDeadline(segment_impact.deadline)}
+            Deadline: {formatDate(segment_impact.deadline)}
           </p>
         </div>
       )}
@@ -157,7 +212,7 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
             ? enrichment.summary
             : item.action_text
               ? item.action_text
-              : "Analysis pending -- enrichment in progress."}
+              : "Analysis pending — enrichment in progress."}
         </div>
       </section>
 

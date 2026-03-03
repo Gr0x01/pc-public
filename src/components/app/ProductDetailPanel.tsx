@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { SubscriberProduct } from "@/types/database";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
-import { MOCK_FEED_ITEMS } from "@/lib/mock/app-data";
+import { formatDateShort } from "@/lib/utils/format";
 import ItemTypeTag from "./ItemTypeTag";
 
 type ProductStatus = "urgent" | "review" | "clear";
@@ -18,26 +18,17 @@ const TYPE_LABELS: Record<string, string> = {
   cosmetic: "Cosmetic",
 };
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
 interface ProductDetailPanelProps {
   product: SubscriberProduct | null;
   status: ProductStatus | null;
+  matches: FeedItemEnriched[];
   onClose: () => void;
 }
 
-export default function ProductDetailPanel({ product, status, onClose }: ProductDetailPanelProps) {
+export default function ProductDetailPanel({ product, status, matches, onClose }: ProductDetailPanelProps) {
   if (!product || !status) return null;
 
   const cfg = STATUS_CONFIG[status];
-
-  // Find all feed items that match this product
-  const matches: FeedItemEnriched[] = MOCK_FEED_ITEMS.filter((item) =>
-    item.matched_products.some((p) => p.id === product.id)
-  );
 
   return (
     <div className="px-6 py-6">
@@ -88,13 +79,13 @@ export default function ProductDetailPanel({ product, status, onClose }: Product
             {matches.map((item) => (
               <Link
                 key={item.id}
-                href={`/app/items/${item.id}`}
+                href={`/app/items/${item.id}?from=products`}
                 className="block border border-border rounded p-3 bg-white hover:bg-surface-muted hover:border-border-strong transition-all duration-100"
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <ItemTypeTag type={item.item_type} />
                   <span className="font-mono text-[10px] text-text-secondary shrink-0">
-                    {formatDate(item.published_date)}
+                    {formatDateShort(item.published_date)}
                   </span>
                 </div>
                 <p className="text-sm font-serif font-semibold text-text-primary leading-snug line-clamp-2 mb-1">
