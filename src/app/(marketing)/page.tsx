@@ -3,7 +3,6 @@ import Hero from "@/components/marketing/Hero";
 import FeatureComparison from "@/components/marketing/FeatureComparison";
 import ProductShowcase from "@/components/marketing/ProductShowcase";
 import BuyerRoleCard from "@/components/marketing/BuyerRoleCard";
-import HowItWorksSection from "@/components/marketing/HowItWorksSection";
 import { RevealSection } from "@/components/marketing/RevealSection";
 import { SignupForm } from "@/components/marketing/SignupForm";
 import { StatCounter } from "@/components/marketing/StatCounter";
@@ -48,7 +47,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4">
-              <div className="text-center card-surface rounded-lg p-6">
+              <div className="text-center p-6">
                 <p className="text-5xl md:text-8xl font-bold text-text-primary mb-2">
                   <StatCounter end={3859} />
                 </p>
@@ -59,7 +58,7 @@ export default function LandingPage() {
                   Since Jan 2025 — DOGE workforce reductions.
                 </p>
               </div>
-              <div className="text-center card-surface rounded-lg p-6">
+              <div className="text-center p-6">
                 <p className="text-5xl md:text-8xl font-bold text-text-primary mb-2">
                   <StatCounter end={1200} suffix="+" />
                 </p>
@@ -70,12 +69,12 @@ export default function LandingPage() {
                   Each one names specific products, violations, and deadlines.
                 </p>
               </div>
-              <div className="text-center card-surface rounded-lg p-6">
+              <div className="text-center p-6">
                 <p className="text-5xl md:text-8xl font-bold text-text-primary mb-2">
-                  <StatCounter end={15} suffix=" days" />
+                  <StatCounter end={15} />
                 </p>
                 <p className="font-mono text-xs text-text-secondary uppercase tracking-widest mb-2">
-                  To respond
+                  Days to respond
                 </p>
                 <p className="text-xs text-text-secondary">
                   15 business days to reply before escalation to import alerts.
@@ -85,9 +84,6 @@ export default function LandingPage() {
           </div>
         </section>
       </RevealSection>
-
-      {/* How It Works */}
-      <HowItWorksSection />
 
       {/* Who It's For — handles its own staggered reveal */}
       <BuyerRoleCard />
