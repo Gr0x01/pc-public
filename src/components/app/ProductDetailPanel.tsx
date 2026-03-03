@@ -88,7 +88,7 @@ export default function ProductDetailPanel({ product, status, onClose }: Product
             {matches.map((item) => (
               <Link
                 key={item.id}
-                href={`/app/feed?item=${item.id}`}
+                href={`/app/items/${item.id}`}
                 className="block border border-border rounded p-3 bg-white hover:bg-surface-muted hover:border-border-strong transition-all duration-100"
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">

@@ -8,11 +8,10 @@ import FeedDetailPanel from "./FeedDetailPanel";
 
 interface FeedPageClientProps {
   items: FeedItemEnriched[];
-  initialSelectedId?: string | null;
 }
 
-export default function FeedPageClient({ items, initialSelectedId = null }: FeedPageClientProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
+export default function FeedPageClient({ items }: FeedPageClientProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
   const sidebarOpen = selectedId !== null;

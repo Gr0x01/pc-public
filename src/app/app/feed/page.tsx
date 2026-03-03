@@ -52,7 +52,7 @@ function filterItems(
 }
 
 interface FeedPageProps {
-  searchParams: Promise<{ type?: string; range?: string; myProducts?: string; item?: string }>;
+  searchParams: Promise<{ type?: string; range?: string; myProducts?: string }>;
 }
 
 export default async function FeedPage({ searchParams }: FeedPageProps) {
@@ -60,11 +60,10 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   const type = params.type ?? null;
   const range = params.range ?? null;
   const myProducts = params.myProducts === "true";
-  const initialSelectedId = params.item ?? null;
 
   const items: FeedItemEnriched[] = USE_MOCK
     ? filterItems(MOCK_FEED_ITEMS, type, range, myProducts)
     : [];
 
-  return <FeedPageClient items={items} initialSelectedId={initialSelectedId} />;
+  return <FeedPageClient items={items} />;
 }
