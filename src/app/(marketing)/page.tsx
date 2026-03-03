@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Hero from "@/components/marketing/Hero";
 import FeatureComparison from "@/components/marketing/FeatureComparison";
+import ProductShowcase from "@/components/marketing/ProductShowcase";
 import BuyerRoleCard from "@/components/marketing/BuyerRoleCard";
 import { RevealSection } from "@/components/marketing/RevealSection";
 import { SignupForm } from "@/components/marketing/SignupForm";
@@ -21,6 +22,11 @@ export default function LandingPage() {
       {/* Feature Comparison — moved up to 2nd position */}
       <RevealSection delay={0.05}>
         <FeatureComparison />
+      </RevealSection>
+
+      {/* Product Dashboard Showcase */}
+      <RevealSection>
+        <ProductShowcase />
       </RevealSection>
 
       {/* Stats — dark gradient background */}
@@ -83,45 +89,72 @@ export default function LandingPage() {
 
       {/* How It Works */}
       <RevealSection delay={0.1}>
-        <section className="bg-white py-24 px-6">
-          <div className="max-w-5xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
-              How it works
-            </h2>
-            <p className="text-text-secondary mb-12 max-w-xl mx-auto">
-              Three steps from FDA action to your inbox — all automated.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <section className="bg-surface-muted py-24 px-6">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
+                How it works
+              </h2>
+              <p className="text-text-secondary max-w-xl mx-auto">
+                Three steps from FDA action to your inbox — all automated.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 {
-                  step: "1",
+                  step: "01",
                   title: "Monitor",
                   body: "We watch Federal Register documents, FDA warning letters, openFDA enforcement actions, and RSS feeds — continuously.",
+                  tags: ["FDA Warning Letters", "Federal Register", "openFDA", "RSS Feeds"],
+                  stat: null,
                 },
                 {
-                  step: "2",
+                  step: "02",
                   title: "Analyze",
-                  body: "We match each action against your products by name and ingredient. Only relevant changes trigger a deeper analysis.",
+                  body: "We match each action against your products by name and ingredient. Only relevant changes trigger a full analysis.",
+                  tags: null,
+                  stat: "32 products checked · 3 affected",
                 },
                 {
-                  step: "3",
+                  step: "03",
                   title: "Alert",
-                  body: "You get a product-specific email with what happened, which of your products are affected, and exactly what to do.",
+                  body: "You get a product-specific email with what happened, which products are affected, and exactly what to do.",
+                  tags: null,
+                  stat: "< 24 hrs from FDA publish to your inbox",
                 },
-              ].map(({ step, title, body }) => (
-                <div key={step} className="text-left relative">
-                  <p
-                    className="text-8xl font-bold text-slate-100 leading-none mb-2 select-none"
-                    aria-hidden="true"
-                  >
-                    {step}
-                  </p>
-                  <h3 className="text-lg font-bold text-text-primary mb-2 -mt-4">
-                    {title}
-                  </h3>
-                  <p className="text-sm text-text-secondary leading-relaxed">
+              ].map(({ step, title, body, tags, stat }) => (
+                <div
+                  key={step}
+                  className="bg-white rounded border border-border p-6 shadow-sm"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="font-mono text-xs font-bold text-amber bg-amber-muted rounded px-2 py-0.5">
+                      {step}
+                    </span>
+                    <h3 className="text-lg font-bold text-text-primary">
+                      {title}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-text-secondary leading-relaxed mb-4">
                     {body}
                   </p>
+                  {tags && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="font-mono text-[10px] text-text-secondary bg-surface-subtle border border-border rounded px-1.5 py-0.5"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {stat && (
+                    <p className="font-mono text-xs text-text-secondary">
+                      {stat}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
