@@ -17,7 +17,10 @@
     "pipeline:wl-incremental": "npx tsx scripts/run-fetcher.ts wl-incremental",
     "pipeline:rss-poll": "npx tsx scripts/run-fetcher.ts rss-poll",
     "pipeline:enrich": "npx tsx scripts/run-enrichment.ts",
-    "pipeline:enrich-test": "npx tsx scripts/run-enrichment.ts --limit 5"
+    "pipeline:enrich-test": "npx tsx scripts/run-enrichment.ts --limit 5",
+    "pipeline:content-fetch-test": "npx tsx scripts/test-content-fetch.ts",
+    "pipeline:golden": "npx tsx scripts/run-golden-tests.ts",
+    "pipeline:golden-enrich": "npx tsx scripts/run-golden-tests.ts --enrich"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.53",

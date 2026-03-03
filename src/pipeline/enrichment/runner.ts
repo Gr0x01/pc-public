@@ -13,6 +13,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { enrichItem, loadCategoryIdMap } from "./processor";
 import { generateItemEmbeddings } from "./embeddings";
+import { fetchSourceContent } from "./content-fetch";
 import { sleep, logPipelineRun } from "../fetchers/utils";
 import type { RegulatoryItem } from "../../types/database";
 
@@ -39,6 +40,7 @@ export interface EnrichmentRunResult {
   processed: number;
   enriched: number;
   embedded: number;
+  contentFetched: number;
   errors: number;
   skipped: number;
   durationMs: number;
@@ -105,12 +107,12 @@ export async function runEnrichment(
 
   if (!items || items.length === 0) {
     console.log("No unenriched items found.");
-    return { processed: 0, enriched: 0, embedded: 0, errors: 0, skipped: 0, durationMs: Date.now() - startTime };
+    return { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, errors: 0, skipped: 0, durationMs: Date.now() - startTime };
   }
 
   console.log(`Found ${items.length} items to enrich (limit: ${limit})`);
 
-  const counters = { processed: 0, enriched: 0, embedded: 0, errors: 0, skipped: 0 };
+  const counters = { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, errors: 0, skipped: 0 };
 
   // 3. Process sequentially (rate limit safety)
   for (const item of items as RegulatoryItem[]) {
@@ -118,7 +120,24 @@ export async function runEnrichment(
     const label = `[${counters.processed}/${items.length}] ${item.item_type} — ${item.title.slice(0, 60)}`;
     process.stdout.write(`${label}... `);
 
-    // a. Enrich
+    // a. Fetch full page content if source_url points to FDA.gov
+    if (item.source_url && /^https?:\/\/www\.fda\.gov\//.test(item.source_url)) {
+      const { content, error: fetchErr } = await fetchSourceContent(item.source_url);
+      if (content && content.length > (item.raw_content?.length ?? 0)) {
+        await supabase
+          .from("regulatory_items")
+          .update({ raw_content: content })
+          .eq("id", item.id);
+        item.raw_content = content;
+        counters.contentFetched++;
+        console.log(`fetched ${content.length} chars... `);
+      } else if (fetchErr) {
+        console.log(`content-fetch skipped (${fetchErr})... `);
+      }
+      await sleep(200);
+    }
+
+    // b. Enrich
     const enrichResult = await enrichItem(item, supabase, categoryIdMap, google);
 
     if (!enrichResult.ok || !enrichResult.enrichmentId) {
@@ -151,7 +170,7 @@ export async function runEnrichment(
     // Log progress every 10 items
     if (counters.processed % 10 === 0) {
       console.log(
-        `\nProgress: ${counters.processed}/${items.length} | enriched=${counters.enriched} embedded=${counters.embedded} errors=${counters.errors}\n`
+        `\nProgress: ${counters.processed}/${items.length} | enriched=${counters.enriched} embedded=${counters.embedded} contentFetched=${counters.contentFetched} errors=${counters.errors}\n`
       );
     }
 

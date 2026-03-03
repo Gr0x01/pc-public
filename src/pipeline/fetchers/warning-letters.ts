@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FetcherResult } from "./utils";
-import { sleep, logPipelineRun } from "./utils";
+import { sleep, logPipelineRun, stripHtml, extractMainContent } from "./utils";
 import { WLAjaxResponseSchema } from "./schemas/warning-letters";
 
 // ---------------------------------------------------------------------------
@@ -97,32 +97,6 @@ function extractMarcsNumber(html: string): string | null {
   return match ? match[1] : null;
 }
 
-/** Strip all HTML tags from a string */
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/\s{2,}/g, " ")
-    .trim();
-}
-
-/**
- * Extract the <main>...</main> content block from a page's HTML.
- * Falls back to <body> if no <main> tag present.
- */
-function extractMainContent(html: string): string {
-  const mainMatch = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
-  if (mainMatch) return stripHtml(mainMatch[1]);
-
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  if (bodyMatch) return stripHtml(bodyMatch[1]);
-
-  return stripHtml(html);
-}
 
 /**
  * Extract recipient name and title from the "Dear [Name]," salutation.

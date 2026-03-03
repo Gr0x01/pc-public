@@ -64,6 +64,37 @@ export function dateWindowsFor(
 }
 
 // ---------------------------------------------------------------------------
+// HTML helpers
+// ---------------------------------------------------------------------------
+
+/** Strip all HTML tags from a string */
+export function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/**
+ * Extract the <main>...</main> content block from a page's HTML.
+ * Falls back to <body> if no <main> tag present.
+ */
+export function extractMainContent(html: string): string {
+  const mainMatch = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  if (mainMatch) return stripHtml(mainMatch[1]);
+
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (bodyMatch) return stripHtml(bodyMatch[1]);
+
+  return stripHtml(html);
+}
+
+// ---------------------------------------------------------------------------
 // Async helpers
 // ---------------------------------------------------------------------------
 

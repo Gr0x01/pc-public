@@ -193,7 +193,7 @@ async function lookupSubstance(
 
     return {
       substance_id: best.substance_id,
-      match_status: best.similarity_score >= 0.9 ? "resolved" : "low_confidence",
+      match_status: best.similarity_score >= 0.9 ? "resolved" : "pending",
     };
   } catch (err) {
     console.warn(`GSRS lookup exception for "${name}": ${err instanceof Error ? err.message : String(err)}`);
@@ -212,6 +212,23 @@ export async function enrichItem(
   google: ReturnType<typeof createGoogleGenerativeAI>
 ): Promise<EnrichItemResult> {
   try {
+    // 0. Clean up any partial/stale v1 enrichment (makes retries idempotent)
+    const { data: existing } = await supabase
+      .from("item_enrichments")
+      .select("id")
+      .eq("item_id", item.id)
+      .eq("enrichment_version", 1)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase.from("item_citations").delete().eq("enrichment_id", existing.id);
+      await supabase.from("item_enrichments").delete().eq("id", existing.id);
+      await supabase.from("segment_impacts").delete().eq("item_id", item.id);
+      await supabase.from("regulatory_item_substances").delete().eq("regulatory_item_id", item.id);
+      await supabase.from("item_enrichment_tags").delete().eq("item_id", item.id);
+      await supabase.from("item_categories").delete().eq("item_id", item.id);
+    }
+
     // 1. Build prompt + select model
     const prompt = buildEnrichmentPrompt(item);
     const model = routeModel(item, google);
@@ -226,6 +243,12 @@ export async function enrichItem(
 
     // 3. Apply rule validators
     const output = applyRuleValidators(rawOutput, item);
+
+    // 3b. Normalize deadline to ISO date or null
+    if (output.deadline) {
+      const isoMatch = output.deadline.match(/\d{4}-\d{2}-\d{2}/);
+      output.deadline = isoMatch ? isoMatch[0] : null;
+    }
 
     // 4. Filter topics to controlled vocab only
     const validTopicSlugs = new Set<string>(TOPIC_SLUGS);
@@ -309,7 +332,10 @@ export async function enrichItem(
         extraction_method: "llm_extraction",
         confidence: output.confidence,
       });
-      if (subErr) throw new Error(`regulatory_item_substances insert (${ingredient}): ${subErr.message}`);
+      if (subErr) {
+        // Non-fatal: substance resolution is best-effort; log and continue
+        console.warn(`  substance insert failed (${ingredient}): ${subErr.message}`);
+      }
     }
 
     // 5e. INSERT item_enrichment_tags (category-level signals — all 4 dimensions)
