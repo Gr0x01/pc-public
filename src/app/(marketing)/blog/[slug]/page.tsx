@@ -87,14 +87,14 @@ export default async function BlogPostPage({
         <div className="mb-8">
           <Link
             href="/blog"
-            className="text-sm text-text-secondary hover:text-accent transition-colors duration-150"
+            className="text-sm text-text-secondary hover:text-amber transition-colors duration-150"
           >
             &larr; Back to Blog
           </Link>
         </div>
 
         <div className="flex items-center gap-3 mb-4">
-          <span className="text-xs font-medium text-accent bg-accent/10 px-2.5 py-1 rounded-full">
+          <span className="text-xs font-medium text-amber-text bg-amber-muted px-2.5 py-1 rounded-full">
             {CATEGORY_LABELS[post.category]}
           </span>
           {date && post.published_at && (

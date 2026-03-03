@@ -23,7 +23,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
       )}
       {/* Active indicator — accent bar */}
       {isActive && (
-        <span className="absolute left-1 right-1 -bottom-0.5 h-0.5 bg-accent rounded-full" />
+        <span className="absolute left-1 right-1 -bottom-0.5 h-0.5 bg-canary rounded-full" />
       )}
     </Link>
   );
@@ -57,7 +57,7 @@ export default function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
           <span
-            className="h-2 w-2 rounded-full bg-accent group-hover:scale-110 transition-transform duration-150"
+            className="h-2 w-2 rounded-full bg-canary group-hover:scale-110 transition-transform duration-150"
             aria-hidden="true"
           />
           <span className="font-semibold text-text-primary font-sans tracking-tight">
@@ -83,7 +83,7 @@ export default function Header() {
           {/* Primary CTA */}
           <Link
             href="/#signup"
-            className="bg-accent text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-accent/90 hover:scale-[1.02] transition-all duration-150"
+            className="bg-surface-dark text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#1E293B] hover:scale-[1.02] transition-all duration-150"
           >
             Start Free
           </Link>

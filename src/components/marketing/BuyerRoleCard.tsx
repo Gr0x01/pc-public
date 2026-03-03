@@ -59,12 +59,12 @@ export default function BuyerRoleCard() {
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(900px 480px at 80% 120%, rgba(99,91,255,0.08) 0%, transparent 60%)",
+            "radial-gradient(900px 480px at 80% 120%, rgba(217,119,6,0.08) 0%, transparent 60%)",
         }}
         aria-hidden="true"
       />
       <div className="max-w-5xl mx-auto">
-        <p className="font-mono text-xs text-accent uppercase tracking-widest text-center mb-3 relative z-10">
+        <p className="font-mono text-xs text-amber-text uppercase tracking-widest text-center mb-3 relative z-10">
           WHO IT&apos;S FOR
         </p>
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary text-center mb-4 relative z-10">

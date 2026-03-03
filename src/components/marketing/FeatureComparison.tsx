@@ -21,7 +21,7 @@ const card = {
 function EmailMockup() {
   return (
     <div className="mt-4 rounded-lg overflow-hidden border border-white/20 bg-white/60 backdrop-blur-sm shadow-lg max-w-sm">
-      <div className="h-[3px] bg-gradient-to-r from-accent via-canary to-amber" />
+      <div className="h-[3px] bg-gradient-to-r from-canary via-amber to-canary" />
       <div className="px-4 py-2 border-b border-slate-200/60">
         <p className="text-[9px] text-text-secondary">
           <span className="font-mono">From:</span> Policy Canary
@@ -107,11 +107,11 @@ function AlertTimeline() {
           <div className="flex flex-col items-center">
             <span
               className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                i === 2 ? "bg-canary" : "bg-accent"
+                i === 2 ? "bg-canary" : "bg-amber"
               }`}
             />
             {i < steps.length - 1 && (
-              <span className="w-px h-6 border-l border-dashed border-accent/40" />
+              <span className="w-px h-6 border-l border-dashed border-amber/40" />
             )}
           </div>
           <div className="pb-3">
@@ -168,7 +168,7 @@ function CoverageSources() {
   ];
   const icons: Record<string, React.ReactNode> = {
     doc: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-accent">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-amber">
         <rect x="2" y="1" width="10" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
         <path d="M5 5h4M5 7.5h4M5 10h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
       </svg>
@@ -180,7 +180,7 @@ function CoverageSources() {
       </svg>
     ),
     db: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-blue-500">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-amber-text">
         <ellipse cx="7" cy="4" rx="4.5" ry="2" stroke="currentColor" strokeWidth="1.2" />
         <path d="M2.5 4v3c0 1.1 2 2 4.5 2s4.5-.9 4.5-2V4" stroke="currentColor" strokeWidth="1.2" />
         <path d="M2.5 7v3c0 1.1 2 2 4.5 2s4.5-.9 4.5-2V7" stroke="currentColor" strokeWidth="1.2" />
@@ -223,7 +223,7 @@ export default function FeatureComparison() {
   return (
     <section className="py-24 px-6 bg-white">
       <div className="max-w-6xl mx-auto">
-        <p className="font-mono text-xs text-accent uppercase tracking-widest text-center mb-3">
+        <p className="font-mono text-xs text-amber-text uppercase tracking-widest text-center mb-3">
           THE DIFFERENCE
         </p>
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary text-center mb-4">
@@ -304,7 +304,7 @@ export default function FeatureComparison() {
           >
             <div className="absolute inset-0 bg-white/60 pointer-events-none" />
             <div className="relative z-10">
-              <p className="font-mono text-[10px] text-accent uppercase tracking-widest mb-1">
+              <p className="font-mono text-[10px] text-amber-text uppercase tracking-widest mb-1">
                 Speed
               </p>
               <h3 className="text-lg font-semibold text-text-primary">
@@ -323,12 +323,12 @@ export default function FeatureComparison() {
             className="relative rounded-lg overflow-hidden p-6"
             style={{
               background:
-                "linear-gradient(135deg, rgba(15,23,42,0.04) 0%, rgba(99,91,255,0.08) 100%)",
+                "linear-gradient(135deg, rgba(15,23,42,0.04) 0%, rgba(15,23,42,0.08) 100%)",
             }}
           >
             <div className="absolute inset-0 bg-white/60 pointer-events-none" />
             <div className="relative z-10">
-              <p className="font-mono text-[10px] text-accent uppercase tracking-widest mb-1">
+              <p className="font-mono text-[10px] text-amber-text uppercase tracking-widest mb-1">
                 Dashboard
               </p>
               <h3 className="text-lg font-semibold text-text-primary">
@@ -347,12 +347,12 @@ export default function FeatureComparison() {
             className="relative rounded-lg overflow-hidden p-6"
             style={{
               background:
-                "linear-gradient(135deg, rgba(99,91,255,0.08) 0%, rgba(32,161,255,0.10) 100%)",
+                "linear-gradient(135deg, rgba(15,23,42,0.06) 0%, rgba(217,119,6,0.08) 100%)",
             }}
           >
             <div className="absolute inset-0 bg-white/60 pointer-events-none" />
             <div className="relative z-10">
-              <p className="font-mono text-[10px] text-blue-500 uppercase tracking-widest mb-1">
+              <p className="font-mono text-[10px] text-amber-text uppercase tracking-widest mb-1">
                 Coverage
               </p>
               <h3 className="text-lg font-semibold text-text-primary">

@@ -37,7 +37,7 @@ export default function LandingPage() {
       <RevealSection>
         <section className="py-20 px-6 bg-white">
           <div className="max-w-3xl mx-auto text-center card-surface rounded-xl p-8 md:p-12">
-            <p className="font-mono text-xs text-accent uppercase tracking-widest mb-6">
+            <p className="font-mono text-xs text-amber-text uppercase tracking-widest mb-6">
               EARLY ACCESS
             </p>
             <p className="text-2xl md:text-3xl font-semibold tracking-tight text-text-primary mb-4 leading-snug">

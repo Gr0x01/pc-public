@@ -108,14 +108,14 @@ export default function ProductShowcase() {
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(900px 480px at 0% 100%, rgba(99,91,255,0.10) 0%, transparent 60%), radial-gradient(700px 420px at 100% 0%, rgba(32,161,255,0.10) 0%, transparent 62%)",
+            "radial-gradient(900px 480px at 0% 100%, rgba(217,119,6,0.10) 0%, transparent 60%), radial-gradient(700px 420px at 100% 0%, rgba(234,193,0,0.10) 0%, transparent 62%)",
         }}
         aria-hidden="true"
       />
       <div className="max-w-6xl mx-auto">
         {/* Section header */}
         <div className="text-center mb-12 relative z-10">
-          <p className="font-mono text-xs text-accent uppercase tracking-widest mb-3">
+          <p className="font-mono text-xs text-amber-text uppercase tracking-widest mb-3">
             WHEN YOU NEED TO DIG DEEPER
           </p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary mb-4">

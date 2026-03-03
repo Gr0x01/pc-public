@@ -14,10 +14,10 @@ export function PostCard({ post }: { post: BlogPostSummary }) {
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="group block rounded-xl border border-border bg-white p-6 hover:border-accent/40 hover:shadow-md transition-all duration-200"
+      className="group block rounded-xl border border-border bg-white p-6 hover:border-amber/40 hover:shadow-md transition-all duration-200"
     >
       <div className="flex items-center gap-3 mb-3">
-        <span className="text-xs font-medium text-accent bg-accent/10 px-2.5 py-1 rounded-full">
+        <span className="text-xs font-medium text-amber-text bg-amber-muted px-2.5 py-1 rounded-full">
           {CATEGORY_LABELS[post.category]}
         </span>
         {date && post.published_at && (
@@ -26,7 +26,7 @@ export function PostCard({ post }: { post: BlogPostSummary }) {
           </time>
         )}
       </div>
-      <h3 className="text-lg font-semibold text-text-primary group-hover:text-accent transition-colors duration-150 mb-2">
+      <h3 className="text-lg font-semibold text-text-primary group-hover:text-amber transition-colors duration-150 mb-2">
         {post.title}
       </h3>
       <p className="text-sm text-text-secondary line-clamp-3">

@@ -55,7 +55,7 @@ export default function Hero() {
           >
             <Link
               href="/#signup"
-              className="bg-accent text-white font-semibold px-7 py-3 rounded-full hover:bg-accent/90 transition-colors duration-150"
+              className="bg-surface-dark text-white font-semibold px-7 py-3 rounded-full hover:bg-[#1E293B] transition-colors duration-150"
             >
               Start Free
             </Link>

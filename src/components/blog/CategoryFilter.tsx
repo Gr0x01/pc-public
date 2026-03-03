@@ -25,8 +25,8 @@ export function CategoryFilter() {
         onClick={() => handleFilter(null)}
         className={`text-sm px-4 py-1.5 rounded-full border transition-colors duration-150 ${
           !active
-            ? "bg-accent text-white border-accent"
-            : "bg-white text-text-secondary border-border hover:border-accent/40"
+            ? "bg-surface-dark text-white border-surface-dark"
+            : "bg-white text-text-secondary border-border hover:border-amber/40"
         }`}
       >
         All
@@ -37,8 +37,8 @@ export function CategoryFilter() {
           onClick={() => handleFilter(cat)}
           className={`text-sm px-4 py-1.5 rounded-full border transition-colors duration-150 ${
             active === cat
-              ? "bg-accent text-white border-accent"
-              : "bg-white text-text-secondary border-border hover:border-accent/40"
+              ? "bg-surface-dark text-white border-surface-dark"
+              : "bg-white text-text-secondary border-border hover:border-amber/40"
           }`}
         >
           {CATEGORY_LABELS[cat]}

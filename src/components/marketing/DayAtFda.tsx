@@ -170,7 +170,7 @@ function FirehoseCard({
   return (
     <div
       className={`card-surface rounded-lg px-3 py-2.5 transition-all duration-500 ${
-        muted ? "opacity-40" : "opacity-100 ring-1 ring-accent/20"
+        muted ? "opacity-40" : "opacity-100 ring-1 ring-amber/20"
       }`}
     >
       <div className="flex items-center gap-1.5 mb-1">
@@ -233,7 +233,7 @@ function SignalCard({ item }: { item: SignalItem }) {
                 key={action}
                 className="flex items-start gap-2 text-sm text-text-body"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0 mt-1.5" />
+                <span className="h-1.5 w-1.5 rounded-full bg-amber shrink-0 mt-1.5" />
                 {action}
               </li>
             ))}
@@ -320,7 +320,7 @@ export default function DayAtFda() {
       <div className="max-w-5xl mx-auto" ref={ref}>
         {/* Header */}
         <motion.div className="text-center mb-14" {...fadeUp(0)}>
-          <p className="font-mono text-xs text-accent uppercase tracking-widest mb-3">
+          <p className="font-mono text-xs text-amber-text uppercase tracking-widest mb-3">
             A REAL DAY
           </p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary mb-4">
