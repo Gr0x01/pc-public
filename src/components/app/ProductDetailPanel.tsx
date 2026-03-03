@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { SubscriberProduct } from "@/types/database";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import { MOCK_FEED_ITEMS } from "@/lib/mock/app-data";
@@ -85,9 +86,10 @@ export default function ProductDetailPanel({ product, status, onClose }: Product
         ) : (
           <div className="space-y-2">
             {matches.map((item) => (
-              <div
+              <Link
                 key={item.id}
-                className="border border-border rounded p-3 bg-white"
+                href={`/app/feed?item=${item.id}`}
+                className="block border border-border rounded p-3 bg-white hover:bg-surface-muted hover:border-border-strong transition-all duration-100"
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <ItemTypeTag type={item.item_type} />
@@ -108,7 +110,7 @@ export default function ProductDetailPanel({ product, status, onClose }: Product
                     {item.action_items.length} action item{item.action_items.length > 1 ? "s" : ""}
                   </p>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         )}
