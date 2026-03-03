@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Directory Site Template
 
-## Getting Started
+Template for creating SEO-optimized directory websites with Claude Code configuration.
 
-First, run the development server:
+## Usage
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Copy this folder to create a new project:
+   ```bash
+   cp -r directory-template my-new-directory
+   cd my-new-directory
+   ```
+
+2. Update the memory bank files with your project details:
+   - `memory-bank/core/quickstart.md` - Project overview and commands
+   - `memory-bank/core/projectbrief.md` - Product definition and schema
+   - `memory-bank/development/activeContext.md` - Current focus
+   - `memory-bank/architecture/techStack.md` - Technology stack
+
+3. Replace `[PROJECT_NAME]` and other placeholders with your actual values
+
+4. Initialize your project:
+   ```bash
+   npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir
+   npm install @supabase/supabase-js zod lucide-react
+   ```
+
+## Structure
+
+```
+.claude/
+├── settings.local.json          # Claude permissions
+├── agents/                      # Specialized agents
+│   ├── backend-architect.md
+│   ├── code-architect.md
+│   ├── code-reviewer.md
+│   ├── frontend-developer.md
+│   ├── trend-researcher.md
+│   ├── ui-designer.md
+│   └── visual-storyteller.md
+└── skills/
+    ├── settings.local.json
+    └── frontend-design/
+        └── SKILL.md             # Frontend design guidelines
+
+memory-bank/
+├── core/
+│   ├── quickstart.md            # Project overview
+│   └── projectbrief.md          # Product definition
+├── development/
+│   ├── activeContext.md         # Current focus
+│   └── progress.md              # Work log
+├── architecture/
+│   └── techStack.md             # Technology decisions
+└── archive/                     # Historical docs
+
+CLAUDE.md                        # Main Claude instructions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Included Agents
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Agent | Use For |
+|-------|---------|
+| **backend-architect** | API design, database architecture |
+| **code-architect** | Project structure, folder organization |
+| **code-reviewer** | Code quality and security reviews |
+| **frontend-developer** | UI implementation, performance |
+| **ui-designer** | Interface design, visual aesthetics |
+| **trend-researcher** | Market research, trend analysis |
+| **visual-storyteller** | Infographics, presentations |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tech Stack (Default)
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Frontend**: Next.js 15+, React 19+, Tailwind CSS 4
+- **Backend**: Next.js API routes, Supabase (PostgreSQL)
+- **Maps**: MapLibre GL JS (if needed)
+- **Analytics**: PostHog
+- **Hosting**: Vercel

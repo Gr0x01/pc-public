@@ -34,7 +34,7 @@ CREATE TABLE sources (
 
 CREATE TABLE pipeline_runs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  source_id UUID NOT NULL REFERENCES sources(id),
+  source_id UUID NOT NULL REFERENCES sources(id) ON DELETE RESTRICT,
   started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   completed_at TIMESTAMPTZ,
   items_fetched INT DEFAULT 0,
@@ -53,7 +53,7 @@ CREATE INDEX idx_pipeline_runs_started_at ON pipeline_runs (started_at DESC);
 
 CREATE TABLE regulatory_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  source_id UUID NOT NULL REFERENCES sources(id),
+  source_id UUID NOT NULL REFERENCES sources(id) ON DELETE RESTRICT,
   source_ref TEXT NOT NULL,
   source_url TEXT,
   title TEXT NOT NULL,
@@ -90,6 +90,7 @@ CREATE INDEX idx_regulatory_items_item_type ON regulatory_items (item_type);
 CREATE INDEX idx_regulatory_items_type_date ON regulatory_items (item_type, published_date DESC);
 CREATE INDEX idx_regulatory_items_jurisdiction ON regulatory_items (jurisdiction);
 CREATE INDEX idx_regulatory_items_processing_status ON regulatory_items (processing_status) WHERE processing_status != 'ok';
+CREATE INDEX idx_regulatory_items_title_trgm ON regulatory_items USING GIN (title gin_trgm_ops);
 
 CREATE TRIGGER update_regulatory_items_updated_at
   BEFORE UPDATE ON regulatory_items
@@ -119,7 +120,7 @@ CREATE INDEX idx_regulatory_categories_slug ON regulatory_categories (slug);
 CREATE TABLE item_categories (
   item_id UUID NOT NULL REFERENCES regulatory_items(id) ON DELETE CASCADE,
   category_id UUID NOT NULL REFERENCES regulatory_categories(id) ON DELETE CASCADE,
-  confidence REAL,
+  confidence REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (item_id, category_id)
 );
@@ -144,9 +145,9 @@ CREATE TABLE substances (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE UNIQUE INDEX idx_substances_canonical_name ON substances (lower(canonical_name));
 CREATE INDEX idx_substances_unii ON substances (unii) WHERE unii IS NOT NULL;
 CREATE INDEX idx_substances_cas ON substances (cas_number) WHERE cas_number IS NOT NULL;
-CREATE INDEX idx_substances_canonical_name ON substances (canonical_name);
 CREATE INDEX idx_substances_class ON substances (substance_class);
 CREATE INDEX idx_substances_group ON substances (ingredient_group);
 
@@ -160,7 +161,7 @@ CREATE TABLE substance_names (
   name TEXT NOT NULL,
   name_type TEXT NOT NULL CHECK (name_type IN ('preferred', 'systematic', 'common', 'brand', 'abbreviation')),
   language CHAR(2) NOT NULL DEFAULT 'en',
-  source TEXT NOT NULL CHECK (source IN ('gsrs', 'dsld', 'openfoodfacts', 'user', 'manual')),
+  source TEXT NOT NULL CHECK (source IN ('gsrs', 'dsld', 'fdc', 'openfoodfacts', 'user', 'manual')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT uq_substance_names UNIQUE (substance_id, name)
 );
@@ -183,7 +184,7 @@ CREATE TABLE item_enrichments (
   key_entities TEXT[],
   enrichment_model TEXT NOT NULL,
   enrichment_version INT NOT NULL DEFAULT 1,
-  confidence REAL,
+  confidence REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
   verification_status TEXT NOT NULL DEFAULT 'unverified' CHECK (verification_status IN ('unverified', 'verified', 'rejected')),
   raw_response JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -191,6 +192,7 @@ CREATE TABLE item_enrichments (
 );
 
 CREATE INDEX idx_item_enrichments_item ON item_enrichments (item_id);
+CREATE INDEX idx_item_enrichments_fts ON item_enrichments USING GIN (to_tsvector('english', summary));
 
 CREATE TABLE segment_impacts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -216,7 +218,7 @@ CREATE TABLE item_enrichment_tags (
   item_id UUID NOT NULL REFERENCES regulatory_items(id) ON DELETE CASCADE,
   tag_dimension TEXT NOT NULL CHECK (tag_dimension IN ('product_type', 'facility_type', 'claims', 'regulation')),
   tag_value TEXT NOT NULL,
-  confidence REAL,
+  confidence REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT uq_item_tags UNIQUE (item_id, tag_dimension, tag_value)
 );
@@ -233,8 +235,9 @@ CREATE TABLE regulatory_item_substances (
   cas_number TEXT,
   match_status TEXT NOT NULL DEFAULT 'pending' CHECK (match_status IN ('resolved', 'pending', 'unresolved')),
   extraction_method TEXT NOT NULL CHECK (extraction_method IN ('structured_field', 'llm_extraction', 'manual')),
-  confidence REAL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  confidence REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_ris_item_raw_name UNIQUE (regulatory_item_id, raw_substance_name)
 );
 
 CREATE INDEX idx_ris_item ON regulatory_item_substances (regulatory_item_id);
@@ -253,9 +256,12 @@ CREATE TABLE item_citations (
   source_url TEXT,
   source_label TEXT,
   quote_verified BOOLEAN NOT NULL DEFAULT false,
-  confidence REAL,
+  confidence REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT chk_citation_parent CHECK (enrichment_id IS NOT NULL OR segment_impact_id IS NOT NULL)
+  CONSTRAINT chk_citation_parent CHECK (
+    (enrichment_id IS NOT NULL AND segment_impact_id IS NULL) OR
+    (enrichment_id IS NULL AND segment_impact_id IS NOT NULL)
+  )
 );
 
 CREATE INDEX idx_item_citations_enrichment ON item_citations (enrichment_id);
@@ -265,10 +271,11 @@ CREATE INDEX idx_item_citations_item ON item_citations (item_id);
 
 -- =============================================================================
 -- LAYER 5: SEARCH & RETRIEVAL
--- Note: HNSW index should be created AFTER 1,000+ rows are inserted.
--- Command: CREATE INDEX CONCURRENTLY idx_item_chunks_embedding
---   ON item_chunks USING hnsw (embedding vector_cosine_ops)
---   WITH (m = 16, ef_construction = 64);
+-- Upgrade to HNSW after 10k+ rows:
+--   CREATE INDEX CONCURRENTLY idx_item_chunks_embedding_hnsw
+--     ON item_chunks USING hnsw (embedding halfvec_cosine_ops)
+--     WITH (m = 16, ef_construction = 64);
+--   DROP INDEX idx_item_chunks_embedding;
 -- =============================================================================
 
 CREATE TABLE item_chunks (
@@ -278,13 +285,15 @@ CREATE TABLE item_chunks (
   chunk_index INT NOT NULL,
   section_title TEXT,
   content TEXT NOT NULL,
-  embedding halfvec(1536),
+  embedding halfvec(1536) NOT NULL,
   token_count INT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_item_chunks_item_chunk UNIQUE (item_id, chunk_index)
 );
 
 CREATE INDEX idx_item_chunks_item ON item_chunks (item_id);
 CREATE INDEX idx_item_chunks_segment_impact ON item_chunks (segment_impact_id) WHERE segment_impact_id IS NOT NULL;
+CREATE INDEX idx_item_chunks_embedding ON item_chunks USING ivfflat (embedding halfvec_cosine_ops) WITH (lists = 10);
 
 
 -- =============================================================================
@@ -377,7 +386,7 @@ CREATE TABLE email_subscribers (
   email TEXT UNIQUE NOT NULL,
   user_id UUID REFERENCES users(id),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'unsubscribed', 'bounced', 'complained')),
-  unsubscribe_token TEXT UNIQUE NOT NULL,
+  unsubscribe_token TEXT UNIQUE NOT NULL CHECK (length(unsubscribe_token) >= 32),
   source TEXT CHECK (source IN ('signup_form', 'stripe', 'manual', 'referral')),
   subscribed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   unsubscribed_at TIMESTAMPTZ,
@@ -404,7 +413,7 @@ CREATE TABLE email_campaigns (
   period_start DATE,
   period_end DATE,
   html_content TEXT,
-  recipient_count INT DEFAULT 0,
+  recipient_count INT NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'generating', 'sending', 'sent', 'failed')),
   sent_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -434,7 +443,8 @@ CREATE TABLE email_sends (
   opened_at TIMESTAMPTZ,
   clicked_at TIMESTAMPTZ,
   bounce_type TEXT CHECK (bounce_type IN ('hard', 'soft')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_email_sends_campaign_subscriber UNIQUE (campaign_id, subscriber_id)
 );
 
 CREATE INDEX idx_email_sends_campaign ON email_sends (campaign_id);
@@ -482,7 +492,7 @@ CREATE TABLE product_ingredients (
   unit TEXT,
   sort_order INT NOT NULL DEFAULT 0,
   normalization_status TEXT NOT NULL DEFAULT 'pending' CHECK (normalization_status IN ('matched', 'pending', 'ambiguous', 'unmatched')),
-  normalization_confidence REAL,
+  normalization_confidence REAL CHECK (normalization_confidence IS NULL OR (normalization_confidence >= 0.0 AND normalization_confidence <= 1.0)),
   normalization_method TEXT CHECK (normalization_method IN ('unii_exact', 'cas_exact', 'name_exact', 'fuzzy', 'llm', 'manual')),
   source_metadata JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -504,7 +514,7 @@ CREATE TABLE product_matches (
   regulatory_item_id UUID NOT NULL REFERENCES regulatory_items(id) ON DELETE CASCADE,
   match_type TEXT NOT NULL CHECK (match_type IN ('direct_substance', 'category_overlap', 'semantic')),
   match_method TEXT,
-  confidence REAL NOT NULL,
+  confidence REAL NOT NULL CHECK (confidence >= 0.0 AND confidence <= 1.0),
   matched_substances JSONB,
   matched_tags JSONB,
   impact_summary TEXT,
@@ -518,7 +528,7 @@ CREATE TABLE product_matches (
 
 CREATE INDEX idx_product_matches_product ON product_matches (product_id);
 CREATE INDEX idx_product_matches_item ON product_matches (regulatory_item_id);
-CREATE INDEX idx_product_matches_user_recent ON product_matches (product_id, created_at DESC);
+CREATE INDEX idx_product_matches_active_feed ON product_matches (product_id, created_at DESC) WHERE is_dismissed = false;
 CREATE INDEX idx_product_matches_confidence ON product_matches (confidence DESC) WHERE is_dismissed = false;
 
 CREATE TRIGGER update_product_matches_updated_at
@@ -527,53 +537,85 @@ CREATE TRIGGER update_product_matches_updated_at
 
 
 -- =============================================================================
--- ROW LEVEL SECURITY
--- Pipeline writes use the admin/service-role client and bypass RLS.
--- Browser/anon/authenticated access is scoped to the authenticated user's data.
+-- PRODUCT LIMIT ENFORCEMENT
+-- DB-level guard so no API path can bypass the billing cap.
 -- =============================================================================
 
--- User-facing tables: enable RLS
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+CREATE OR REPLACE FUNCTION check_max_products()
+RETURNS TRIGGER AS $$
+DECLARE
+  current_count INT;
+  max_allowed   INT;
+BEGIN
+  SELECT COUNT(id)
+  INTO current_count
+  FROM subscriber_products
+  WHERE user_id = NEW.user_id AND is_active = true;
+
+  SELECT max_products
+  INTO max_allowed
+  FROM users
+  WHERE id = NEW.user_id;
+
+  IF current_count >= max_allowed THEN
+    RAISE EXCEPTION 'Product limit reached. Upgrade your plan to add more products.'
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER enforce_max_products
+  BEFORE INSERT ON subscriber_products
+  FOR EACH ROW EXECUTE FUNCTION check_max_products();
+
+
+-- =============================================================================
+-- ROW LEVEL SECURITY
+-- Pipeline writes use the service_role key and bypass RLS entirely.
+-- Browser clients (anon/authenticated) are scoped by these policies.
+-- =============================================================================
+
+-- User-facing tables
+ALTER TABLE users               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriber_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_ingredients ENABLE ROW LEVEL SECURITY;
-ALTER TABLE product_matches ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_bookmarks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE email_subscribers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE email_campaigns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE email_sends ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_matches     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_bookmarks      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_subscribers   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_campaigns     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_sends         ENABLE ROW LEVEL SECURITY;
 
--- Regulatory/pipeline tables: enable RLS, authenticated read-only
-ALTER TABLE sources ENABLE ROW LEVEL SECURITY;
-ALTER TABLE pipeline_runs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE regulatory_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE regulatory_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE item_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE substances ENABLE ROW LEVEL SECURITY;
-ALTER TABLE substance_names ENABLE ROW LEVEL SECURITY;
-ALTER TABLE item_enrichments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE segment_impacts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE item_enrichment_tags ENABLE ROW LEVEL SECURITY;
-ALTER TABLE regulatory_item_substances ENABLE ROW LEVEL SECURITY;
-ALTER TABLE item_citations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE item_chunks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE item_relations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE enforcement_details ENABLE ROW LEVEL SECURITY;
-ALTER TABLE trend_signals ENABLE ROW LEVEL SECURITY;
+-- Pipeline/regulatory tables
+ALTER TABLE sources                     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pipeline_runs               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE regulatory_items            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE regulatory_categories       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_categories             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE substances                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE substance_names             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_enrichments            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE segment_impacts             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_enrichment_tags        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE regulatory_item_substances  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_citations              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_chunks                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_relations              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE enforcement_details         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE trend_signals               ENABLE ROW LEVEL SECURITY;
 
--- Users: self only
-CREATE POLICY "users_self_only"
-  ON users FOR ALL
-  USING (auth.uid() = id);
+-- Users: own row only
+CREATE POLICY "users_self_only" ON users
+  FOR ALL USING (auth.uid() = id);
 
 -- Subscriber products: owner only
-CREATE POLICY "subscriber_products_owner_only"
-  ON subscriber_products FOR ALL
-  USING (auth.uid() = user_id);
+CREATE POLICY "subscriber_products_owner_only" ON subscriber_products
+  FOR ALL USING (auth.uid() = user_id);
 
 -- Product ingredients: via product ownership
-CREATE POLICY "product_ingredients_owner_only"
-  ON product_ingredients FOR ALL
-  USING (
+CREATE POLICY "product_ingredients_owner_only" ON product_ingredients
+  FOR ALL USING (
     EXISTS (
       SELECT 1 FROM subscriber_products sp
       WHERE sp.id = product_id AND sp.user_id = auth.uid()
@@ -581,9 +623,8 @@ CREATE POLICY "product_ingredients_owner_only"
   );
 
 -- Product matches: via product ownership
-CREATE POLICY "product_matches_owner_only"
-  ON product_matches FOR ALL
-  USING (
+CREATE POLICY "product_matches_owner_only" ON product_matches
+  FOR ALL USING (
     EXISTS (
       SELECT 1 FROM subscriber_products sp
       WHERE sp.id = product_id AND sp.user_id = auth.uid()
@@ -591,96 +632,46 @@ CREATE POLICY "product_matches_owner_only"
   );
 
 -- User bookmarks: owner only
-CREATE POLICY "user_bookmarks_owner_only"
-  ON user_bookmarks FOR ALL
-  USING (auth.uid() = user_id);
+CREATE POLICY "user_bookmarks_owner_only" ON user_bookmarks
+  FOR ALL USING (auth.uid() = user_id);
 
--- Email subscribers: own record only (via linked user)
-CREATE POLICY "email_subscribers_owner_only"
-  ON email_subscribers FOR SELECT
-  USING (auth.uid() = user_id);
+-- Email subscribers: own record only
+CREATE POLICY "email_subscribers_owner_only" ON email_subscribers
+  FOR SELECT USING (auth.uid() = user_id);
 
--- Email campaigns + sends: via subscriber ownership (read-only for subscribers)
-CREATE POLICY "email_campaigns_subscriber_only"
-  ON email_campaigns FOR SELECT
-  USING (
-    subscriber_id IS NULL -- generic campaigns visible to all authenticated
+-- Email campaigns: own subscriber's campaigns + broadcast (null subscriber_id)
+CREATE POLICY "email_campaigns_subscriber_only" ON email_campaigns
+  FOR SELECT USING (
+    subscriber_id IS NULL
     OR EXISTS (
       SELECT 1 FROM email_subscribers es
       WHERE es.id = subscriber_id AND es.user_id = auth.uid()
     )
   );
 
-CREATE POLICY "email_sends_subscriber_only"
-  ON email_sends FOR SELECT
-  USING (
+-- Email sends: own subscriber's sends only
+CREATE POLICY "email_sends_subscriber_only" ON email_sends
+  FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM email_subscribers es
       WHERE es.id = subscriber_id AND es.user_id = auth.uid()
     )
   );
 
--- Regulatory / pipeline data: authenticated users can read, no write from browser
-CREATE POLICY "regulatory_items_authenticated_read"
-  ON regulatory_items FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "sources_authenticated_read"
-  ON sources FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "pipeline_runs_authenticated_read"
-  ON pipeline_runs FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "regulatory_categories_authenticated_read"
-  ON regulatory_categories FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "item_categories_authenticated_read"
-  ON item_categories FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "substances_authenticated_read"
-  ON substances FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "substance_names_authenticated_read"
-  ON substance_names FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "item_enrichments_authenticated_read"
-  ON item_enrichments FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "segment_impacts_authenticated_read"
-  ON segment_impacts FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "item_enrichment_tags_authenticated_read"
-  ON item_enrichment_tags FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "regulatory_item_substances_authenticated_read"
-  ON regulatory_item_substances FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "item_citations_authenticated_read"
-  ON item_citations FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "item_chunks_authenticated_read"
-  ON item_chunks FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "item_relations_authenticated_read"
-  ON item_relations FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "enforcement_details_authenticated_read"
-  ON enforcement_details FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "trend_signals_authenticated_read"
-  ON trend_signals FOR SELECT
-  USING (auth.role() = 'authenticated');
+-- Regulatory/pipeline data: authenticated read-only, no client writes
+CREATE POLICY "regulatory_items_authenticated_read"           ON regulatory_items           FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "sources_authenticated_read"                    ON sources                    FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "pipeline_runs_authenticated_read"              ON pipeline_runs              FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "regulatory_categories_authenticated_read"      ON regulatory_categories      FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "item_categories_authenticated_read"            ON item_categories            FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "substances_authenticated_read"                 ON substances                 FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "substance_names_authenticated_read"            ON substance_names            FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "item_enrichments_authenticated_read"           ON item_enrichments           FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "segment_impacts_authenticated_read"            ON segment_impacts            FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "item_enrichment_tags_authenticated_read"       ON item_enrichment_tags       FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "regulatory_item_substances_authenticated_read" ON regulatory_item_substances FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "item_citations_authenticated_read"             ON item_citations             FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "item_chunks_authenticated_read"                ON item_chunks                FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "item_relations_authenticated_read"             ON item_relations             FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "enforcement_details_authenticated_read"        ON enforcement_details        FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "trend_signals_authenticated_read"              ON trend_signals              FOR SELECT USING (auth.role() = 'authenticated');
