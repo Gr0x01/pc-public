@@ -11,11 +11,28 @@
  * Safe to re-run: upserts on UNII conflict, skips existing records.
  */
 
+import { readFileSync, existsSync } from "fs";
+import { resolve } from "path";
 import { createClient } from "@supabase/supabase-js";
+
+// Load .env.local before reading env vars
+const envPath = resolve(process.cwd(), ".env.local");
+if (existsSync(envPath)) {
+  const content = readFileSync(envPath, "utf-8");
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).trim().replace(/^["']|["']$/g, "");
+    if (key && !process.env[key]) process.env[key] = value;
+  }
+}
 
 const GSRS_API = "https://gsrs.ncats.nih.gov/api/v1/substances";
 const PAGE_SIZE = 100;
-const DELAY_MS = 500; // be polite to the public API
+const DELAY_MS = 50; // minimal delay — sequential fetches provide natural throttling
 
 // Substance class mapping from GSRS to our schema
 const SUBSTANCE_CLASS_MAP: Record<string, string> = {
@@ -41,14 +58,15 @@ interface GsrsSubstance {
   _name: string;
   substanceClass: string;
   codes?: Array<{ codeSystem: string; code: string }>;
-  names?: Array<{ name: string; type: string; preferred?: boolean; language?: string }>;
+  names?: Array<{ name: string; type: string; preferred?: boolean; languages?: string[] }>;
 }
 
 interface GsrsPage {
   content: GsrsSubstance[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
+  total: number;   // was totalElements
+  count: number;   // items in this page
+  skip: number;
+  top: number;
 }
 
 function sleep(ms: number) {
@@ -60,8 +78,8 @@ function extractCode(substance: GsrsSubstance, system: string): string | null {
   return code?.code ?? null;
 }
 
-async function fetchPage(page: number): Promise<GsrsPage> {
-  const url = `${GSRS_API}?page=${page}&pageSize=${PAGE_SIZE}&view=full`;
+async function fetchPage(skip: number): Promise<GsrsPage> {
+  const url = `${GSRS_API}?skip=${skip}&top=${PAGE_SIZE}&view=full`;
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
   });
@@ -89,9 +107,9 @@ async function main() {
 
   // Probe first page to get total
   const firstPage = await fetchPage(0);
-  const totalPages = firstPage.totalPages;
-  const totalElements = firstPage.totalElements;
-  console.log(`Total substances: ${totalElements}, pages: ${totalPages}`);
+  const total = firstPage.total;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  console.log(`Total substances: ${total}, pages: ${totalPages}`);
 
   let inserted = 0;
   let skipped = 0;
@@ -99,15 +117,16 @@ async function main() {
 
   for (let pageNum = 0; pageNum < totalPages; pageNum++) {
     let data: GsrsPage;
+    const skip = pageNum * PAGE_SIZE;
 
     if (pageNum === 0) {
       data = firstPage;
     } else {
       await sleep(DELAY_MS);
       try {
-        data = await fetchPage(pageNum);
+        data = await fetchPage(skip);
       } catch (err) {
-        console.error(`Failed to fetch page ${pageNum}:`, err);
+        console.error(`Failed to fetch page ${pageNum} (skip=${skip}):`, err);
         errors++;
         continue;
       }
@@ -193,7 +212,7 @@ async function insertNames(
     substance_id: substanceId,
     name: n.name,
     name_type: NAME_TYPE_MAP[n.type?.toLowerCase()] ?? "common",
-    language: n.language?.slice(0, 2) ?? "en",
+    language: n.languages?.[0]?.slice(0, 2) ?? "en",
     source: "gsrs",
   }));
 
