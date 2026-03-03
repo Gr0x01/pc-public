@@ -25,13 +25,13 @@ export default function Hero() {
 
   return (
     <section
-      className="relative overflow-hidden px-6 pt-20 pb-18 md:pt-28 md:pb-24"
+      className="relative overflow-hidden px-6 -mt-[68px] pt-[calc(68px+5rem)] pb-18 md:pt-[calc(68px+7rem)] md:pb-24"
       style={{ background: "var(--gradient-hero)" }}
     >
       <div className="absolute inset-0 stripe-grid opacity-35 pointer-events-none" aria-hidden="true" />
 
       <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
-        {/* Left — headline, subhead, CTAs. Nothing else. */}
+        {/* Left — headline, subhead, CTAs */}
         <div>
           <motion.h1
             className="font-sans text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-text-primary leading-[1.04]"
@@ -44,9 +44,9 @@ export default function Hero() {
             className="text-lg text-text-secondary mt-6 leading-relaxed max-w-xl"
             {...fadeUp(0.07)}
           >
-            Product-level FDA monitoring for supplement, food, and cosmetics
-            brands. Know which of your products are affected, by name and
-            ingredient — before the warning letter arrives.
+            Product-level FDA monitoring, delivered to your inbox. Which of
+            your products are affected — by name and ingredient — with the
+            analysis and action items already written.
           </motion.p>
 
           <motion.div
@@ -63,38 +63,41 @@ export default function Hero() {
               href="/sample"
               className="border border-slate-300/80 bg-white/80 text-text-primary font-semibold px-7 py-3 rounded-full hover:bg-white transition-colors duration-150"
             >
-              See a Sample Report
+              See a Sample Email
             </Link>
           </motion.div>
         </div>
 
-        {/* Right — single focused email mockup */}
+        {/* Right — email mockup */}
         <motion.div className="relative lg:pl-6" {...slideIn}>
           <div
             className="card-surface rounded-xl overflow-hidden text-left"
-            style={{ boxShadow: "0 8px 40px rgba(15,23,42,0.08), 0 1px 3px rgba(15,23,42,0.06)" }}
+            style={{
+              boxShadow:
+                "0 8px 40px rgba(15,23,42,0.08), 0 1px 3px rgba(15,23,42,0.06)",
+            }}
           >
-            {/* Canary top rule — the brand mark */}
+            {/* Canary top rule — brand mark */}
             <div className="h-[3px] bg-gradient-to-r from-canary via-amber to-canary" />
 
-            {/* Email header */}
-            <div className="px-6 py-4 border-b border-slate-200/80">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                </div>
-                <p className="font-mono text-[9px] text-text-secondary tracking-wide">
-                  Policy Canary &middot; Product Intelligence
-                </p>
-              </div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-text-secondary">
-                Alert for Acme Supplements &middot; 3 products monitored
+            {/* Email metadata */}
+            <div className="px-6 py-3 border-b border-slate-200/60">
+              <p className="text-[10px] text-text-secondary leading-relaxed">
+                <span className="font-mono">From:</span>{" "}
+                Policy Canary{" "}
+                <span className="text-text-secondary/60">
+                  &lt;alerts@policycanary.io&gt;
+                </span>
+              </p>
+              <p className="text-[13px] text-text-primary font-semibold mt-1 leading-snug">
+                Your Marine Collagen Powder — Action Required
+              </p>
+              <p className="text-[10px] text-text-secondary font-mono mt-1">
+                March 4, 2026 &middot; 7:14 AM
               </p>
             </div>
 
-            {/* The one devastating proof point */}
+            {/* Email body */}
             <div className="px-6 py-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="h-2 w-2 rounded-full bg-urgent shrink-0" />
@@ -150,36 +153,12 @@ export default function Hero() {
                     21 CFR 111.75(a)(1)(ii)
                   </p>
                 </div>
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-text-secondary">
-                    Confidence
-                  </p>
-                  <p className="text-[11px] font-semibold text-text-primary mt-0.5">
-                    Rule Final
-                  </p>
-                </div>
               </div>
             </div>
           </div>
         </motion.div>
       </div>
 
-      {/* Source strip — sole supporting element, generous spacing */}
-      <motion.div className="max-w-6xl mx-auto mt-16 relative z-10" {...fadeUp(0.25)}>
-        <div className="flex flex-wrap justify-center lg:justify-start gap-x-8 gap-y-3 text-[11px] font-mono uppercase tracking-wider text-text-secondary">
-          {[
-            "Federal Register",
-            "FDA warning letters",
-            "openFDA enforcement",
-            "RSS source updates",
-          ].map((item) => (
-            <p key={item} className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent/70" />
-              {item}
-            </p>
-          ))}
-        </div>
-      </motion.div>
     </section>
   );
 }

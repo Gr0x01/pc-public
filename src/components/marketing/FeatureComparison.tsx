@@ -22,14 +22,12 @@ function EmailMockup() {
   return (
     <div className="mt-4 rounded-lg overflow-hidden border border-white/20 bg-white/60 backdrop-blur-sm shadow-lg max-w-sm">
       <div className="h-[3px] bg-gradient-to-r from-accent via-canary to-amber" />
-      <div className="px-4 py-2.5 border-b border-slate-200/60 flex items-center gap-2">
-        <div className="flex gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-          <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-          <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-        </div>
-        <p className="font-mono text-[9px] text-text-secondary tracking-wide">
-          Policy Canary &middot; Product Intelligence
+      <div className="px-4 py-2 border-b border-slate-200/60">
+        <p className="text-[9px] text-text-secondary">
+          <span className="font-mono">From:</span> Policy Canary
+        </p>
+        <p className="text-[10px] text-text-primary font-semibold mt-0.5 truncate">
+          Your Marine Collagen Powder — Action Required
         </p>
       </div>
       <div className="px-4 py-3 space-y-2">
@@ -260,11 +258,11 @@ export default function FeatureComparison() {
                 Email Intelligence
               </p>
               <h3 className="text-lg font-semibold text-text-primary">
-                Your inbox, not a firehose
+                Intelligence delivered, not searched for
               </h3>
               <p className="text-sm text-text-secondary mt-1 max-w-md">
-                Every alert is scoped to your products — with the analysis and
-                action items already written.
+                Every alert arrives in your inbox, scoped to your products —
+                with the analysis and action items already written.
               </p>
               <EmailMockup />
             </div>

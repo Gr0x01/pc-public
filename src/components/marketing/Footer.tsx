@@ -14,6 +14,12 @@ export default function Footer() {
           {/* Links */}
           <nav className="flex flex-wrap gap-6">
             <Link
+              href="/blog"
+              className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
+            >
+              Blog
+            </Link>
+            <Link
               href="/pricing"
               className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
             >

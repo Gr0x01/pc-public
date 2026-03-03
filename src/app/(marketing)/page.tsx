@@ -22,7 +22,7 @@ export default function LandingPage() {
       {/* Feature Comparison — handles its own staggered reveal */}
       <FeatureComparison />
 
-      {/* Product Dashboard Showcase */}
+      {/* Dashboard — depth layer, email is primary */}
       <RevealSection>
         <ProductShowcase />
       </RevealSection>
@@ -93,7 +93,7 @@ export default function LandingPage() {
             </div>
             <span className="text-slate-600 text-xl">vs</span>
             <div className="text-center">
-              <p className="text-2xl font-bold text-amber">$49 / month</p>
+              <p className="text-2xl font-bold text-amber">$99 / month</p>
               <p className="text-xs font-mono text-slate-400 uppercase tracking-wide mt-0.5">
                 Policy Canary Monitor
               </p>
@@ -102,7 +102,7 @@ export default function LandingPage() {
           <p className="text-slate-400 mb-8">
             Your Marine Collagen Powder. Your BHA Eye Cream. Monitored.
             <br />
-            Start free — upgrade when you add your products.
+            Intelligence delivered to your inbox — start free.
           </p>
           <div className="flex justify-center">
             <SignupForm dark={true} />

@@ -116,16 +116,17 @@ export default function ProductShowcase() {
         {/* Section header */}
         <div className="text-center mb-12 relative z-10">
           <p className="font-mono text-xs text-accent uppercase tracking-widest mb-3">
-            THE PRODUCT
+            WHEN YOU NEED TO DIG DEEPER
           </p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary mb-4">
-            You know exactly which products
+            Your dashboard is here
             <br className="hidden md:block" />
-            need attention today.
+            when you need it.
           </h2>
           <p className="text-text-secondary max-w-xl mx-auto">
-            Not a regulatory summary. Your products, matched against every FDA
-            action — with the analysis and action items already written.
+            The intelligence starts in your inbox. When you want to explore
+            further — search enforcement history, manage products, see the
+            full picture — your dashboard is ready.
           </p>
         </div>
 

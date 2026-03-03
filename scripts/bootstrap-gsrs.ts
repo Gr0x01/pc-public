@@ -215,15 +215,22 @@ async function processPage(
   if (upsertErr) throw new Error(`substances upsert: ${upsertErr.message}`);
 
   // 2. Fetch IDs back for name + code insertion
+  // Batch in chunks of 50 to avoid URL length limits on .in() with long substance names
   const canonicalNames = substanceRows.map((s) => s.canonical_name);
-  const { data: rows } = await supabase
-    .from("substances")
-    .select("id, canonical_name")
-    .in("canonical_name", canonicalNames);
+  const allRows: Array<{ id: string; canonical_name: string }> = [];
+  const ID_BATCH = 50;
+  for (let i = 0; i < canonicalNames.length; i += ID_BATCH) {
+    const batch = canonicalNames.slice(i, i + ID_BATCH);
+    const { data: batchRows } = await supabase
+      .from("substances")
+      .select("id, canonical_name")
+      .in("canonical_name", batch);
+    if (batchRows) allRows.push(...batchRows);
+  }
 
-  if (!rows || rows.length === 0) return { inserted: skipped, skipped, codesInserted };
+  if (allRows.length === 0) return { inserted: skipped, skipped, codesInserted };
 
-  const nameToId = Object.fromEntries(rows.map((r) => [r.canonical_name, r.id]));
+  const nameToId = Object.fromEntries(allRows.map((r) => [r.canonical_name, r.id]));
 
   // 3. Batch upsert all names for the page
   const nameRows: Array<{ substance_id: string; name: string; name_type: string; language: string; source: string }> = [];
