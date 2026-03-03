@@ -1,9 +1,6 @@
-import {
-  MOCK_PRODUCTS,
-  MOCK_PRODUCT_MATCHES,
-} from "@/lib/mock/app-data";
+import { MOCK_PRODUCTS, MOCK_PRODUCT_MATCHES } from "@/lib/mock/app-data";
 import type { SubscriberProduct } from "@/types/database";
-import ProductStatusCard from "@/components/app/ProductStatusCard";
+import ProductsPageClient from "@/components/app/ProductsPageClient";
 
 const USE_MOCK = true;
 
@@ -15,21 +12,14 @@ interface ProductWithStatus {
   status: ProductStatus;
 }
 
-function deriveStatus(product: SubscriberProduct, matchCount: number): ProductStatus {
-  // For mock purposes, derive status based on product ID matching our mock data patterns
-  // In production this would come from the highest-urgency match
+function deriveStatus(product: SubscriberProduct): ProductStatus {
   const urgentMatches = MOCK_PRODUCT_MATCHES.filter(
-    (m) =>
-      m.product_id === product.id &&
-      m.confidence >= 0.9 &&
-      m.match_type === "direct_substance"
+    (m) => m.product_id === product.id && m.confidence >= 0.9 && m.match_type === "direct_substance"
   );
   if (urgentMatches.length > 0) return "urgent";
 
   const reviewMatches = MOCK_PRODUCT_MATCHES.filter(
-    (m) =>
-      m.product_id === product.id &&
-      (m.confidence >= 0.7 || m.match_type === "direct_substance")
+    (m) => m.product_id === product.id && (m.confidence >= 0.7 || m.match_type === "direct_substance")
   );
   if (reviewMatches.length > 0) return "review";
 
@@ -40,70 +30,22 @@ export default async function ProductsPage() {
   let products: ProductWithStatus[] = [];
 
   if (USE_MOCK) {
-    products = MOCK_PRODUCTS.map((p) => {
-      const matchCount = MOCK_PRODUCT_MATCHES.filter(
-        (m) => m.product_id === p.id
-      ).length;
-      const status = deriveStatus(p, matchCount);
-      return { product: p, matchCount, status };
-    });
+    products = MOCK_PRODUCTS.map((p) => ({
+      product: p,
+      matchCount: MOCK_PRODUCT_MATCHES.filter((m) => m.product_id === p.id).length,
+      status: deriveStatus(p),
+    }));
   }
 
   const urgent = products.filter((p) => p.status === "urgent");
   const review = products.filter((p) => p.status === "review");
   const clear = products.filter((p) => p.status === "clear");
 
-  const sections: Array<{
-    title: string;
-    items: ProductWithStatus[];
-    key: string;
-  }> = [];
-  if (urgent.length > 0)
-    sections.push({ title: `Action Required (${urgent.length})`, items: urgent, key: "urgent" });
-  if (review.length > 0)
-    sections.push({ title: `Under Review (${review.length})`, items: review, key: "review" });
-  if (clear.length > 0)
-    sections.push({ title: `All Clear (${clear.length})`, items: clear, key: "clear" });
+  const sections = [
+    ...(urgent.length > 0 ? [{ title: `Action Required (${urgent.length})`, items: urgent, key: "urgent" }] : []),
+    ...(review.length > 0 ? [{ title: `Under Review (${review.length})`, items: review, key: "review" }] : []),
+    ...(clear.length > 0 ? [{ title: `All Clear (${clear.length})`, items: clear, key: "clear" }] : []),
+  ];
 
-  return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      <div className="mb-8">
-        <h1 className="font-serif text-2xl font-bold text-text-primary mb-1">
-          Your Products
-        </h1>
-        <p className="text-sm text-text-secondary">
-          Monitored products and their regulatory status.
-        </p>
-      </div>
-
-      {products.length === 0 ? (
-        <div className="border border-border rounded p-8 text-center">
-          <p className="text-text-secondary text-sm">No products added yet.</p>
-          <p className="text-text-secondary text-xs mt-1 font-mono">
-            Product onboarding coming soon.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {sections.map((section) => (
-            <div key={section.key}>
-              <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
-                {section.title}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {section.items.map((item) => (
-                  <ProductStatusCard
-                    key={item.product.id}
-                    product={item.product}
-                    matchCount={item.matchCount}
-                    status={item.status}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <ProductsPageClient sections={sections} isEmpty={products.length === 0} />;
 }
