@@ -85,7 +85,7 @@ export default function Hero() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="card-surface rounded-2xl px-4 py-3"
+                className="card-surface rounded-lg px-4 py-3"
               >
                 <p className="text-lg font-semibold text-text-primary">{stat.value}</p>
                 <p className="text-[11px] font-mono uppercase tracking-wide text-text-secondary mt-0.5">
@@ -97,7 +97,7 @@ export default function Hero() {
         </div>
 
         <motion.div className="relative lg:pl-6" {...slideIn}>
-          <div className="card-surface rounded-[26px] overflow-hidden text-left relative z-20">
+          <div className="card-surface rounded-xl overflow-hidden text-left relative z-20">
             <div className="px-5 py-4 border-b border-slate-200/80 bg-white/80">
               <p className="text-[11px] font-mono uppercase tracking-wider text-accent mb-1">
                 Live Product Feed
@@ -107,7 +107,7 @@ export default function Hero() {
               </p>
             </div>
             <div className="p-5 space-y-4 bg-gradient-to-b from-white to-slate-50/80">
-              <div className="rounded-2xl border border-amber-200/60 bg-amber-50/70 p-4">
+              <div className="rounded-lg border border-amber-200/60 bg-amber-50/70 p-4">
                 <p className="text-[11px] font-mono uppercase tracking-wider text-amber mb-2">
                   Urgent
                 </p>
@@ -124,7 +124,7 @@ export default function Hero() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4">
+              <div className="rounded-lg border border-emerald-200/70 bg-emerald-50/70 p-4">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-medium text-text-primary">Biotin Complex 5000mcg</p>
                   <p className="text-xs font-mono uppercase tracking-wider text-clear">All clear</p>
@@ -134,7 +134,7 @@ export default function Hero() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+              <div className="rounded-lg border border-slate-200 bg-white/90 p-4">
                 <p className="text-[11px] font-mono uppercase tracking-wider text-text-secondary mb-1">
                   Next
                 </p>
@@ -145,13 +145,13 @@ export default function Hero() {
             </div>
           </div>
 
-          <div className="hidden md:block absolute -top-8 -right-6 z-10 card-surface rounded-2xl px-4 py-3 rotate-3">
+          <div className="hidden md:block absolute -top-8 -right-6 z-10 card-surface rounded-lg px-4 py-3 rotate-3">
             <p className="text-[11px] font-mono uppercase tracking-wider text-accent mb-1">
               Pipeline
             </p>
             <p className="text-sm text-text-primary font-semibold">1,247 FDA docs/week</p>
           </div>
-          <div className="hidden md:block absolute -bottom-7 -left-6 z-10 card-surface rounded-2xl px-4 py-3 -rotate-3">
+          <div className="hidden md:block absolute -bottom-7 -left-6 z-10 card-surface rounded-lg px-4 py-3 -rotate-3">
             <p className="text-[11px] font-mono uppercase tracking-wider text-text-secondary mb-1">
               Coverage
             </p>

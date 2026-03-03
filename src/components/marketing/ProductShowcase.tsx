@@ -131,7 +131,7 @@ export default function ProductShowcase() {
 
         {/* Dashboard mockup */}
         <div
-          className="rounded-[28px] overflow-hidden border border-slate-900/10 relative z-10"
+          className="rounded-xl overflow-hidden border border-slate-900/10 relative z-10"
           style={{
             boxShadow:
               "0 32px 64px rgba(15,23,42,0.24), 0 8px 20px rgba(15,23,42,0.16)",

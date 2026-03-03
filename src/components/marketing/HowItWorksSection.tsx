@@ -100,7 +100,7 @@ export default function HowItWorksSection() {
             <React.Fragment key={step}>
               <motion.div
                 variants={cardVariant}
-                className="flex-1 rounded-2xl card-surface p-6 hover:-translate-y-0.5 transition-all duration-150"
+                className="flex-1 rounded-lg card-surface p-6 hover:-translate-y-0.5 transition-all duration-150"
                 style={{ background: gradient }}
               >
                 <div className="flex items-center gap-3 mb-4">

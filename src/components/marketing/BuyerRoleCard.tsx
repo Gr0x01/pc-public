@@ -89,7 +89,7 @@ export default function BuyerRoleCard() {
             <motion.div
               key={role.title}
               variants={reduce ? undefined : card}
-              className="card-surface rounded-2xl p-6 hover:-translate-y-0.5 transition-all duration-150"
+              className="card-surface rounded-lg p-6 hover:-translate-y-0.5 transition-all duration-150"
               style={{ background: role.gradient }}
             >
               <p className="text-sm font-semibold uppercase tracking-wide text-amber mb-1">

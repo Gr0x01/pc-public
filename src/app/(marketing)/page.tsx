@@ -48,7 +48,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4">
-              <div className="text-center card-surface rounded-2xl p-6">
+              <div className="text-center card-surface rounded-lg p-6">
                 <p className="text-5xl md:text-8xl font-bold text-text-primary mb-2">
                   <StatCounter end={3859} />
                 </p>
@@ -59,7 +59,7 @@ export default function LandingPage() {
                   Since Jan 2025 — DOGE workforce reductions.
                 </p>
               </div>
-              <div className="text-center card-surface rounded-2xl p-6">
+              <div className="text-center card-surface rounded-lg p-6">
                 <p className="text-5xl md:text-8xl font-bold text-text-primary mb-2">
                   <StatCounter end={1200} suffix="+" />
                 </p>
@@ -70,7 +70,7 @@ export default function LandingPage() {
                   Each one names specific products, violations, and deadlines.
                 </p>
               </div>
-              <div className="text-center card-surface rounded-2xl p-6">
+              <div className="text-center card-surface rounded-lg p-6">
                 <p className="text-5xl md:text-8xl font-bold text-text-primary mb-2">
                   <StatCounter end={15} suffix=" days" />
                 </p>
@@ -95,7 +95,7 @@ export default function LandingPage() {
       {/* Social Proof */}
       <RevealSection>
         <section className="py-20 px-6 bg-white">
-          <div className="max-w-3xl mx-auto text-center card-surface rounded-[28px] p-8 md:p-12">
+          <div className="max-w-3xl mx-auto text-center card-surface rounded-xl p-8 md:p-12">
             <p className="font-mono text-xs text-accent uppercase tracking-widest mb-6">
               EARLY ACCESS
             </p>
@@ -134,7 +134,7 @@ export default function LandingPage() {
         className="py-24 px-6 bg-white"
       >
         <div
-          className="max-w-4xl mx-auto text-center rounded-[32px] px-6 py-12 md:p-14 border border-white/10"
+          className="max-w-4xl mx-auto text-center rounded-xl px-6 py-12 md:p-14 border border-white/10"
           style={{ background: "var(--gradient-dark-surface)" }}
         >
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
