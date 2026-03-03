@@ -74,7 +74,7 @@ export type SourceType = "api" | "rss" | "scrape" | "csv" | "manual";
 
 export type PipelineStatus = "running" | "success" | "failed" | "partial";
 
-export type ProcessingStatus = "pending" | "ok" | "parse_error" | "incomplete_source";
+export type ProcessingStatus = "pending" | "ok" | "enriched" | "error" | "parse_error" | "incomplete_source";
 
 export type VerificationStatus = "unverified" | "verified" | "rejected";
 

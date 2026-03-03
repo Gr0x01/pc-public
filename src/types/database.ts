@@ -145,6 +145,8 @@ export interface ItemEnrichment {
   confidence: number | null;
   verification_status: VerificationStatus;
   raw_response: Record<string, unknown> | null;
+  regulatory_action_type: string | null;
+  deadline: string | null; // ISO date string
   created_at: string;
 }
 

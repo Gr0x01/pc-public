@@ -3,43 +3,46 @@ import Link from "next/link";
 export default function Hero() {
   return (
     <section
-      className="min-h-[85vh] flex flex-col items-center justify-center px-6 text-center"
+      className="min-h-[85vh] flex items-center px-6"
       style={{
         background:
           "radial-gradient(ellipse at 70% 15%, rgba(217,119,6,0.05) 0%, transparent 55%), radial-gradient(ellipse at 25% 85%, rgba(234,193,0,0.04) 0%, transparent 55%), #FFFFFF",
       }}
     >
-      <div className="max-w-4xl mx-auto">
-        <h1 className="font-serif text-4xl md:text-6xl font-bold text-text-primary leading-tight">
-          The FDA changed something.
-          <br />
-          Was it about your products?
-        </h1>
+      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-center py-16 md:py-0">
 
-        <p className="text-lg text-text-secondary max-w-2xl mx-auto mt-6 leading-relaxed">
-          Product-level FDA monitoring for supplement, food, and cosmetics
-          brands. Know which of your products are affected — by name and
-          ingredient — before the warning letter arrives.
-        </p>
+        {/* Left: text + CTAs */}
+        <div>
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-text-primary leading-tight">
+            The FDA changed something.
+            <br />
+            Was it about your products?
+          </h1>
 
-        {/* CTA row */}
-        <div className="flex gap-4 mt-8 flex-wrap justify-center">
-          <Link
-            href="/#signup"
-            className="bg-amber text-white font-semibold px-8 py-3.5 rounded hover:bg-amber/90 transition-colors duration-150"
-          >
-            Start Free
-          </Link>
-          <Link
-            href="/sample"
-            className="border border-border text-text-primary font-semibold px-8 py-3.5 rounded hover:bg-surface-subtle transition-colors duration-150"
-          >
-            See a Sample Report
-          </Link>
+          <p className="text-lg text-text-secondary mt-6 leading-relaxed max-w-lg">
+            Product-level FDA monitoring for supplement, food, and cosmetics
+            brands. Know which of your products are affected — by name and
+            ingredient — before the warning letter arrives.
+          </p>
+
+          <div className="flex gap-4 mt-8 flex-wrap">
+            <Link
+              href="/#signup"
+              className="bg-amber text-white font-semibold px-8 py-3.5 rounded hover:bg-amber/90 transition-colors duration-150"
+            >
+              Start Free
+            </Link>
+            <Link
+              href="/sample"
+              className="border border-border text-text-primary font-semibold px-8 py-3.5 rounded hover:bg-surface-subtle transition-colors duration-150"
+            >
+              See a Sample Report
+            </Link>
+          </div>
         </div>
 
-        {/* Email preview mockup — stacked card approach */}
-        <div className="relative max-w-xl mx-auto mt-12">
+        {/* Right: email mockup */}
+        <div className="relative">
           {/* Main card */}
           <div
             className="relative z-30 bg-white rounded overflow-hidden text-left"
@@ -50,7 +53,6 @@ export default function Hero() {
           >
             {/* Email chrome bar */}
             <div className="flex items-center gap-2 px-4 py-2.5 bg-surface-subtle border-b border-border">
-              {/* macOS traffic lights */}
               <div className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]" />
                 <span className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]" />
@@ -128,6 +130,7 @@ export default function Hero() {
             </div>
           </div>
         </div>
+
       </div>
     </section>
   );

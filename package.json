@@ -15,7 +15,9 @@
     "pipeline:enforcement-backfill": "npx tsx scripts/run-fetcher.ts enforcement-backfill",
     "pipeline:wl-backfill": "npx tsx scripts/run-fetcher.ts wl-backfill",
     "pipeline:wl-incremental": "npx tsx scripts/run-fetcher.ts wl-incremental",
-    "pipeline:rss-poll": "npx tsx scripts/run-fetcher.ts rss-poll"
+    "pipeline:rss-poll": "npx tsx scripts/run-fetcher.ts rss-poll",
+    "pipeline:enrich": "npx tsx scripts/run-enrichment.ts",
+    "pipeline:enrich-test": "npx tsx scripts/run-enrichment.ts --limit 5"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.53",
