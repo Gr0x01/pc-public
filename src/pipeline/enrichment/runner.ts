@@ -41,6 +41,7 @@ export interface EnrichmentRunResult {
   enriched: number;
   embedded: number;
   contentFetched: number;
+  crossReferenced: number;
   errors: number;
   skipped: number;
   durationMs: number;
@@ -107,12 +108,12 @@ export async function runEnrichment(
 
   if (!items || items.length === 0) {
     console.log("No unenriched items found.");
-    return { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, errors: 0, skipped: 0, durationMs: Date.now() - startTime };
+    return { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, errors: 0, skipped: 0, durationMs: Date.now() - startTime };
   }
 
   console.log(`Found ${items.length} items to enrich (limit: ${limit})`);
 
-  const counters = { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, errors: 0, skipped: 0 };
+  const counters = { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, errors: 0, skipped: 0 };
 
   // 3. Process sequentially (rate limit safety)
   for (const item of items as RegulatoryItem[]) {
@@ -155,6 +156,7 @@ export async function runEnrichment(
     }
 
     counters.enriched++;
+    if (enrichResult.crossReferenced) counters.crossReferenced++;
 
     // b. Generate embeddings
     try {
@@ -170,7 +172,7 @@ export async function runEnrichment(
     // Log progress every 10 items
     if (counters.processed % 10 === 0) {
       console.log(
-        `\nProgress: ${counters.processed}/${items.length} | enriched=${counters.enriched} embedded=${counters.embedded} contentFetched=${counters.contentFetched} errors=${counters.errors}\n`
+        `\nProgress: ${counters.processed}/${items.length} | enriched=${counters.enriched} crossRef=${counters.crossReferenced} embedded=${counters.embedded} contentFetched=${counters.contentFetched} errors=${counters.errors}\n`
       );
     }
 

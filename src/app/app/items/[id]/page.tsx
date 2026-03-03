@@ -100,6 +100,7 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
               deadline: feedItem.deadline ?? null,
               published_date: feedItem.published_date,
               verification_status: "unverified",
+              signal_source: "direct",
               created_at: feedItem.published_date,
             }
           : null,

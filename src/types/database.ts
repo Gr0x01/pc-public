@@ -130,6 +130,17 @@ export interface SubstanceName {
   created_at: string;
 }
 
+export interface SubstanceCode {
+  id: string;
+  substance_id: string;
+  code_system: string;
+  code_value: string;
+  code_type: string | null;
+  is_classification: boolean;
+  comments: string | null;
+  created_at: string;
+}
+
 // --------------------------------------------------------------------------
 // Layer 4: Enrichment
 // --------------------------------------------------------------------------
@@ -161,6 +172,7 @@ export interface SegmentImpact {
   deadline: string | null;
   published_date: string;
   verification_status: VerificationStatus;
+  signal_source: "direct" | "cross_reference";
   created_at: string;
 }
 
@@ -170,6 +182,7 @@ export interface ItemEnrichmentTag {
   tag_dimension: "product_type" | "facility_type" | "claims" | "regulation";
   tag_value: string;
   confidence: number | null;
+  signal_source: "direct" | "cross_reference";
   created_at: string;
 }
 

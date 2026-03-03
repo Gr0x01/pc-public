@@ -11,9 +11,23 @@
  * Safe to re-run: upserts on UNII conflict, skips existing records.
  */
 
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import { createClient } from "@supabase/supabase-js";
+
+const CHECKPOINT_FILE = resolve(process.cwd(), ".gsrs-checkpoint");
+
+function readCheckpoint(): number {
+  // Returns skip offset (number of substances already processed), not page number
+  if (!existsSync(CHECKPOINT_FILE)) return 0;
+  const val = parseInt(readFileSync(CHECKPOINT_FILE, "utf-8").trim(), 10);
+  return isNaN(val) ? 0 : val;
+}
+
+function writeCheckpoint(skip: number) {
+  // Store skip offset so checkpoint survives page size changes
+  writeFileSync(CHECKPOINT_FILE, String(skip), "utf-8");
+}
 
 // Load .env.local before reading env vars
 const envPath = resolve(process.cwd(), ".env.local");
@@ -31,8 +45,9 @@ if (existsSync(envPath)) {
 }
 
 const GSRS_API = "https://gsrs.ncats.nih.gov/api/v1/substances";
-const PAGE_SIZE = 100;
-const DELAY_MS = 50; // minimal delay — sequential fetches provide natural throttling
+const PAGE_SIZE = 500;
+const DELAY_MS = 200;      // between pages
+const FETCH_TIMEOUT = 60_000; // 60s abort — larger pages need more time
 
 // Substance class mapping from GSRS to our schema
 const SUBSTANCE_CLASS_MAP: Record<string, string> = {
@@ -53,11 +68,34 @@ const NAME_TYPE_MAP: Record<string, string> = {
   cd: "abbreviation",
 };
 
+// Code systems relevant for cross-reference inference (Step 1b).
+// KEEP IN SYNC with the switch statement in src/pipeline/enrichment/cross-reference.ts
+const RELEVANT_CODE_SYSTEMS = new Set([
+  "CFR",                              // Food additive, color additive, cosmetic, OTC drug (by Part)
+  "CODEX ALIMENTARIUS (GSFA)",        // Food additive + functional class
+  "JECFA EVALUATION",                 // Food additive evaluation
+  "DSLD",                             // Supplement ingredient presence
+  "COSMETIC INGREDIENT REVIEW (CIR)", // Cosmetic safety reviewed
+  "RXCUI",                            // Pharmaceutical use
+  "DRUGBANK",                         // Pharmaceutical use
+  "DAILYMED",                         // Drug/pharmaceutical
+  "EPA PESTICIDE CODE",               // Pesticide registration
+  "Food Contact Substance Notif",     // Food-contact material
+]);
+
+interface GsrsCode {
+  codeSystem: string;
+  code: string;
+  type?: string;
+  _isClassification?: boolean;
+  comments?: string;
+}
+
 interface GsrsSubstance {
   uuid: string;
   _name: string;
   substanceClass: string;
-  codes?: Array<{ codeSystem: string; code: string }>;
+  codes?: GsrsCode[];
   names?: Array<{ name: string; type: string; preferred?: boolean; languages?: string[] }>;
 }
 
@@ -82,6 +120,7 @@ async function fetchPage(skip: number): Promise<GsrsPage> {
   const url = `${GSRS_API}?skip=${skip}&top=${PAGE_SIZE}&view=full`;
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
   });
   if (!res.ok) {
     throw new Error(`GSRS API error: ${res.status} ${res.statusText}`);
@@ -103,128 +142,159 @@ async function main() {
     auth: { persistSession: false },
   });
 
-  console.log("Starting GSRS bootstrap...");
+  const startSkip = readCheckpoint();
+  console.log(`Starting GSRS bootstrap${startSkip > 0 ? ` (resuming from skip=${startSkip})` : ""}...`);
 
-  // Probe first page to get total
-  const firstPage = await fetchPage(0);
-  const total = firstPage.total;
+  // Always fetch page 0 to get total count
+  const probePage = await fetchPage(0);
+  const total = probePage.total;
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  console.log(`Total substances: ${total}, pages: ${totalPages}`);
+  console.log(`Total substances: ${total}, pages: ${totalPages} (${PAGE_SIZE}/page)`);
 
   let inserted = 0;
   let skipped = 0;
+  let codesInserted = 0;
   let errors = 0;
 
-  for (let pageNum = 0; pageNum < totalPages; pageNum++) {
-    let data: GsrsPage;
-    const skip = pageNum * PAGE_SIZE;
+  // Start from checkpoint skip offset (page-size-agnostic resume)
+  const loopStart = Math.floor(startSkip / PAGE_SIZE) * PAGE_SIZE;
+  let pageNum = Math.floor(loopStart / PAGE_SIZE);
 
-    if (pageNum === 0) {
-      data = firstPage;
-    } else {
-      await sleep(DELAY_MS);
-      try {
-        data = await fetchPage(skip);
-      } catch (err) {
-        console.error(`Failed to fetch page ${pageNum} (skip=${skip}):`, err);
-        errors++;
-        continue;
-      }
+  for (let skip = loopStart; skip < total; skip += PAGE_SIZE, pageNum++) {
+    try {
+      const data = skip === 0 ? probePage : await fetchPage(skip);
+      const result = await processPage(supabase, data);
+      inserted += result.inserted;
+      skipped += result.skipped;
+      codesInserted += result.codesInserted;
+      writeCheckpoint(skip + PAGE_SIZE);
+    } catch (err) {
+      console.error(`Page ${pageNum} (skip=${skip}) error:`, err);
+      errors++;
     }
 
-    for (const substance of data.content) {
-      const unii = extractCode(substance, "FDA UNII");
-      const cas = extractCode(substance, "CAS");
-      const substanceClass =
-        SUBSTANCE_CLASS_MAP[substance.substanceClass?.toLowerCase()] ?? null;
-
-      // Upsert the canonical substance
-      const { data: row, error: subError } = await supabase
-        .from("substances")
-        .upsert(
-          {
-            canonical_name: substance._name,
-            unii: unii,
-            cas_number: cas,
-            substance_class: substanceClass,
-          },
-          {
-            onConflict: "unii",
-            ignoreDuplicates: false,
-          }
-        )
-        .select("id")
-        .single();
-
-      if (subError || !row) {
-        // Try insert without UNII constraint (non-UNII substances)
-        const { data: insertedRow, error: insertError } = await supabase
-          .from("substances")
-          .insert({
-            canonical_name: substance._name,
-            unii: unii,
-            cas_number: cas,
-            substance_class: substanceClass,
-          })
-          .select("id")
-          .single();
-
-        if (insertError) {
-          skipped++;
-          continue;
-        }
-
-        if (!insertedRow) {
-          skipped++;
-          continue;
-        }
-
-        await insertNames(supabase, insertedRow.id, substance);
-        inserted++;
-      } else {
-        await insertNames(supabase, row.id, substance);
-        inserted++;
-      }
-    }
-
-    if (pageNum % 10 === 0) {
+    if ((pageNum + 1) % 10 === 0) {
       console.log(
-        `Progress: page ${pageNum + 1}/${totalPages} | inserted: ${inserted} | skipped: ${skipped} | errors: ${errors}`
+        `Progress: page ${pageNum + 1}/${totalPages} | inserted: ${inserted} | codes: ${codesInserted} | skipped: ${skipped} | errors: ${errors}`
       );
     }
+
+    if (skip + PAGE_SIZE < total) await sleep(DELAY_MS);
   }
 
   console.log("\nGSRS bootstrap complete.");
   console.log(`  Inserted: ${inserted}`);
+  console.log(`  Codes:    ${codesInserted}`);
   console.log(`  Skipped:  ${skipped}`);
   console.log(`  Errors:   ${errors}`);
+  // Clean up checkpoint on successful completion
+  if (existsSync(CHECKPOINT_FILE)) writeFileSync(CHECKPOINT_FILE, "", "utf-8");
 }
 
-async function insertNames(
+async function processPage(
   supabase: ReturnType<typeof createClient>,
-  substanceId: string,
-  substance: GsrsSubstance
-) {
-  const names = substance.names ?? [];
-  if (names.length === 0) return;
+  data: GsrsPage
+): Promise<{ inserted: number; skipped: number; codesInserted: number }> {
+  let inserted = 0;
+  let skipped = 0;
+  let codesInserted = 0;
 
-  const nameRows = names.map((n) => ({
-    substance_id: substanceId,
-    name: n.name,
-    name_type: NAME_TYPE_MAP[n.type?.toLowerCase()] ?? "common",
-    language: n.languages?.[0]?.slice(0, 2) ?? "en",
-    source: "gsrs",
+  // 1. Batch upsert all substances in the page
+  const substanceRows = data.content.map((s) => ({
+    canonical_name: s._name,
+    unii: extractCode(s, "FDA UNII"),
+    cas_number: extractCode(s, "CAS"),
+    substance_class: SUBSTANCE_CLASS_MAP[s.substanceClass?.toLowerCase()] ?? null,
   }));
 
-  // Batch insert, ignore duplicates
-  const { error } = await supabase.from("substance_names").upsert(nameRows, {
-    onConflict: "substance_id,name",
+  // Upsert on canonical_name — handles both UNII and non-UNII substances
+  const { error: upsertErr } = await supabase.from("substances").upsert(substanceRows, {
+    onConflict: "canonical_name",
     ignoreDuplicates: true,
   });
+  if (upsertErr) throw new Error(`substances upsert: ${upsertErr.message}`);
 
-  if (error) {
-    console.warn(`Failed to insert names for substance ${substanceId}:`, error.message);
+  // 2. Fetch IDs back for name + code insertion
+  const canonicalNames = substanceRows.map((s) => s.canonical_name);
+  const { data: rows } = await supabase
+    .from("substances")
+    .select("id, canonical_name")
+    .in("canonical_name", canonicalNames);
+
+  if (!rows || rows.length === 0) return { inserted: skipped, skipped, codesInserted };
+
+  const nameToId = Object.fromEntries(rows.map((r) => [r.canonical_name, r.id]));
+
+  // 3. Batch upsert all names for the page
+  const nameRows: Array<{ substance_id: string; name: string; name_type: string; language: string; source: string }> = [];
+
+  // 4. Collect relevant codes for substance_codes table
+  const codeRows: Array<{
+    substance_id: string;
+    code_system: string;
+    code_value: string;
+    code_type: string | null;
+    is_classification: boolean;
+    comments: string | null;
+  }> = [];
+
+  for (const s of data.content) {
+    const substanceId = nameToId[s._name];
+    if (!substanceId) { skipped++; continue; }
+
+    for (const n of s.names ?? []) {
+      if (!n.name?.trim()) continue;
+      nameRows.push({
+        substance_id: substanceId,
+        name: n.name,
+        name_type: NAME_TYPE_MAP[n.type?.toLowerCase()] ?? "common",
+        language: n.languages?.[0]?.slice(0, 2) ?? "en",
+        source: "gsrs",
+      });
+    }
+
+    // Capture relevant codes for cross-reference inference
+    for (const c of s.codes ?? []) {
+      if (!RELEVANT_CODE_SYSTEMS.has(c.codeSystem)) continue;
+      if (!c.code?.trim()) continue;
+
+      codeRows.push({
+        substance_id: substanceId,
+        code_system: c.codeSystem,
+        code_value: c.code.trim(),
+        code_type: c.type ?? null,
+        is_classification: c._isClassification ?? false,
+        comments: c.comments ?? null,
+      });
+    }
+
+    inserted++;
   }
+
+  if (nameRows.length > 0) {
+    const { error: namesErr } = await supabase.from("substance_names").upsert(nameRows, {
+      onConflict: "substance_id,name",
+      ignoreDuplicates: true,
+    });
+    if (namesErr) throw new Error(`substance_names upsert: ${namesErr.message}`);
+  }
+
+  // 5. Batch upsert codes into substance_codes
+  if (codeRows.length > 0) {
+    // Supabase has a ~1000 row limit per request, batch if needed
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < codeRows.length; i += BATCH_SIZE) {
+      const batch = codeRows.slice(i, i + BATCH_SIZE);
+      const { error: codesErr } = await supabase.from("substance_codes").upsert(batch, {
+        onConflict: "substance_id,code_system,code_value",
+        ignoreDuplicates: true,
+      });
+      if (codesErr) throw new Error(`substance_codes upsert: ${codesErr.message}`);
+    }
+    codesInserted += codeRows.length;
+  }
+
+  return { inserted, skipped, codesInserted };
 }
 
 main().catch((err) => {

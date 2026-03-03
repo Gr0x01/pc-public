@@ -347,6 +347,7 @@ export const MOCK_ITEM_DETAIL: ItemDetailData = {
     deadline: "2026-06-30",
     published_date: "2026-02-28",
     verification_status: "verified",
+    signal_source: "direct",
     created_at: "2026-02-28T14:30:00Z",
   },
   substances: [
