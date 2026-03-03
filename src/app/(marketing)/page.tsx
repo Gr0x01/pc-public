@@ -17,25 +17,26 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <>
-      {/* Hero — full width, no reveal wrapper */}
+      {/* Hero — full width, handles its own animations */}
       <Hero />
 
-      {/* Feature Comparison — moved up to 2nd position */}
-      <RevealSection delay={0.05}>
-        <FeatureComparison />
-      </RevealSection>
+      {/* Feature Comparison — handles its own staggered reveal */}
+      <FeatureComparison />
 
       {/* Product Dashboard Showcase */}
       <RevealSection>
         <ProductShowcase />
       </RevealSection>
 
-      {/* Stats — light background */}
+      {/* Stats */}
       <RevealSection>
-        <section className="bg-white py-24 px-6">
+        <section className="section-soft py-24 px-6">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
+              <p className="font-mono text-xs text-accent uppercase tracking-widest mb-3">
+                THE RISK
+              </p>
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary mb-4">
                 The FDA is shrinking.
                 <br />
                 Enforcement is not.
@@ -47,8 +48,8 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4">
-              <div className="text-center border-t border-border pt-8">
-                <p className="text-5xl md:text-7xl font-bold text-text-primary mb-2">
+              <div className="text-center card-surface rounded-2xl p-6">
+                <p className="text-5xl md:text-8xl font-bold text-text-primary mb-2">
                   <StatCounter end={3859} />
                 </p>
                 <p className="font-mono text-xs text-text-secondary uppercase tracking-widest mb-2">
@@ -58,8 +59,8 @@ export default function LandingPage() {
                   Since Jan 2025 — DOGE workforce reductions.
                 </p>
               </div>
-              <div className="text-center border-t border-border pt-8">
-                <p className="text-5xl md:text-7xl font-bold text-text-primary mb-2">
+              <div className="text-center card-surface rounded-2xl p-6">
+                <p className="text-5xl md:text-8xl font-bold text-text-primary mb-2">
                   <StatCounter end={1200} suffix="+" />
                 </p>
                 <p className="font-mono text-xs text-text-secondary uppercase tracking-widest mb-2">
@@ -69,15 +70,15 @@ export default function LandingPage() {
                   Each one names specific products, violations, and deadlines.
                 </p>
               </div>
-              <div className="text-center border-t border-border pt-8">
-                <p className="text-5xl md:text-7xl font-bold text-text-primary mb-2">
-                  <StatCounter end={72} suffix=" hrs" />
+              <div className="text-center card-surface rounded-2xl p-6">
+                <p className="text-5xl md:text-8xl font-bold text-text-primary mb-2">
+                  <StatCounter end={15} suffix=" days" />
                 </p>
                 <p className="font-mono text-xs text-text-secondary uppercase tracking-widest mb-2">
                   To respond
                 </p>
                 <p className="text-xs text-text-secondary">
-                  Late response to a warning letter escalates to import alerts.
+                  15 business days to reply before escalation to import alerts.
                 </p>
               </div>
             </div>
@@ -88,16 +89,17 @@ export default function LandingPage() {
       {/* How It Works */}
       <HowItWorksSection />
 
-      {/* Who It's For */}
-      <RevealSection delay={0.05}>
-        <BuyerRoleCard />
-      </RevealSection>
+      {/* Who It's For — handles its own staggered reveal */}
+      <BuyerRoleCard />
 
-      {/* Social Proof — light background */}
+      {/* Social Proof */}
       <RevealSection>
-        <section className="bg-surface-muted py-20 px-6">
-          <div className="max-w-3xl mx-auto text-center">
-            <p className="text-2xl md:text-3xl font-semibold text-text-primary mb-4 leading-snug">
+        <section className="py-20 px-6 bg-white">
+          <div className="max-w-3xl mx-auto text-center card-surface rounded-[28px] p-8 md:p-12">
+            <p className="font-mono text-xs text-accent uppercase tracking-widest mb-6">
+              EARLY ACCESS
+            </p>
+            <p className="text-2xl md:text-3xl font-semibold tracking-tight text-text-primary mb-4 leading-snug">
               &ldquo;Finally — something that tells me what to do, not just what
               happened.&rdquo;
             </p>
@@ -107,12 +109,12 @@ export default function LandingPage() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-border pt-10">
               {[
-                { value: "50+", label: "Brands in beta" },
                 { value: "4", label: "FDA data sources monitored" },
                 {
                   value: "<24 hrs",
                   label: "FDA pub \u2192 subscriber email",
                 },
+                { value: "169K", label: "FDA substances indexed" },
               ].map(({ value, label }) => (
                 <div key={label} className="text-center">
                   <p className="text-2xl font-bold text-text-primary mb-1">{value}</p>
@@ -129,10 +131,12 @@ export default function LandingPage() {
       {/* Signup CTA — dark gradient with cost math */}
       <section
         id="signup"
-        className="py-24 px-6"
-        style={{ background: "var(--gradient-dark-surface)" }}
+        className="py-24 px-6 bg-white"
       >
-        <div className="max-w-xl mx-auto text-center">
+        <div
+          className="max-w-4xl mx-auto text-center rounded-[32px] px-6 py-12 md:p-14 border border-white/10"
+          style={{ background: "var(--gradient-dark-surface)" }}
+        >
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
             Know before the warning letter.
           </h2>
@@ -155,8 +159,7 @@ export default function LandingPage() {
             </div>
           </div>
           <p className="text-slate-400 mb-8">
-            Product-level intelligence for supplement, food, and cosmetics
-            brands.
+            Your Marine Collagen Powder. Your BHA Eye Cream. Monitored.
             <br />
             Start free — upgrade when you add your products.
           </p>

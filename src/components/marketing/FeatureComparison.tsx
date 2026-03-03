@@ -1,8 +1,34 @@
+"use client";
+
+import { useRef } from "react";
+import { motion, useInView, useReducedMotion } from "framer-motion";
+
+const container = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.15 } },
+};
+
+const card = {
+  hidden: { opacity: 0, y: 18 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: "easeOut" as const },
+  },
+};
+
 export default function FeatureComparison() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const reduce = useReducedMotion();
+
   return (
-    <section className="bg-surface-muted py-24 px-6">
+    <section className="section-soft py-24 px-6">
       <div className="max-w-5xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold text-text-primary text-center mb-4">
+        <p className="font-mono text-xs text-accent uppercase tracking-widest text-center mb-3">
+          THE DIFFERENCE
+        </p>
+        <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary text-center mb-4">
           The same FDA action.
           <br />
           Two completely different responses.
@@ -12,11 +38,20 @@ export default function FeatureComparison() {
           what to do — about your specific products.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <motion.div
+          ref={ref}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          variants={reduce ? undefined : container}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+        >
           {/* Free — Generic */}
-          <div className="bg-surface-subtle border border-border rounded p-6 opacity-80">
+          <motion.div
+            variants={reduce ? undefined : card}
+            className="card-surface rounded-2xl p-6 opacity-80"
+          >
             <div className="mb-4">
-              <span className="text-xs font-semibold uppercase tracking-wide text-text-secondary bg-surface-subtle border border-border rounded px-2 py-0.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-text-secondary bg-slate-100 border border-slate-200 rounded-full px-2.5 py-0.5">
                 Free Weekly Digest
               </span>
             </div>
@@ -42,14 +77,17 @@ export default function FeatureComparison() {
             <p className="text-xs text-text-secondary mt-4 pt-4 border-t border-border">
               Generic digest. Same for every subscriber.
             </p>
-          </div>
+          </motion.div>
 
           {/* Monitor — Product Intelligence */}
-          <div className="bg-white border border-border rounded overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.10)]">
-            <div className="h-[3px] bg-canary" />
+          <motion.div
+            variants={reduce ? undefined : card}
+            className="card-surface rounded-2xl overflow-hidden"
+          >
+            <div className="h-[3px] bg-accent" />
             <div className="p-6">
               <div className="mb-4">
-                <span className="text-xs font-semibold uppercase tracking-wide text-amber bg-amber-muted rounded px-2 py-0.5">
+                <span className="text-xs font-semibold uppercase tracking-wide text-accent bg-accent-soft rounded-full px-2.5 py-0.5">
                   Product Intelligence
                 </span>
               </div>
@@ -81,8 +119,8 @@ export default function FeatureComparison() {
                 Product intelligence. Specific to your products.
               </p>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );

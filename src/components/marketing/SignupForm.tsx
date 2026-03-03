@@ -61,8 +61,8 @@ export function SignupForm({ dark = false }: SignupFormProps) {
   });
 
   const inputClasses = dark
-    ? "bg-slate-800/80 border border-slate-600/50 text-white placeholder:text-slate-400 rounded px-4 py-2.5 text-sm focus:border-amber focus:outline-none"
-    : "border border-border bg-white rounded px-4 py-2.5 text-sm focus:border-amber focus:outline-none text-text-primary placeholder:text-text-secondary";
+    ? "bg-slate-800/80 border border-slate-600/50 text-white placeholder:text-slate-400 rounded px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
+    : "border border-border bg-white rounded px-4 py-2.5 text-sm focus:border-accent focus:outline-none text-text-primary placeholder:text-text-secondary";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -125,7 +125,7 @@ export function SignupForm({ dark = false }: SignupFormProps) {
               {state.subscribedName ? `, ${state.subscribedName}` : ""}!
             </p>
             <p className="text-slate-300 text-sm mt-1">
-              Check your inbox for the free weekly digest.
+              We&apos;ll help you add your first products next.
             </p>
           </motion.div>
         ) : (
@@ -158,7 +158,7 @@ export function SignupForm({ dark = false }: SignupFormProps) {
             <button
               type="submit"
               disabled={state.status === "loading"}
-              className="bg-amber text-white px-6 py-3 rounded font-semibold text-sm flex items-center justify-center gap-2 hover:bg-amber/90 transition-colors duration-150 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="bg-accent text-white px-6 py-3 rounded font-semibold text-sm flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors duration-150 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {state.status === "loading" && (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

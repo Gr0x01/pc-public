@@ -103,14 +103,22 @@ export default function ProductShowcase() {
   const product = PRODUCTS.find((p) => p.id === selectedId)!;
 
   return (
-    <section className="bg-surface-muted py-24 px-6">
+    <section className="py-24 px-6 bg-white relative overflow-hidden">
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(900px 480px at 0% 100%, rgba(99,91,255,0.10) 0%, transparent 60%), radial-gradient(700px 420px at 100% 0%, rgba(32,161,255,0.10) 0%, transparent 62%)",
+        }}
+        aria-hidden="true"
+      />
       <div className="max-w-6xl mx-auto">
         {/* Section header */}
-        <div className="text-center mb-12">
-          <p className="font-mono text-xs text-amber uppercase tracking-widest mb-3">
+        <div className="text-center mb-12 relative z-10">
+          <p className="font-mono text-xs text-accent uppercase tracking-widest mb-3">
             THE PRODUCT
           </p>
-          <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary mb-4">
             You know exactly which products
             <br className="hidden md:block" />
             need attention today.
@@ -123,10 +131,10 @@ export default function ProductShowcase() {
 
         {/* Dashboard mockup */}
         <div
-          className="rounded-xl overflow-hidden border border-white/10"
+          className="rounded-[28px] overflow-hidden border border-slate-900/10 relative z-10"
           style={{
             boxShadow:
-              "0 24px 64px rgba(0,0,0,0.5), 0 8px 16px rgba(0,0,0,0.3)",
+              "0 32px 64px rgba(15,23,42,0.24), 0 8px 20px rgba(15,23,42,0.16)",
           }}
         >
           {/* Browser chrome */}
@@ -170,15 +178,15 @@ export default function ProductShowcase() {
                   <button
                     key={p.id}
                     onClick={() => setSelectedId(p.id)}
-                    className={`w-full text-left px-4 py-3 flex items-start gap-3 border-l-2 transition-colors duration-100 ${
-                      isSelected
-                        ? "border-l-amber"
-                        : "border-l-transparent hover:bg-white/5"
+                    className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors duration-100 ${
+                      isSelected ? "" : "hover:bg-white/5"
                     }`}
                     style={isSelected ? { background: "rgba(255,255,255,0.08)" } : undefined}
                   >
                     <span
-                      className={`h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 ${cfg.dot}`}
+                      className={`h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 ${
+                        isSelected ? "bg-canary" : cfg.dot
+                      }`}
                     />
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-white/90 leading-snug">

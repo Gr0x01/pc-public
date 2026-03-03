@@ -10,6 +10,7 @@ const STEPS = [
     body: "We watch Federal Register documents, FDA warning letters, openFDA enforcement actions, and RSS feeds — continuously.",
     tags: ["FDA Warning Letters", "Federal Register", "openFDA", "RSS Feeds"],
     stat: null,
+    gradient: "linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(234,193,0,0.04) 100%)",
   },
   {
     step: "02",
@@ -17,6 +18,7 @@ const STEPS = [
     body: "We match each action against your products by name and ingredient. Only relevant changes trigger a full analysis.",
     tags: null,
     stat: "32 products checked · 3 affected",
+    gradient: "linear-gradient(135deg, rgba(234,193,0,0.08) 0%, rgba(251,146,60,0.04) 100%)",
   },
   {
     step: "03",
@@ -24,6 +26,7 @@ const STEPS = [
     body: "You get a product-specific email with what happened, which products are affected, and exactly what to do.",
     tags: null,
     stat: "< 24 hrs from FDA publish to your inbox",
+    gradient: "linear-gradient(135deg, rgba(251,146,60,0.08) 0%, rgba(251,191,36,0.04) 100%)",
   },
 ];
 
@@ -49,7 +52,7 @@ function StepConnector({ reduce }: { reduce: boolean | null }) {
       <div className="relative flex-1 h-px bg-border overflow-hidden">
         {!reduce && (
           <motion.span
-            className="absolute inset-y-0 w-6 bg-gradient-to-r from-transparent via-amber to-transparent"
+            className="absolute inset-y-0 w-6 bg-gradient-to-r from-transparent via-accent to-transparent"
             animate={{ left: ["-24px", "100%"] }}
             transition={{
               duration: 2,
@@ -71,11 +74,14 @@ export default function HowItWorksSection() {
   const reduce = useReducedMotion();
 
   return (
-    <section className="bg-surface-muted py-24 px-6">
+    <section className="section-soft py-24 px-6">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
-            How it works
+          <p className="font-mono text-xs text-accent uppercase tracking-widest mb-3">
+            HOW IT WORKS
+          </p>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary mb-4">
+            Three steps. Fully automated.
           </h2>
           <p className="text-text-secondary max-w-xl mx-auto">
             Three steps from FDA action to your inbox — all automated.
@@ -90,14 +96,15 @@ export default function HowItWorksSection() {
           initial="hidden"
           animate={inView ? "visible" : "hidden"}
         >
-          {STEPS.map(({ step, title, body, tags, stat }, i) => (
+          {STEPS.map(({ step, title, body, tags, stat, gradient }, i) => (
             <React.Fragment key={step}>
               <motion.div
                 variants={cardVariant}
-                className="flex-1 bg-white rounded border border-border p-6 shadow-sm"
+                className="flex-1 rounded-2xl card-surface p-6 hover:-translate-y-0.5 transition-all duration-150"
+                style={{ background: gradient }}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="font-mono text-xs font-bold text-amber bg-amber-muted rounded px-2 py-0.5">
+                  <span className="font-mono text-xs font-bold text-accent bg-accent-soft rounded-full px-2.5 py-0.5">
                     {step}
                   </span>
                   <h3 className="text-lg font-bold text-text-primary">

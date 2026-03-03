@@ -5,6 +5,7 @@
   --color-surface-muted: #F8FAFC;
   --color-surface-subtle: #F1F5F9;
   --color-surface-dark: #0F172A;
+  --color-surface-hero: #F6FAFF;
   --color-text-primary: #0F172A;
   --color-text-body: #334155;
   --color-text-secondary: #64748B;
@@ -15,6 +16,8 @@
   --color-canary: #EAC100;
   --color-amber: #D97706;
   --color-amber-muted: #FEF3C7;
+  --color-accent: #635BFF;
+  --color-accent-soft: #E7E5FF;
   --color-urgent: #DC2626;
   --color-urgent-muted: #FEF2F2;
   --color-clear: #059669;
@@ -29,6 +32,18 @@
     radial-gradient(ellipse at 20% 20%, rgba(234,193,0,0.07) 0%, transparent 55%),
     radial-gradient(ellipse at 80% 80%, rgba(217,119,6,0.09) 0%, transparent 55%),
     #0F172A;
+  --gradient-hero:
+    radial-gradient(1200px 700px at -10% -10%, rgba(99,91,255,0.22) 0%, transparent 52%),
+    radial-gradient(900px 620px at 100% -8%, rgba(32,161,255,0.22) 0%, transparent 52%),
+    radial-gradient(720px 500px at 75% 62%, rgba(234,193,0,0.16) 0%, transparent 56%),
+    linear-gradient(180deg, #F7FBFF 0%, #FFFFFF 56%, #FAFCFF 100%);
+  --gradient-soft-section:
+    radial-gradient(900px 500px at 12% 0%, rgba(99,91,255,0.09) 0%, transparent 58%),
+    radial-gradient(700px 450px at 95% 100%, rgba(32,161,255,0.08) 0%, transparent 64%),
+    #F8FBFF;
+  --shadow-float:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 12px 30px rgba(15, 23, 42, 0.08);
 }
 
 @keyframes gradient-shift {
@@ -45,6 +60,24 @@
     #0F172A;
   background-size: 200% 200%;
   animation: gradient-shift 12s ease infinite;
+}
+
+.stripe-grid {
+  background-image:
+    linear-gradient(to right, rgba(99, 91, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 91, 255, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.card-surface {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-float);
+}
+
+.section-soft {
+  background: var(--gradient-soft-section);
 }
 
 @media (prefers-reduced-motion: reduce) {
