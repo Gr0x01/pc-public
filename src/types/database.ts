@@ -149,6 +149,7 @@ export interface ProductCategory {
   id: string;
   slug: string;
   label: string;
+  /** @deprecated Display-only. Do not use for pipeline logic. */
   sector: "food" | "supplement" | "cosmetic";
   parent_id: string | null;
   source_system: "21_cfr_170_3" | "mocra_vcrp" | "dsld_derived";
@@ -355,7 +356,7 @@ export interface SubscriberProduct {
   user_id: string;
   name: string;
   brand: string | null;
-  product_type: "supplement" | "food" | "cosmetic";
+  product_type: "supplement" | "food" | "cosmetic" | "drug" | "medical_device" | "biologic" | "tobacco" | "veterinary";
   product_category_id: string | null;
   data_source: "dsld" | "fdc" | "manual" | "openfoodfacts";
   external_id: string | null;

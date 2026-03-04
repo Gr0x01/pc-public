@@ -1,8 +1,6 @@
 // Shared string literal types used across the application.
 // These mirror the CHECK constraints in the database schema.
 
-export type SegmentType = "supplements" | "cosmetics" | "food";
-
 export type ItemType =
   | "rule"
   | "proposed_rule"
@@ -21,7 +19,8 @@ export type RelevanceLevel = "critical" | "high" | "medium" | "low" | "none";
 
 export type SubscriptionTier = "free" | "monitor" | "monitor_research";
 
-export type ProductType = "supplement" | "food" | "cosmetic";
+/** @deprecated Display-only. Pipeline uses product_categories slugs, not broad types. */
+export type ProductType = "supplement" | "food" | "cosmetic" | "drug" | "medical_device" | "biologic" | "tobacco" | "veterinary";
 
 export type MatchType = "direct_substance" | "category_overlap" | "semantic";
 
@@ -51,6 +50,7 @@ export type IngredientGroup =
   | "probiotic"
   | "other";
 
+/** "segment" is legacy — 3 rows remain as parent groupings for topics. Do not create new segment categories. */
 export type CategoryType = "segment" | "topic" | "product_class" | "regulatory_program";
 
 export type TrendDirection = "rising" | "stable" | "declining";

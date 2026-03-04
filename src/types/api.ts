@@ -35,11 +35,9 @@ export interface FeedItem {
   source_url: string | null;
   relevance: RelevanceLevel;
   impact_summary: string | null;
-  segment: string;
 }
 
 export interface FeedQuery {
-  segment?: string;
   relevance?: RelevanceLevel;
   limit?: number;
   offset?: number;
@@ -47,7 +45,6 @@ export interface FeedQuery {
 
 export interface SearchQuery {
   q: string;
-  segment?: string;
   limit?: number;
 }
 
@@ -97,14 +94,7 @@ export interface UnsubscribeRequest {
 // Products
 // --------------------------------------------------------------------------
 
-export interface AddProductRequest {
-  name: string;
-  brand?: string;
-  product_type: "supplement" | "food" | "cosmetic";
-  data_source: "dsld" | "fdc" | "manual" | "openfoodfacts";
-  external_id?: string;
-  raw_ingredients_text?: string;
-}
+export type { CreateProductInput as AddProductRequest } from "@/lib/products/types";
 
 export interface ProductMatchSummary {
   product_id: string;

@@ -4,8 +4,7 @@
  * enrichItem() takes a single regulatory item and:
  * 1. Routes to the appropriate Gemini model
  * 2. Calls generateObject() with the enrichment schema
- * 3. Applies rule-based validators (CDER, animal drugs)
- * 4. Writes all enrichment data to the DB
+ * 3. Writes all enrichment data to the DB
  */
 
 import { generateObject } from "ai";
@@ -55,38 +54,6 @@ function routeModel(item: RegulatoryItem, google: ReturnType<typeof createGoogle
     return google("gemini-2.5-flash");
   }
   return google("gemini-2.5-pro");
-}
-
-// ---------------------------------------------------------------------------
-// Rule-based validators (post-LLM, deterministic overrides)
-// ---------------------------------------------------------------------------
-
-function applyRuleValidators(
-  output: EnrichmentOutput,
-  item: RegulatoryItem
-): EnrichmentOutput {
-  let { affected_product_categories } = output;
-
-  // Rule 1: CDER or CDRH → pharmaceutical/device domain → clear all categories
-  const office = item.issuing_office?.toLowerCase() ?? "";
-  if (
-    office.includes("center for drug evaluation") ||
-    office.includes("cder") ||
-    office.includes("center for devices") ||
-    office.includes("cdrh")
-  ) {
-    affected_product_categories = [];
-  }
-
-  // Rule 2: CFR Parts 500-599 = animal drugs → clear all categories
-  const hasAnimalDrugCfr = item.cfr_references?.some(
-    (r) => r.part >= 500 && r.part <= 599
-  );
-  if (hasAnimalDrugCfr) {
-    affected_product_categories = [];
-  }
-
-  return { ...output, affected_product_categories };
 }
 
 // ---------------------------------------------------------------------------
@@ -193,8 +160,8 @@ export async function enrichItem(
       prompt,
     });
 
-    // ── 3. Apply rule validators ────────────────────────────────────────────
-    const output = applyRuleValidators(rawOutput, item);
+    // ── 3. Output (no post-LLM filtering — classify all categories honestly) ──
+    const output = rawOutput;
 
     // ── 4. Normalize deadline to ISO date or null ───────────────────────────
     if (output.deadline) {
@@ -236,8 +203,8 @@ export async function enrichItem(
 
     const useContextMap = await lookupUseContexts(highConfidenceIds, supabase);
 
-    // ── 9. Step 1c: Cross-segment inference (LLM) ──────────────────────────
-    // Only fires if use contexts reveal segments beyond direct classification.
+    // ── 9. Step 1c: Cross-category inference (LLM) ────────────────────────
+    // Only fires if use contexts exist for resolved substances.
     // Non-fatal: if this fails, proceed with direct-only signals.
     let crossRefResult: CrossReferenceOutput | null = null;
     let crossReferenced = false;
@@ -283,7 +250,7 @@ export async function enrichItem(
     if (crossRefResult) {
       rawResponseData.cross_reference = crossRefResult;
     } else if (useContextMap.size > 0 && output.affected_ingredients.length > 0) {
-      rawResponseData.cross_reference = { triggered: false, reason: "no new sectors" };
+      rawResponseData.cross_reference = { triggered: false, reason: "no expansion needed" };
     }
 
     const { data: enrichmentRow, error: enrichErr } = await supabase

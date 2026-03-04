@@ -10,7 +10,7 @@ if (!apiKey) {
 const google = createGoogleGenerativeAI({ apiKey });
 
 /**
- * geminiFlash — high-volume tasks: segment tagging, topic classification, simple summarization.
+ * geminiFlash — high-volume tasks: category tagging, topic classification, simple summarization.
  * Cost: ~$0.15/1M input, ~$0.60/1M output
  */
 export const geminiFlash = google("gemini-2.5-flash");
