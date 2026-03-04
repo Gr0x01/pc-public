@@ -97,7 +97,7 @@ export default function TermsPage() {
             </li>
             <li>
               The base Monitor plan includes monitoring for up to 5 products,
-              with additional products available at $6 per product per month
+              with additional products available at $10 per product per month
             </li>
             <li>
               If your subscription lapses, your account will be downgraded to

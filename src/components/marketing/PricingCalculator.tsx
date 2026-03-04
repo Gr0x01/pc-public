@@ -12,7 +12,7 @@ import { Loader2 } from "lucide-react";
 const BREAKPOINTS = [5, 25, 50, 100] as const;
 const BASE_PRICE = 99;
 const BASE_PRODUCTS = 5;
-const PER_PRODUCT = 6;
+const PER_PRODUCT = 10;
 const MAX_PRODUCTS = 100;
 
 export default function PricingCalculator() {

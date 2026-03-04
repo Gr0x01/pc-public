@@ -56,7 +56,7 @@ export default function PricingHero() {
             {...fadeUp(0.08)}
           >
             <p className="text-lg text-slate-600 leading-relaxed">
-              $99/mo for 5 products. $6/mo each additional.
+              $99/mo for 5 products. $10/mo each additional.
               <br />
               One warning letter costs $25K&ndash;$100K+. You do the math.
             </p>

@@ -7,13 +7,13 @@ import { SignupForm } from "@/components/marketing/SignupForm";
 export const metadata: Metadata = {
   title: "Pricing — Policy Canary",
   description:
-    "Monitor your products against every FDA change. $99/mo for 5 products included, $6/mo per additional product. 14-day free trial.",
+    "Monitor your products against every FDA change. $99/mo for 5 products included, $10/mo per additional product. 14-day free trial.",
 };
 
 const faqs = [
   {
     q: "How does per-product pricing work?",
-    a: "Monitor includes 5 products at $99/mo. Each additional product is $6/mo. Add or remove products anytime from your dashboard.",
+    a: "Monitor includes 5 products at $99/mo. Each additional product is $10/mo. Add or remove products anytime from your dashboard.",
   },
   {
     q: "What counts as a product?",
