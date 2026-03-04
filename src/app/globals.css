@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  --breakpoint-3col: 1440px;
   --color-surface: #FFFFFF;
   --color-surface-muted: #F8FAFC;
   --color-surface-subtle: #F1F5F9;
@@ -21,6 +22,8 @@
   --color-navy-soft: #EEF2F7;
   --color-urgent: #DC2626;
   --color-urgent-muted: #FEF2F2;
+  --color-watch: #3B82F6;
+  --color-watch-muted: #EFF6FF;
   --color-clear: #059669;
   --color-clear-muted: #ECFDF5;
   --font-sans: var(--font-ibm-sans), system-ui, sans-serif;

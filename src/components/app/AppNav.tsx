@@ -14,7 +14,7 @@ export default function AppNav({ email, signOut, accessLevel, hasSubscription }:
     <header className="h-14 bg-[#07111F] border-b border-border-dark flex items-center px-4 shrink-0">
       {/* Logo */}
       <Link
-        href="/app/feed"
+        href="/app/products"
         className="flex items-center gap-2 mr-8 group shrink-0"
       >
         <span
