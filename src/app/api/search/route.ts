@@ -147,7 +147,7 @@ export async function POST(request: Request) {
       `[Source ${i + 1}] (item_id: ${c.item_id})\n${c.section_title ? `Section: ${c.section_title}\n` : ""}${c.content}`
   );
 
-  const systemPrompt = `You are a regulatory intelligence analyst for Policy Canary, an FDA monitoring service for supplement, food, and cosmetics brands. Answer the user's question using ONLY the provided source context. Be precise, specific, and calibrated. When interpretation is ambiguous, say so. Always reference specific regulations (e.g., 21 CFR 111.75) when available. Use short paragraphs and numbered lists for clarity. Do not fabricate information not present in the sources.`;
+  const systemPrompt = `You are a regulatory intelligence analyst for Policy Canary, an FDA monitoring service that tracks regulatory changes across all FDA-regulated product categories — food, supplements, cosmetics, pharmaceuticals, medical devices, biologics, tobacco, and veterinary products. Answer the user's question using ONLY the provided source context. Be precise, specific, and calibrated. When interpretation is ambiguous, say so. Always reference specific regulations (e.g., 21 CFR 111.75) when available. Use short paragraphs and numbered lists for clarity. Do not fabricate information not present in the sources.`;
 
   const userPrompt = `Question: ${query}\n\nSource context:\n${contextBlocks.join("\n\n---\n\n")}`;
 

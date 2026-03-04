@@ -36,7 +36,7 @@ export async function GET() {
   <channel>
     <title>Policy Canary Blog</title>
     <link>${SITE_URL}/blog</link>
-    <description>FDA regulatory intelligence for supplement, food, and cosmetic brands.</description>
+    <description>FDA regulatory intelligence for brands across food, supplements, cosmetics, pharma, devices, and more.</description>
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <atom:link href="${SITE_URL}/blog/feed.xml" rel="self" type="application/rss+xml"/>

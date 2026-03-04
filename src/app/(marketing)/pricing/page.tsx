@@ -17,7 +17,7 @@ const faqs = [
   },
   {
     q: "What counts as a product?",
-    a: "Any specific SKU you sell \u2014 a supplement formula, food product, or cosmetic item. Variants of the same formula (size, flavor) count as one product.",
+    a: "Any specific SKU you sell \u2014 a supplement formula, food product, cosmetic item, OTC drug, medical device, etc. Variants of the same formula (size, flavor) count as one product.",
   },
   {
     q: "What happens after the 14-day trial?",

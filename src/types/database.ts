@@ -150,9 +150,9 @@ export interface ProductCategory {
   slug: string;
   label: string;
   /** @deprecated Display-only. Do not use for pipeline logic. */
-  sector: "food" | "supplement" | "cosmetic";
+  sector: "food" | "supplement" | "cosmetic" | "pharmaceutical" | "medical_device" | "biologic" | "tobacco" | "veterinary";
   parent_id: string | null;
-  source_system: "21_cfr_170_3" | "mocra_vcrp" | "dsld_derived";
+  source_system: "21_cfr_170_3" | "mocra_vcrp" | "dsld_derived" | "cder_otc" | "cdrh_classification" | "cber_category" | "ctp_product" | "cvm_category";
   source_code: string | null;
   description: string | null;
   created_at: string;

@@ -9,7 +9,7 @@ import { SignupForm } from "@/components/marketing/SignupForm";
 export const metadata: Metadata = {
   title: "Blog | Policy Canary",
   description:
-    "FDA regulatory intelligence, warning letter analyses, and weekly roundups for supplement, food, and cosmetic brands.",
+    "FDA regulatory intelligence, warning letter analyses, and weekly roundups for brands across all FDA-regulated categories.",
 };
 
 export default async function BlogPage({
@@ -31,7 +31,7 @@ export default async function BlogPage({
         <h1 className="text-4xl font-bold text-text-primary mb-3">Blog</h1>
         <p className="text-lg text-text-secondary max-w-2xl">
           FDA regulatory intelligence, warning letter breakdowns, and actionable
-          analysis for supplement, food, and cosmetic brands.
+          analysis for brands across all FDA-regulated categories.
         </p>
       </section>
 
