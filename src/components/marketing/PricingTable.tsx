@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Check, Minus } from "lucide-react";
+import CheckoutButton from "./CheckoutButton";
 
 const features = [
   { label: "Weekly headline digest", free: true, monitor: true, research: true },
@@ -47,10 +48,10 @@ export default function PricingTable() {
                     <p className="text-2xl font-bold text-text-primary">$0</p>
                     <p className="text-xs text-text-secondary mt-1">/month</p>
                     <Link
-                      href="/#signup"
+                      href="/login"
                       className="mt-3 block bg-surface-subtle border border-border text-text-body text-sm font-semibold px-4 py-2 rounded hover:bg-surface-subtle/80 transition-colors duration-150"
                     >
-                      Start Free
+                      Get Started
                     </Link>
                   </div>
                 </th>
@@ -61,28 +62,23 @@ export default function PricingTable() {
                       POPULAR
                     </span>
                     <p className="font-semibold text-text-primary text-sm mb-1">Monitor</p>
-                    <p className="text-2xl font-bold text-text-primary">$49</p>
+                    <p className="text-2xl font-bold text-text-primary">$99</p>
                     <p className="text-xs text-text-secondary mt-1">/month</p>
-                    <Link
-                      href="/#signup"
-                      className="mt-3 block bg-amber text-white text-sm font-semibold px-4 py-2 rounded hover:bg-amber/90 transition-colors duration-150"
-                    >
-                      Add email for early access
-                    </Link>
+                    <CheckoutButton />
                   </div>
                 </th>
                 {/* Monitor+Research */}
                 <th scope="col" className="pb-6 px-4 text-center">
-                  <div className="bg-white border border-border rounded-lg p-4">
+                  <div className="bg-white border border-border rounded-lg p-4 relative">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-400 text-white text-xs font-bold px-3 py-0.5 rounded-full">
+                      COMING SOON
+                    </span>
                     <p className="font-semibold text-text-primary text-sm mb-1">Monitor+Research</p>
-                    <p className="text-2xl font-bold text-text-primary">$249</p>
+                    <p className="text-2xl font-bold text-text-primary">$399</p>
                     <p className="text-xs text-text-secondary mt-1">/month</p>
-                    <Link
-                      href="/#signup"
-                      className="mt-3 block bg-surface-subtle border border-border text-text-body text-sm font-semibold px-4 py-2 rounded hover:bg-surface-subtle/80 transition-colors duration-150"
-                    >
-                      Add email for early access
-                    </Link>
+                    <span className="mt-3 block bg-surface-subtle border border-border text-text-secondary text-sm font-semibold px-4 py-2 rounded cursor-not-allowed opacity-60">
+                      Coming Soon
+                    </span>
                   </div>
                 </th>
               </tr>
@@ -120,7 +116,7 @@ export default function PricingTable() {
         {/* Value anchor */}
         <div className="mt-8 text-center">
           <p className="text-sm text-text-secondary italic">
-            $49/mo &lt; 1 hour of a regulatory consultant&apos;s time.
+            $99/mo &lt; 1 hour of a regulatory consultant&apos;s time.
           </p>
         </div>
       </div>

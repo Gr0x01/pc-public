@@ -29,5 +29,14 @@ export async function GET(request: NextRequest) {
     console.error("[auth/callback] users upsert failed:", upsertError.message);
   }
 
+  // Redirect based on next param — allowlisted values only to prevent open redirects
+  const VALID_NEXT = new Set(["checkout"]);
+  const next = searchParams.get("next");
+  if (next && VALID_NEXT.has(next)) {
+    if (next === "checkout") {
+      return NextResponse.redirect(`${origin}/app/feed?checkout=start`);
+    }
+  }
+
   return NextResponse.redirect(`${origin}/app/dashboard`);
 }

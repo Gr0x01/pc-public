@@ -40,10 +40,14 @@ function LoginForm() {
     setErrorMessage("");
     const supabase = createClient();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+    const nextParam = searchParams.get("next");
+    const callbackUrl = nextParam
+      ? `${siteUrl}/auth/callback?next=${encodeURIComponent(nextParam)}`
+      : `${siteUrl}/auth/callback`;
     const { error } = await supabase.auth.signInWithOtp({
       email: trimmed,
       options: {
-        emailRedirectTo: `${siteUrl}/auth/callback`,
+        emailRedirectTo: callbackUrl,
         shouldCreateUser: true,
       },
     });

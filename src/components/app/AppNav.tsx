@@ -1,12 +1,15 @@
 import Link from "next/link";
 import NavLinks from "./NavLinks";
+import BillingButton from "./BillingButton";
 
 interface AppNavProps {
   email: string;
   signOut: () => Promise<void>;
+  accessLevel: string;
+  hasSubscription: boolean;
 }
 
-export default function AppNav({ email, signOut }: AppNavProps) {
+export default function AppNav({ email, signOut, accessLevel, hasSubscription }: AppNavProps) {
   return (
     <header className="h-14 bg-[#07111F] border-b border-border-dark flex items-center px-4 shrink-0">
       {/* Logo */}
@@ -33,6 +36,16 @@ export default function AppNav({ email, signOut }: AppNavProps) {
         <span className="font-mono text-xs text-slate-400 hidden sm:block">
           {email}
         </span>
+        {accessLevel === "free" && !hasSubscription ? (
+          <Link
+            href="/pricing"
+            className="text-xs font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-3 py-1 rounded hover:bg-amber-400/20 transition-colors duration-100"
+          >
+            Upgrade
+          </Link>
+        ) : (
+          <BillingButton />
+        )}
         <form action={signOut}>
           <button
             type="submit"

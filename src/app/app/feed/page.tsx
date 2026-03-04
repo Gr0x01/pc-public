@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { MOCK_FEED_ITEMS } from "@/lib/mock/app-data";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import type { ItemType } from "@/types/enums";
 import FeedPageClient from "@/components/app/FeedPageClient";
+import AutoCheckout from "@/components/app/AutoCheckout";
 
 const USE_MOCK = true;
 
@@ -65,5 +67,12 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
     ? filterItems(MOCK_FEED_ITEMS, type, range, myProducts)
     : [];
 
-  return <FeedPageClient items={items} />;
+  return (
+    <>
+      <Suspense fallback={null}>
+        <AutoCheckout />
+      </Suspense>
+      <FeedPageClient items={items} />
+    </>
+  );
 }
