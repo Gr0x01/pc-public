@@ -19,7 +19,7 @@ import {
   buildEnrichmentPrompt,
   type EnrichmentOutput,
 } from "./prompts";
-import { lookupUseContexts, inferCrossSegments, type CrossReferenceOutput } from "./cross-reference";
+import { lookupUseContexts, inferCrossCategories, type CrossReferenceOutput } from "./cross-reference";
 import type { RegulatoryItem } from "../../types/database";
 
 // ---------------------------------------------------------------------------
@@ -28,7 +28,6 @@ import type { RegulatoryItem } from "../../types/database";
 
 export interface CategoryIdMap {
   // slug → category_id
-  segments: Record<string, string>;
   topics: Record<string, string>;
 }
 
@@ -66,9 +65,9 @@ function applyRuleValidators(
   output: EnrichmentOutput,
   item: RegulatoryItem
 ): EnrichmentOutput {
-  let { segments, affected_product_categories } = output;
+  let { affected_product_categories } = output;
 
-  // Rule 1: CDER or CDRH → pharmaceutical/device domain → clear all segments + categories
+  // Rule 1: CDER or CDRH → pharmaceutical/device domain → clear all categories
   const office = item.issuing_office?.toLowerCase() ?? "";
   if (
     office.includes("center for drug evaluation") ||
@@ -76,73 +75,18 @@ function applyRuleValidators(
     office.includes("center for devices") ||
     office.includes("cdrh")
   ) {
-    segments = [];
     affected_product_categories = [];
   }
 
-  // Rule 2: CFR Parts 500-599 = animal drugs → clear all segments + categories
+  // Rule 2: CFR Parts 500-599 = animal drugs → clear all categories
   const hasAnimalDrugCfr = item.cfr_references?.some(
     (r) => r.part >= 500 && r.part <= 599
   );
   if (hasAnimalDrugCfr) {
-    segments = [];
     affected_product_categories = [];
   }
 
-  // Rule 3: Infer recall segment from raw content if segments empty and item_type is recall
-  // (catches cases where LLM under-classified an obvious food recall)
-  if (
-    segments.length === 0 &&
-    item.item_type === "recall" &&
-    output.regulatory_action_type === "recall"
-  ) {
-    const contentLower = (item.raw_content ?? item.title ?? "").toLowerCase();
-    const foodKeywords = [
-      "food",
-      "beverage",
-      "produce",
-      "dairy",
-      "meat",
-      "poultry",
-      "fish",
-      "vegetable",
-      "fruit",
-      "grain",
-      "bakery",
-    ];
-    const supplementKeywords = [
-      "supplement",
-      "vitamin",
-      "mineral",
-      "herb",
-      "botanical",
-      "protein powder",
-    ];
-
-    if (foodKeywords.some((kw) => contentLower.includes(kw))) {
-      segments = [
-        {
-          segment: "food",
-          relevance: "high",
-          impact_summary: "Food product recall.",
-          action_items: [],
-          who_affected: "Food manufacturers and distributors",
-        },
-      ];
-    } else if (supplementKeywords.some((kw) => contentLower.includes(kw))) {
-      segments = [
-        {
-          segment: "supplements",
-          relevance: "high",
-          impact_summary: "Dietary supplement recall.",
-          action_items: [],
-          who_affected: "Dietary supplement manufacturers and distributors",
-        },
-      ];
-    }
-  }
-
-  return { ...output, segments, affected_product_categories };
+  return { ...output, affected_product_categories };
 }
 
 // ---------------------------------------------------------------------------
@@ -232,7 +176,6 @@ export async function enrichItem(
     if (existing) {
       await supabase.from("item_citations").delete().eq("enrichment_id", existing.id);
       await supabase.from("item_enrichments").delete().eq("id", existing.id);
-      await supabase.from("segment_impacts").delete().eq("item_id", item.id);
       await supabase.from("regulatory_item_substances").delete().eq("regulatory_item_id", item.id);
       await supabase.from("item_enrichment_tags").delete().eq("item_id", item.id);
       await supabase.from("item_categories").delete().eq("item_id", item.id);
@@ -313,7 +256,7 @@ export async function enrichItem(
       }
 
       try {
-        crossRefResult = await inferCrossSegments(
+        crossRefResult = await inferCrossCategories(
           output,
           useContextMap,
           substanceInfoMap,
@@ -340,7 +283,7 @@ export async function enrichItem(
     if (crossRefResult) {
       rawResponseData.cross_reference = crossRefResult;
     } else if (useContextMap.size > 0 && output.affected_ingredients.length > 0) {
-      rawResponseData.cross_reference = { triggered: false, reason: "no new segments" };
+      rawResponseData.cross_reference = { triggered: false, reason: "no new sectors" };
     }
 
     const { data: enrichmentRow, error: enrichErr } = await supabase
@@ -367,55 +310,7 @@ export async function enrichItem(
 
     const enrichmentId = enrichmentRow.id as string;
 
-    // 11. INSERT segment_impacts (direct from Step 1)
-    for (const seg of output.segments) {
-      const categoryId = categoryIdMap.segments[seg.segment];
-      if (!categoryId) continue;
-
-      const { error: segErr } = await supabase.from("segment_impacts").insert({
-        item_id: item.id,
-        category_id: categoryId,
-        relevance: seg.relevance,
-        impact_summary: seg.impact_summary,
-        action_items: seg.action_items,
-        who_affected: seg.who_affected,
-        published_date: item.published_date,
-        verification_status: "unverified",
-        signal_source: "direct",
-      });
-      if (segErr) throw new Error(`segment_impacts insert (${seg.segment}): ${segErr.message}`);
-    }
-
-    // 11b. INSERT segment_impacts (cross-reference from Step 1c)
-    if (crossRefResult) {
-      const directSegmentNames = new Set(output.segments.map((s) => s.segment));
-      for (const ref of crossRefResult.cross_references) {
-        for (const seg of ref.new_segments) {
-          // Double-check: don't insert if Step 1 already covered this segment
-          if (directSegmentNames.has(seg.segment)) continue;
-
-          const categoryId = categoryIdMap.segments[seg.segment];
-          if (!categoryId) continue;
-
-          const { error: segErr } = await supabase.from("segment_impacts").insert({
-            item_id: item.id,
-            category_id: categoryId,
-            relevance: seg.relevance,
-            impact_summary: seg.impact_summary,
-            action_items: seg.action_items,
-            who_affected: seg.who_affected,
-            published_date: item.published_date,
-            verification_status: "unverified",
-            signal_source: "cross_reference",
-          });
-          if (segErr) {
-            console.warn(`segment_impacts cross-ref insert (${seg.segment}): ${segErr.message}`);
-          }
-        }
-      }
-    }
-
-    // 12. UPSERT item_categories (topic tags)
+    // 11. UPSERT item_categories (topic tags)
     for (const topic of validTopics) {
       const categoryId = categoryIdMap.topics[topic.slug];
       if (!categoryId) continue;
@@ -531,22 +426,18 @@ export async function enrichItem(
 export async function loadCategoryIdMap(supabase: SupabaseClient): Promise<CategoryIdMap> {
   const { data, error } = await supabase
     .from("regulatory_categories")
-    .select("id, slug, category_type");
+    .select("id, slug, category_type")
+    .eq("category_type", "topic");
 
   if (error || !data) {
     throw new Error(`Failed to load regulatory_categories: ${error?.message}`);
   }
 
-  const segments: Record<string, string> = {};
   const topics: Record<string, string> = {};
 
   for (const row of data as Array<{ id: string; slug: string; category_type: string }>) {
-    if (row.category_type === "segment") {
-      segments[row.slug] = row.id;
-    } else if (row.category_type === "topic") {
-      topics[row.slug] = row.id;
-    }
+    topics[row.slug] = row.id;
   }
 
-  return { segments, topics };
+  return { topics };
 }

@@ -49,7 +49,6 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import {
   GOLDEN_FIXTURES,
   type GoldenFixture,
-  type Relevance,
 } from "../tests/golden/fixtures";
 import { enrichItem, loadCategoryIdMap } from "../src/pipeline/enrichment/processor";
 import { generateItemEmbeddings } from "../src/pipeline/enrichment/embeddings";
@@ -61,22 +60,6 @@ import type { RegulatoryItem } from "../src/types/database";
 // ---------------------------------------------------------------------------
 
 const doEnrich = process.argv.includes("--enrich");
-
-// ---------------------------------------------------------------------------
-// Relevance ordering (higher index = higher relevance)
-// ---------------------------------------------------------------------------
-
-const RELEVANCE_ORDER: Record<string, number> = {
-  none: 0,
-  low: 1,
-  medium: 2,
-  high: 3,
-  critical: 4,
-};
-
-function meetsMinRelevance(actual: string, min: Relevance): boolean {
-  return (RELEVANCE_ORDER[actual] ?? 0) >= (RELEVANCE_ORDER[min] ?? 0);
-}
 
 /**
  * Fuzzy match for product types and ingredients.
@@ -125,7 +108,6 @@ function validate(
     deadline: string | null;
     raw_response: Record<string, unknown>;
   },
-  segmentImpacts: Array<{ slug: string; relevance: string }>,
   substances: Array<{ raw_substance_name: string }>,
   tags: Array<{ tag_dimension: string; tag_value: string }>
 ): AssertionResult[] {
@@ -156,13 +138,13 @@ function validate(
     });
   }
 
-  // 3. affected_product_types — every expected must appear (fuzzy substring)
+  // 3. affected_product_categories — every expected must appear (fuzzy substring)
   const actualProductTypes = [
     ...tags.filter((t) => t.tag_dimension === "product_type").map((t) => t.tag_value.toLowerCase()),
-    ...((raw.affected_product_types as string[]) ?? []).map((s: string) => s.toLowerCase()),
+    ...((raw.affected_product_categories as string[]) ?? []).map((s: string) => s.toLowerCase()),
   ];
 
-  for (const expected of fixture.expected.affected_product_types) {
+  for (const expected of fixture.expected.affected_product_categories) {
     const found = actualProductTypes.some((actual) => fuzzyMatch(expected, actual));
     results.push({
       field: `product_type: "${expected}"`,
@@ -181,37 +163,7 @@ function validate(
     detail: `expected=${fixture.expected.has_deadline} actual=${actualHasDeadline}`,
   });
 
-  // 5. segments — each expected must appear with at least min_relevance
-  for (const seg of fixture.expected.segments) {
-    const match = segmentImpacts.find((s) => s.slug === seg.segment);
-    if (!match) {
-      results.push({
-        field: `segment: ${seg.segment}`,
-        pass: false,
-        detail: `expected min_relevance=${seg.min_relevance}, but segment NOT PRESENT`,
-      });
-    } else {
-      const meets = meetsMinRelevance(match.relevance, seg.min_relevance);
-      results.push({
-        field: `segment: ${seg.segment}`,
-        pass: meets,
-        detail: `expected min=${seg.min_relevance} actual=${match.relevance}`,
-      });
-    }
-  }
-
-  // 6. segments_absent — must NOT appear
-  for (const seg of fixture.expected.segments_absent) {
-    const match = segmentImpacts.find((s) => s.slug === seg);
-    const absent = !match;
-    results.push({
-      field: `segment_absent: ${seg}`,
-      pass: absent,
-      detail: absent ? "correctly absent" : `INCORRECTLY PRESENT with relevance=${match!.relevance}`,
-    });
-  }
-
-  // 7. confidence
+  // 5. confidence
   results.push({
     field: "confidence",
     pass: enrichment.confidence >= fixture.expected.min_confidence,
@@ -287,7 +239,6 @@ async function main() {
     if (doEnrich && google && categoryIdMap) {
       // Delete existing enrichment so we can re-enrich
       await supabase.from("item_enrichments").delete().eq("item_id", fixture.id);
-      await supabase.from("segment_impacts").delete().eq("item_id", fixture.id);
       await supabase.from("regulatory_item_substances").delete().eq("regulatory_item_id", fixture.id);
       await supabase.from("item_enrichment_tags").delete().eq("item_id", fixture.id);
       await supabase.from("item_citations").delete().eq("item_id", fixture.id);
@@ -358,28 +309,6 @@ async function main() {
       continue;
     }
 
-    // Read segment impacts (join to get slug)
-    const { data: segmentRows } = await supabase
-      .from("segment_impacts")
-      .select("relevance, category_id")
-      .eq("item_id", fixture.id);
-
-    // Resolve category slugs
-    const segmentImpacts: Array<{ slug: string; relevance: string }> = [];
-    if (segmentRows && segmentRows.length > 0) {
-      const categoryIds = segmentRows.map((r) => r.category_id);
-      const { data: cats } = await supabase
-        .from("regulatory_categories")
-        .select("id, slug")
-        .in("id", categoryIds);
-
-      const catMap = new Map((cats ?? []).map((c) => [c.id, c.slug]));
-      for (const row of segmentRows) {
-        const slug = catMap.get(row.category_id);
-        if (slug) segmentImpacts.push({ slug, relevance: row.relevance });
-      }
-    }
-
     // Read substances
     const { data: substances } = await supabase
       .from("regulatory_item_substances")
@@ -401,7 +330,6 @@ async function main() {
         deadline: string | null;
         raw_response: Record<string, unknown>;
       },
-      segmentImpacts,
       (substances ?? []) as Array<{ raw_substance_name: string }>,
       (tags ?? []) as Array<{ tag_dimension: string; tag_value: string }>
     );

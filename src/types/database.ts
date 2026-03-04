@@ -17,7 +17,7 @@ import type {
   PipelineStatus,
   ProcessingStatus,
   RelationType,
-  RelevanceLevel,
+
   SourceType,
   SubstanceClass,
   SubscriptionTier,
@@ -177,21 +177,6 @@ export interface ItemEnrichment {
   created_at: string;
 }
 
-export interface SegmentImpact {
-  id: string;
-  item_id: string;
-  category_id: string;
-  relevance: RelevanceLevel;
-  impact_summary: string | null;
-  action_items: string[] | null; // JSONB in DB, stored as string array
-  who_affected: string | null;
-  deadline: string | null;
-  published_date: string;
-  verification_status: VerificationStatus;
-  signal_source: "direct" | "cross_reference";
-  created_at: string;
-}
-
 export interface ItemEnrichmentTag {
   id: string;
   item_id: string;
@@ -218,7 +203,6 @@ export interface RegulatoryItemSubstance {
 export interface ItemCitation {
   id: string;
   enrichment_id: string | null;
-  segment_impact_id: string | null;
   item_id: string;
   claim_text: string;
   quote_text: string;
@@ -237,7 +221,6 @@ export interface ItemCitation {
 export interface ItemChunk {
   id: string;
   item_id: string;
-  segment_impact_id: string | null;
   chunk_index: number;
   section_title: string | null;
   content: string;

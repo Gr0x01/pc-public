@@ -5,10 +5,10 @@
  *   Maps code systems (CFR, CODEX, DSLD, CIR, etc.) to use-context categories.
  *   Pure TypeScript — no LLM. GSRS codes are ground truth.
  *
- * Step 1c: LLM cross-segment inference using Gemini 2.5 Pro with thinking.
+ * Step 1c: LLM cross-category inference using Gemini 2.5 Pro with thinking.
  *   Given a regulatory action + known use contexts for extracted substances,
- *   reasons about which additional segments are genuinely implicated.
- *   Only fires when use contexts reveal segments beyond Step 1's direct extraction.
+ *   reasons about which additional product categories are genuinely implicated.
+ *   Only fires when use contexts reveal sectors beyond Step 1's direct extraction.
  *
  * This is the single biggest product differentiator.
  * Without it, we're a summarizer. With it, we provide intelligence.
@@ -176,22 +176,45 @@ export async function lookupUseContexts(
 }
 
 // ---------------------------------------------------------------------------
-// Step 1c: Cross-Segment Inference (LLM — Gemini 2.5 Pro + thinking)
+// Step 1c: Cross-Category Inference (LLM — Gemini 2.5 Pro + thinking)
 // ---------------------------------------------------------------------------
+
+type Sector = "food" | "supplement" | "cosmetic";
+
+/**
+ * Maps a product category slug to its sector using index ranges in PRODUCT_CATEGORY_SLUGS.
+ * 0-16 = cosmetic, 17-62 = food, 63-81 = supplement
+ */
+function slugToSector(slug: string): Sector | null {
+  const idx = (PRODUCT_CATEGORY_SLUGS as readonly string[]).indexOf(slug);
+  if (idx === -1) return null;
+  if (idx <= 16) return "cosmetic";
+  if (idx <= 62) return "food";
+  return "supplement";
+}
+
+/**
+ * Maps UseContextCategory to a sector for cross-reference gating.
+ */
+function useContextToSector(category: UseContextCategory): Sector | null {
+  switch (category) {
+    case "food_additive":
+    case "food_contact":
+    case "color_additive":
+      return "food";
+    case "supplement_ingredient":
+      return "supplement";
+    case "cosmetic_ingredient":
+      return "cosmetic";
+    default:
+      return null; // pharmaceutical, otc_drug, pesticide don't map to our sectors
+  }
+}
 
 export const CrossReferenceOutputSchema = z.object({
   cross_references: z.array(
     z.object({
       substance_name: z.string(),
-      new_segments: z.array(
-        z.object({
-          segment: z.enum(["food", "supplements", "cosmetics"]),
-          relevance: z.enum(["critical", "high", "medium", "low"]),
-          impact_summary: z.string().max(500),
-          action_items: z.array(z.string()),
-          who_affected: z.string().max(200),
-        })
-      ),
       new_product_categories: z.array(z.string()),
     })
   ),
@@ -201,21 +224,21 @@ export const CrossReferenceOutputSchema = z.object({
 
 export type CrossReferenceOutput = z.infer<typeof CrossReferenceOutputSchema>;
 
-const CROSS_REF_SYSTEM_PROMPT = `You are an expert FDA regulatory compliance analyst specializing in cross-segment risk assessment.
+const CROSS_REF_SYSTEM_PROMPT = `You are an expert FDA regulatory compliance analyst specializing in cross-sector risk assessment.
 
-Your task: Given a regulatory action affecting a substance in one segment, determine whether the same substance's presence in OTHER segments creates genuine regulatory risk for those segments.
+Your task: Given a regulatory action affecting a substance in one sector (food, supplements, or cosmetics), determine whether the same substance's presence in OTHER sectors creates genuine regulatory risk — and if so, which specific product categories are affected.
 
 ## CORE PRINCIPLES
 
 1. **Substance identity is ground truth.** The GSRS use-context data tells you where this substance is actually used. Do not speculate about use contexts not listed.
 
-2. **The regulatory action's MECHANISM determines cross-segment relevance.**
+2. **The regulatory action's MECHANISM determines cross-sector relevance.**
    - Cancer risk from oral exposure → extends to ALL oral contexts (food ↔ supplements)
    - GRAS revocation → check DSHEA implications for supplements
    - Contamination concern → extends to any context where the substance is present
-   - Labeling-only changes → segment-specific, do NOT extend
-   - One company's GMP violation → does NOT generalize across segments
-   - Import/trade compliance → segment-specific, do NOT extend
+   - Labeling-only changes → sector-specific, do NOT extend
+   - One company's GMP violation → does NOT generalize across sectors
+   - Import/trade compliance → sector-specific, do NOT extend
    - Administrative actions (meetings, notices) → do NOT extend
 
 3. **Exposure route matters.**
@@ -224,36 +247,29 @@ Your task: Given a regulatory action affecting a substance in one segment, deter
    - If the regulatory concern is about systemic toxicity, dermal absorption may still be relevant (but at lower confidence)
    - If the concern is about ingestion-specific effects (GI tract, liver metabolism), cosmetic dermal use is less relevant
 
-4. **Confidence thresholds are strict.**
-   - Only include cross-segment expansions where confidence >= 0.7
-   - "critical" = the regulatory action's core concern directly applies (e.g., cancer risk for same oral exposure route)
-   - "high" = strong regulatory precedent for cross-segment application (e.g., FDA historically extends food bans to supplements)
-   - "medium" = plausible but different risk profile (e.g., dermal vs oral exposure for a systemic toxicant)
-   - "low" = tangential connection, may warrant monitoring but not alerting
-
-5. **DO NOT EXTEND when:**
+4. **DO NOT EXTEND when:**
    - The regulatory action is about labeling, not safety
    - The action is company-specific (one firm's violation)
-   - The substance role is fundamentally different across contexts (e.g., used as active ingredient in pharma but only as trace preservative in food)
-   - Import/trade restrictions (segment-specific)
+   - The substance role is fundamentally different across contexts
+   - Import/trade restrictions (sector-specific)
    - Administrative actions
 
-6. **Immutability rule:** You are ONLY adding new segments. Never modify or remove the existing direct segments from Step 1.
+5. **Immutability rule:** You are ONLY adding new product categories. Never remove categories already assigned in Step 1.
 
-7. **Product categories:** Use ONLY slugs from the provided PRODUCT CATEGORY SLUGS list for new_product_categories. Do not invent new slugs.`;
+6. **Product categories:** Use ONLY slugs from the provided PRODUCT CATEGORY SLUGS list. Do not invent new slugs.`;
 
 function buildCrossRefPrompt(
   output: EnrichmentOutput,
-  substanceContexts: Map<string, { name: string; unii: string | null; contexts: UseContext[] }>
+  substanceContexts: Map<string, { name: string; unii: string | null; contexts: UseContext[] }>,
+  coveredSectors: Set<Sector>
 ): string {
   const parts: string[] = [];
 
   parts.push("## Initial Analysis (from source document — Step 1)");
   parts.push(`Action type: ${output.regulatory_action_type}`);
   parts.push(`Summary: ${output.summary}`);
-
-  const directSegments = output.segments.map((s) => s.segment).join(", ") || "none";
-  parts.push(`Segments already identified: ${directSegments}`);
+  parts.push(`Direct product categories: ${output.affected_product_categories.join(", ") || "none"}`);
+  parts.push(`Sectors covered by Step 1: ${[...coveredSectors].join(", ") || "none"}`);
   parts.push("");
 
   parts.push("## Substance Use Contexts (from FDA GSRS — ground truth)");
@@ -303,73 +319,53 @@ function buildCrossRefPrompt(
 
   parts.push("## Task");
   parts.push(
-    "Analyze whether this regulatory action creates genuine risk for segments NOT already identified in Step 1. " +
-    "Only expand to segments where the substance is actually used (per GSRS data above) AND the regulatory mechanism applies. " +
-    "For new_product_categories, use ONLY slugs from the product category list above."
+    "Analyze whether this regulatory action creates genuine risk for product categories in sectors NOT already covered by Step 1. " +
+    "Only expand to categories where the substance is actually used (per GSRS data above) AND the regulatory mechanism applies. " +
+    "Use ONLY slugs from the product category list above."
   );
 
   return parts.join("\n");
 }
 
 /**
- * Determines which segments are already covered by Step 1's direct extraction.
- */
-function getDirectSegments(output: EnrichmentOutput): Set<string> {
-  return new Set(output.segments.map((s) => s.segment));
-}
-
-/**
- * Maps UseContextCategory to the corresponding segment for cross-reference checking.
- */
-function categoryToSegment(category: UseContextCategory): string | null {
-  switch (category) {
-    case "food_additive":
-    case "food_contact":
-    case "color_additive":
-      return "food";
-    case "supplement_ingredient":
-      return "supplements";
-    case "cosmetic_ingredient":
-      return "cosmetics";
-    default:
-      return null; // pharmaceutical, otc_drug, pesticide don't map to our segments
-  }
-}
-
-/**
- * Step 1c: Infer cross-segment implications using Gemini 2.5 Pro.
+ * Step 1c: Infer cross-category implications using Gemini 2.5 Pro.
  *
  * Only fires when:
  * 1. Step 1 extracted substances (affected_ingredients non-empty)
  * 2. At least one substance resolved with similarity >= 0.95
- * 3. Use contexts reveal segments BEYOND what Step 1 already found
+ * 3. Use contexts reveal sectors BEYOND what Step 1's product categories cover
  *
  * Returns null if cross-reference is not needed or fails.
  * Failure is NON-FATAL — the item proceeds with direct-only signals.
  */
-export async function inferCrossSegments(
+export async function inferCrossCategories(
   output: EnrichmentOutput,
   useContextMap: Map<string, UseContext[]>,
   resolvedSubstances: Map<string, { name: string; unii: string | null }>,
   google: ReturnType<typeof createGoogleGenerativeAI>
 ): Promise<CrossReferenceOutput | null> {
-  // Gate check: are there segments beyond what Step 1 found?
-  const directSegments = getDirectSegments(output);
-  let hasNewSegments = false;
+  // Gate check: derive covered sectors from Step 1's product categories
+  const coveredSectors = new Set<Sector>();
+  for (const slug of output.affected_product_categories) {
+    const sector = slugToSector(slug);
+    if (sector) coveredSectors.add(sector);
+  }
 
-  for (const [substanceId, contexts] of useContextMap) {
+  // Check if use contexts reveal sectors beyond what Step 1 covered
+  let hasNewSectors = false;
+  for (const [, contexts] of useContextMap) {
     for (const ctx of contexts) {
-      const seg = categoryToSegment(ctx.category);
-      if (seg && !directSegments.has(seg)) {
-        hasNewSegments = true;
+      const sector = useContextToSector(ctx.category);
+      if (sector && !coveredSectors.has(sector)) {
+        hasNewSectors = true;
         break;
       }
     }
-    if (hasNewSegments) break;
+    if (hasNewSectors) break;
   }
 
-  if (!hasNewSegments) {
-    return null; // No cross-segment expansion needed
+  if (!hasNewSectors) {
+    return null; // No cross-sector expansion needed
   }
 
   // Build substance context map for the prompt
@@ -384,7 +380,7 @@ export async function inferCrossSegments(
   if (substanceContexts.size === 0) return null;
 
   try {
-    const prompt = buildCrossRefPrompt(output, substanceContexts);
+    const prompt = buildCrossRefPrompt(output, substanceContexts, coveredSectors);
 
     const { object } = await generateObject({
       model: google("gemini-2.5-pro"),
@@ -398,19 +394,17 @@ export async function inferCrossSegments(
 
     if (!object.should_expand) return null;
 
-    // Apply confidence floor: drop segments with relevance below our threshold
-    // "low" is our floor — we keep low+ but drop anything the LLM explicitly didn't include
-    // The confidence threshold is enforced by prompt instruction (>= 0.7 confidence to include)
-    // Here we filter out any cross-references that only add segments already in direct
+    // Deduplicate: remove categories already in Step 1's direct output
+    const directCategories = new Set(output.affected_product_categories);
     for (const ref of object.cross_references) {
-      ref.new_segments = ref.new_segments.filter(
-        (seg) => !directSegments.has(seg.segment)
+      ref.new_product_categories = ref.new_product_categories.filter(
+        (cat) => !directCategories.has(cat)
       );
     }
 
     // Remove empty cross-references
     object.cross_references = object.cross_references.filter(
-      (ref) => ref.new_segments.length > 0 || ref.new_product_categories.length > 0
+      (ref) => ref.new_product_categories.length > 0
     );
 
     if (object.cross_references.length === 0) return null;

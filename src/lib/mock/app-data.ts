@@ -7,7 +7,6 @@
 import type {
   RegulatoryItem,
   ItemEnrichment,
-  SegmentImpact,
   EnforcementDetail,
   SubscriberProduct,
   ProductMatch,
@@ -28,7 +27,7 @@ export interface FeedItemEnriched {
   // From item_enrichments (null if not enriched)
   summary: string | null;
   urgency_score: number | null;
-  // From segment_impacts (null if no match)
+  // From product_matches (null if no match)
   relevance: RelevanceLevel | null;
   impact_summary: string | null;
   action_items: string[] | null;
@@ -40,7 +39,8 @@ export interface FeedItemEnriched {
 export interface ItemDetailData {
   item: RegulatoryItem;
   enrichment: ItemEnrichment | null;
-  segment_impact: SegmentImpact | null;
+  relevance: RelevanceLevel | null;
+  action_items: string[] | null;
   substances: Array<{ raw_substance_name: string }>;
   enforcement: EnforcementDetail | null;
   matched_products: Array<{ id: string; name: string }>;
@@ -330,26 +330,13 @@ export const MOCK_ITEM_DETAIL: ItemDetailData = {
     raw_response: null,
     created_at: "2026-02-28T14:30:00Z",
   },
-  segment_impact: {
-    id: "si-001",
-    item_id: "fi-001",
-    category_id: "cat-supplements",
-    relevance: "critical",
-    impact_summary:
-      "Direct substance match: marine collagen. Your Marine Collagen Powder uses the same ingredient cited in this warning letter. Identity testing protocols for marine-sourced collagen are under heightened FDA scrutiny.",
-    action_items: [
-      "Audit identity testing protocols against 21 CFR 111.75(a)(1)(ii) — verify you are not relying solely on supplier COAs",
-      "Confirm your contract manufacturer performs per-batch identity testing with scientifically valid methods specific to marine collagen",
-      "Review COA documentation from your collagen supplier and request identity test methodology details",
-      "Document your identity testing program in writing and retain records per 21 CFR 111.475",
-    ],
-    who_affected: "Supplement brands using marine-sourced collagen ingredients",
-    deadline: "2026-06-30",
-    published_date: "2026-02-28",
-    verification_status: "verified",
-    signal_source: "direct",
-    created_at: "2026-02-28T14:30:00Z",
-  },
+  relevance: "critical",
+  action_items: [
+    "Audit identity testing protocols against 21 CFR 111.75(a)(1)(ii) — verify you are not relying solely on supplier COAs",
+    "Confirm your contract manufacturer performs per-batch identity testing with scientifically valid methods specific to marine collagen",
+    "Review COA documentation from your collagen supplier and request identity test methodology details",
+    "Document your identity testing program in writing and retain records per 21 CFR 111.475",
+  ],
   substances: [
     { raw_substance_name: "Marine Collagen" },
     { raw_substance_name: "Hydrolyzed Collagen (marine-sourced)" },
@@ -402,6 +389,7 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     name: "Marine Collagen Powder",
     brand: "PureCoast Nutrition",
     product_type: "supplement",
+    product_category_id: null,
     data_source: "dsld",
     external_id: "dsld-182456",
     upc_barcode: "850012345678",
@@ -419,6 +407,7 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     name: "BHA Eye Cream SPF 15",
     brand: "DermaVeil",
     product_type: "cosmetic",
+    product_category_id: null,
     data_source: "manual",
     external_id: null,
     upc_barcode: "850098765432",
@@ -436,6 +425,7 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     name: "Biotin Complex 5000mcg",
     brand: "PureCoast Nutrition",
     product_type: "supplement",
+    product_category_id: null,
     data_source: "dsld",
     external_id: "dsld-192034",
     upc_barcode: "850012345999",
@@ -453,6 +443,7 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     name: "Turmeric Joint Formula",
     brand: "PureCoast Nutrition",
     product_type: "supplement",
+    product_category_id: null,
     data_source: "dsld",
     external_id: "dsld-178901",
     upc_barcode: "850012345111",
@@ -470,6 +461,7 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     name: "Probiotic Daily 30B",
     brand: "PureCoast Nutrition",
     product_type: "supplement",
+    product_category_id: null,
     data_source: "dsld",
     external_id: "dsld-201445",
     upc_barcode: "850012345222",

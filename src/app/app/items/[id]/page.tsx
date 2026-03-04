@@ -88,22 +88,8 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
               created_at: feedItem.published_date,
             }
           : null,
-        segment_impact: feedItem.impact_summary
-          ? {
-              id: `si-${feedItem.id}`,
-              item_id: feedItem.id,
-              category_id: "seg-001",
-              relevance: feedItem.relevance ?? "medium",
-              impact_summary: feedItem.impact_summary,
-              action_items: feedItem.action_items,
-              who_affected: null,
-              deadline: feedItem.deadline ?? null,
-              published_date: feedItem.published_date,
-              verification_status: "unverified",
-              signal_source: "direct",
-              created_at: feedItem.published_date,
-            }
-          : null,
+        relevance: feedItem.relevance ?? null,
+        action_items: feedItem.action_items ?? null,
         substances: [],
         enforcement: null,
         matched_products: feedItem.matched_products,
@@ -133,7 +119,7 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
     );
   }
 
-  const { item, enrichment, segment_impact, substances, enforcement, matched_products } = detail;
+  const { item, enrichment, relevance, action_items, substances, enforcement, matched_products } = detail;
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
@@ -156,9 +142,9 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
               {urgencyLabel(urgencyScore)}
             </span>
           )}
-          {segment_impact?.relevance && (
+          {relevance && (
             <span className="inline-block rounded px-2 py-0.5 border bg-slate-500/10 text-slate-600 border-slate-500/25 font-mono text-[10px] uppercase tracking-wide leading-relaxed">
-              {relevanceLabel(segment_impact.relevance)}
+              {relevanceLabel(relevance)}
             </span>
           )}
         </div>
@@ -195,10 +181,10 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
       </div>
 
       {/* 2. Status bar (deadline) */}
-      {segment_impact?.deadline && (
+      {enrichment?.deadline && (
         <div className="border border-amber/20 bg-amber/5 rounded px-4 py-3 mb-6">
           <p className="font-semibold text-sm text-amber">
-            Deadline: {formatDate(segment_impact.deadline)}
+            Deadline: {formatDate(enrichment.deadline)}
           </p>
         </div>
       )}
@@ -218,13 +204,13 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
       </section>
 
       {/* 4. Action items */}
-      {segment_impact?.action_items && segment_impact.action_items.length > 0 && (
+      {action_items && action_items.length > 0 && (
         <section className="mb-6">
           <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
             Action Items
           </h2>
           <ol className="space-y-2 border-t border-border pt-3">
-            {segment_impact.action_items.map((action, i) => (
+            {action_items.map((action, i) => (
               <li key={i} className="flex gap-3 text-sm">
                 <span className="font-mono text-amber font-semibold shrink-0 w-4">
                   {i + 1}.

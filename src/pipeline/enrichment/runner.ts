@@ -83,7 +83,7 @@ export async function runEnrichment(
   // 1. Load category ID map (one DB call, reused per item)
   const categoryIdMap = await loadCategoryIdMap(supabase);
   console.log(
-    `Loaded ${Object.keys(categoryIdMap.segments).length} segments + ${Object.keys(categoryIdMap.topics).length} topics`
+    `Loaded ${Object.keys(categoryIdMap.topics).length} topics`
   );
 
   // 2. Query unenriched items
