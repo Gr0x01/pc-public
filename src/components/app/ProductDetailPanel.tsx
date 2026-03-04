@@ -16,6 +16,11 @@ const TYPE_LABELS: Record<string, string> = {
   supplement: "Supplement",
   food: "Food",
   cosmetic: "Cosmetic",
+  drug: "Drug",
+  medical_device: "Medical Device",
+  biologic: "Biologic",
+  tobacco: "Tobacco",
+  veterinary: "Veterinary",
 };
 
 interface ProductDetailPanelProps {
