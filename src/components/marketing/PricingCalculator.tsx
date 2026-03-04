@@ -56,16 +56,19 @@ export default function PricingCalculator() {
       ref={ref}
       initial={reduce ? false : { opacity: 0, scale: 0.98 }}
       animate={inView ? { opacity: 1, scale: 1 } : {}}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      <div className="brutalist-card p-6 md:p-8 bg-surface">
+      <div className="soft-card p-8 md:p-10 relative overflow-hidden">
+        {/* Ambient glow */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-amber/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+
         {/* ── Slider section ─────────────────────────── */}
-        <div className="mb-10">
-          <div className="flex items-end justify-between mb-4 border-b-4 border-text-primary pb-2">
-            <h2 className="text-xl font-bold font-mono text-text-primary uppercase">
-              Product Volume
+        <div className="mb-12 relative z-10">
+          <div className="flex items-end justify-between mb-6">
+            <h2 className="text-lg font-semibold text-slate-900">
+              How many products?
             </h2>
-            <span className="font-serif text-3xl font-bold text-text-primary tabular-nums leading-none">
+            <span className="font-sans text-4xl font-bold text-slate-900 tabular-nums leading-none">
               {isEnterprise ? "100+" : productCount}
             </span>
           </div>
@@ -73,7 +76,7 @@ export default function PricingCalculator() {
           <label htmlFor="product-slider" className="sr-only">
             Number of products to monitor
           </label>
-          <div className="relative pt-2 pb-6">
+          <div className="relative pt-2 pb-8">
             <input
               id="product-slider"
               type="range"
@@ -82,7 +85,7 @@ export default function PricingCalculator() {
               step={1}
               value={productCount}
               onChange={(e) => setProductCount(Number(e.target.value))}
-              className="brutalist-slider"
+              className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-amber"
               aria-label="Number of products to monitor"
               aria-valuenow={productCount}
               aria-valuetext={
@@ -91,83 +94,80 @@ export default function PricingCalculator() {
                   : `${productCount} products at $${monthlyPrice} per month`
               }
               style={{
-                background: `linear-gradient(to right, var(--color-text-primary) ${percentage}%, transparent ${percentage}%)`,
+                background: `linear-gradient(to right, var(--color-amber) ${percentage}%, #f1f5f9 ${percentage}%)`,
               }}
             />
             {/* tick marks */}
-            <div className="absolute inset-x-0 bottom-0 flex justify-between px-2">
+            <div className="absolute inset-x-0 bottom-0 flex justify-between px-1">
               {BREAKPOINTS.map((bp) => (
-                <div key={bp} className="flex flex-col items-center group">
-                  <div className="w-1 h-2 bg-text-primary mb-1"></div>
-                  <button
-                    type="button"
-                    onClick={() => setProductCount(bp)}
-                    className={`text-xs font-mono font-bold ${
-                      productCount === bp
-                        ? "text-amber-action bg-amber-muted px-1"
-                        : "text-text-primary"
-                    }`}
-                    aria-label={`Set to ${bp} products`}
-                  >
-                    {bp === MAX_PRODUCTS ? "100+" : bp}
-                  </button>
-                </div>
+                <button
+                  key={bp}
+                  type="button"
+                  onClick={() => setProductCount(bp)}
+                  className={`text-xs font-medium transition-colors ${
+                    productCount === bp
+                      ? "text-amber-text font-bold"
+                      : "text-slate-400 hover:text-slate-600"
+                  }`}
+                  aria-label={`Set to ${bp} products`}
+                >
+                  {bp === MAX_PRODUCTS ? "100+" : bp}
+                </button>
               ))}
             </div>
           </div>
         </div>
 
         {/* ── Two big numbers ────────────────────────── */}
-        <div aria-live="polite" aria-atomic="true" className="min-h-[160px]">
+        <div aria-live="polite" aria-atomic="true" className="min-h-[140px] relative z-10">
           <AnimatePresence mode="wait">
             {isEnterprise ? (
               <motion.div
                 key="enterprise"
-                initial={reduce ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={reduce ? undefined : { opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="brutalist-terminal text-center mb-6"
+                initial={reduce ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? undefined : { opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="text-center py-4"
               >
-                <p className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                  100+ PRODUCTS
+                <p className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
+                  Enterprise Portfolio
                 </p>
-                <p className="text-sm opacity-80 max-w-sm mx-auto">
-                  AT THIS SCALE, WE CONFIGURE MONITORING AROUND YOUR FULL PORTFOLIO.
+                <p className="text-slate-500 max-w-sm mx-auto">
+                  At this scale, we configure monitoring around your full portfolio structure.
                 </p>
               </motion.div>
             ) : (
               <motion.div
                 key="numbers"
-                initial={reduce ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={reduce ? undefined : { opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
+                initial={reduce ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? undefined : { opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
               >
                 {/* Price */}
-                <div className="border-4 border-text-primary p-4 flex flex-col justify-center items-center bg-amber text-text-primary">
-                  <p className="font-mono text-sm uppercase tracking-widest mb-2 font-bold border-b-2 border-text-primary/30 pb-1">
-                    System Cost
+                <div className="p-6 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-center items-center text-center">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                    Monthly Cost
                   </p>
-                  <p className="text-5xl md:text-6xl font-serif font-bold tracking-tight tabular-nums">
+                  <p className="text-4xl md:text-5xl font-bold text-slate-900 tabular-nums tracking-tight">
                     ${monthlyPrice}
                   </p>
-                  <p className="text-xs font-mono font-bold mt-2">PER MONTH</p>
                 </div>
 
                 {/* Product count */}
-                <div className="border-4 border-text-primary p-4 flex flex-col justify-center items-center bg-surface">
-                  <p className="font-mono text-sm uppercase tracking-widest mb-2 font-bold border-b-2 border-border-strong pb-1">
-                    Active Monitors
+                <div className="p-6 rounded-xl bg-white border border-slate-100 shadow-sm flex flex-col justify-center items-center text-center">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                    Included Products
                   </p>
-                  <p className="text-5xl md:text-6xl font-serif font-bold tracking-tight tabular-nums">
+                  <p className="text-4xl md:text-5xl font-bold text-slate-900 tabular-nums tracking-tight">
                     {productCount}
                   </p>
-                  <p className="text-xs font-mono font-bold mt-2 text-text-secondary">
+                  <p className="text-[10px] font-medium text-slate-400 mt-2 uppercase tracking-wide">
                     {productCount === BASE_PRODUCTS
-                      ? "BASE TIER"
-                      : `${BASE_PRODUCTS} INCLUDED + ${extraProducts} EXTRA`}
+                      ? "Base Plan"
+                      : `5 included + ${extraProducts} extra`}
                   </p>
                 </div>
               </motion.div>
@@ -176,7 +176,7 @@ export default function PricingCalculator() {
         </div>
 
         {/* ── Bottom bar: total + CTA ────────────────── */}
-        <div className="border-t-4 border-text-primary pt-6">
+        <div className="border-t border-slate-100 pt-8 mt-2 relative z-10">
           <AnimatePresence mode="wait">
             {isEnterprise ? (
               <motion.div
@@ -184,17 +184,17 @@ export default function PricingCalculator() {
                 initial={reduce ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={reduce ? undefined : { opacity: 0 }}
-                transition={{ duration: 0.15 }}
+                transition={{ duration: 0.2 }}
                 className="flex flex-col sm:flex-row items-center justify-between gap-4"
               >
-                <p className="font-mono text-sm font-bold">
-                  CUSTOM CONFIGURATION REQUIRED
+                <p className="font-medium text-slate-600">
+                  Custom configuration required
                 </p>
                 <a
                   href="mailto:hello@policycanary.io?subject=Portfolio%20monitoring%20(100%2B%20products)"
-                  className="w-full sm:w-auto bg-text-primary text-surface font-mono font-bold py-4 px-8 border-4 border-transparent hover:bg-surface hover:text-text-primary hover:border-text-primary transition-colors"
+                  className="w-full sm:w-auto bg-slate-900 text-white font-medium py-3 px-6 rounded-lg hover:bg-slate-800 transition-colors shadow-sm hover:shadow text-center"
                 >
-                  INITIALIZE CONTACT
+                  Contact Sales
                 </a>
               </motion.div>
             ) : (
@@ -203,23 +203,23 @@ export default function PricingCalculator() {
                 initial={reduce ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={reduce ? undefined : { opacity: 0 }}
-                transition={{ duration: 0.15 }}
+                transition={{ duration: 0.2 }}
               >
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                  <div className="font-mono text-sm font-bold">
-                    <p className="mb-1 text-lg">
-                      TOTAL: ${monthlyPrice}/MO
+                  <div className="text-left">
+                    <p className="text-lg font-bold text-slate-900 mb-1">
+                      Total: ${monthlyPrice}/mo
                     </p>
-                    <p className="text-text-secondary">
+                    <p className="text-sm text-slate-500">
                       {productCount === BASE_PRODUCTS
-                        ? "5 PRODUCTS INCLUDED"
-                        : `$${BASE_PRICE} BASE + (${extraProducts} × $${PER_PRODUCT})`}
+                        ? "Includes 5 products"
+                        : `$${BASE_PRICE} base + (${extraProducts} × $${PER_PRODUCT})`}
                     </p>
                   </div>
                   <button
                     onClick={handleCheckout}
                     disabled={loading}
-                    className="w-full sm:w-auto bg-amber-action text-white font-mono font-bold py-4 px-8 border-4 border-text-primary shadow-[4px_4px_0px_var(--color-text-primary)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_var(--color-text-primary)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all disabled:opacity-50"
+                    className="w-full sm:w-auto bg-amber text-white font-bold py-3.5 px-8 rounded-xl shadow-md shadow-amber/20 hover:bg-amber-action hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md"
                   >
                     {loading ? (
                       <Loader2
@@ -227,20 +227,20 @@ export default function PricingCalculator() {
                         aria-hidden="true"
                       />
                     ) : (
-                      "START 14-DAY TRIAL //"
+                      "Start 14-Day Trial"
                     )}
                   </button>
                 </div>
                 {error && (
                   <p
                     role="alert"
-                    className="text-sm font-mono font-bold text-urgent mt-4 text-center sm:text-left bg-urgent-muted p-2 border-2 border-urgent"
+                    className="text-sm text-red-600 font-medium mt-4 text-center sm:text-left bg-red-50 p-3 rounded-lg border border-red-100"
                   >
-                    ERR: {error}
+                    {error}
                   </p>
                 )}
-                <p className="text-xs font-mono font-bold text-text-secondary mt-4 text-center sm:text-left">
-                  {">"} FULL ACCESS INCLUDED. NO DATA CAPS. CANCEL ANYTIME.
+                <p className="text-xs text-slate-400 mt-5 text-center sm:text-left">
+                  Full access included. No data caps. Cancel anytime.
                 </p>
               </motion.div>
             )}

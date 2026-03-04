@@ -73,18 +73,10 @@ export default function PricingFeatures() {
       };
 
   return (
-    <section className="py-24 px-6 bg-white relative overflow-hidden">
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(900px 500px at 0% 100%, rgba(217,119,6,0.10) 0%, transparent 62%), radial-gradient(720px 420px at 100% 0%, rgba(234,193,0,0.09) 0%, transparent 62%)",
-        }}
-        aria-hidden="true"
-      />
+    <section className="py-24 px-6 bg-slate-50 relative overflow-hidden">
       <div className="max-w-6xl mx-auto relative z-10">
         <motion.div
-          className="mb-14 border-4 border-text-primary p-8 bg-surface shadow-[8px_8px_0px_var(--color-text-primary)]"
+          className="mb-14 text-center"
           {...(reduce
             ? {}
             : {
@@ -94,21 +86,19 @@ export default function PricingFeatures() {
                 transition: { duration: 0.45, ease: "easeOut" },
               })}
         >
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div>
-              <p className="font-mono text-sm text-text-primary font-bold uppercase tracking-widest mb-3 border-b-2 border-text-primary inline-block">
-                SYSTEM SPECS // INCLUDED IN ALL PLANS
-              </p>
-              <h2 className="text-3xl md:text-5xl font-serif font-bold tracking-tight text-text-primary">
-                PAY BY VOLUME.
-                <br />
-                NOT BY FEATURE.
-              </h2>
-            </div>
-            <p className="text-text-primary font-mono max-w-md border-l-4 border-amber pl-4">
-              NO FEATURE GATING. THE SAME INTELLIGENCE STACK IS INCLUDED FOR ALL CUSTOMERS: FULL FDA SOURCE COVERAGE, PRODUCT-LEVEL MATCHING, AND ACTIONABLE ALERTS.
+          <div className="inline-block px-3 py-1 mb-6 bg-amber/10 rounded-full">
+            <p className="font-mono text-[10px] text-amber-text uppercase tracking-widest font-semibold">
+              Included in all plans
             </p>
           </div>
+          <h2 className="text-3xl md:text-5xl font-sans font-bold tracking-tight text-slate-900 mb-6">
+            Pay by volume.
+            <br />
+            Not by feature.
+          </h2>
+          <p className="text-slate-600 text-lg max-w-2xl mx-auto leading-relaxed">
+            No feature gating. The same intelligence stack is included for all customers: full FDA source coverage, product-level matching, and actionable alerts.
+          </p>
         </motion.div>
 
         <motion.div
@@ -122,22 +112,34 @@ export default function PricingFeatures() {
             <motion.div
               key={f.title}
               variants={reduce ? undefined : card}
-              className={`brutalist-card p-6 flex flex-col ${
-                f.span === 2 ? "md:col-span-2 bg-amber" : "bg-surface"
+              className={`p-8 rounded-xl border ${
+                f.span === 2 
+                  ? "md:col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white" 
+                  : "bg-white border-slate-100 shadow-sm"
               }`}
             >
-              <div className="flex justify-between items-start mb-4">
-                <p className="font-mono text-xs text-text-primary font-bold uppercase tracking-widest border-b-2 border-text-primary/30 pb-1">
-                  SYS.MOD.{i + 1}
-                </p>
-                <p className="font-mono text-[10px] text-text-primary font-bold uppercase px-2 py-1 bg-text-primary text-surface">
+              <div className="flex justify-between items-start mb-6">
+                <span className={`text-xs font-mono uppercase tracking-wider font-semibold ${
+                  f.span === 2 ? "text-amber-400" : "text-slate-400"
+                }`}>
+                  0{i + 1}
+                </span>
+                <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold px-2 py-1 rounded ${
+                   f.span === 2 
+                     ? "bg-white/10 text-white" 
+                     : "bg-slate-100 text-slate-500"
+                }`}>
                   {f.kicker}
-                </p>
+                </span>
               </div>
-              <h3 className="text-xl font-serif font-bold text-text-primary mb-2 mt-auto">
+              <h3 className={`text-xl font-bold mb-3 ${
+                f.span === 2 ? "text-white" : "text-slate-900"
+              }`}>
                 {f.title}
               </h3>
-              <p className="text-sm font-mono text-text-primary/80">
+              <p className={`text-sm leading-relaxed ${
+                f.span === 2 ? "text-slate-300" : "text-slate-500"
+              }`}>
                 {f.description}
               </p>
             </motion.div>
@@ -145,25 +147,25 @@ export default function PricingFeatures() {
         </motion.div>
 
         {/* Cost math strip */}
-        <motion.div className="mt-14 text-center" {...fadeUp}>
-          <div className="inline-flex flex-col sm:flex-row items-stretch border-4 border-text-primary bg-surface shadow-[8px_8px_0px_var(--color-text-primary)] overflow-hidden">
-            <div className="p-6 bg-surface">
-              <p className="font-mono text-xs text-text-primary font-bold uppercase tracking-wider mb-2">
-                TYPICAL CONSULTANT RETAINER
+        <motion.div className="mt-16 text-center" {...fadeUp}>
+          <div className="inline-flex flex-col sm:flex-row items-stretch rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-white max-w-2xl mx-auto w-full">
+            <div className="p-8 flex-1 bg-slate-50 flex flex-col justify-center">
+              <p className="font-mono text-[10px] text-slate-500 uppercase tracking-wider mb-2 font-semibold">
+                Typical Consultant Retainer
               </p>
-              <p className="text-2xl font-serif font-bold text-urgent line-through decoration-text-primary decoration-4">
-                $2K&ndash;$8K / MO
+              <p className="text-2xl font-sans font-bold text-slate-400 line-through decoration-slate-400/50 decoration-2">
+                $2K&ndash;$8K / mo
               </p>
             </div>
-            <div className="flex items-center justify-center px-4 bg-text-primary text-surface font-mono font-bold text-xl">
-              VS
+            <div className="flex items-center justify-center px-6 bg-white border-y sm:border-y-0 sm:border-x border-slate-100 py-2">
+              <span className="text-sm font-bold text-slate-300">VS</span>
             </div>
-            <div className="p-6 bg-amber">
-              <p className="font-mono text-xs text-text-primary font-bold uppercase tracking-wider mb-2">
-                POLICY CANARY MONITOR
+            <div className="p-8 flex-1 bg-white flex flex-col justify-center">
+              <p className="font-mono text-[10px] text-amber-text uppercase tracking-wider mb-2 font-semibold">
+                Policy Canary Monitor
               </p>
-              <p className="text-2xl font-serif font-bold text-text-primary">
-                FROM $99 / MO
+              <p className="text-2xl font-sans font-bold text-slate-900">
+                From $99 / mo
               </p>
             </div>
           </div>

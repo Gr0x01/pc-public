@@ -36,50 +36,48 @@ export default function PricingHero() {
         {/* Bold header */}
         <div className="max-w-4xl mx-auto text-center mb-12 md:mb-16">
           <motion.div
-            className="inline-block border-4 border-text-primary px-4 py-2 mb-8 bg-amber"
+            className="inline-block px-4 py-2 mb-8 bg-amber/10 rounded-full"
             {...fadeUp(0)}
           >
-            <p className="font-mono text-sm text-text-primary uppercase tracking-widest font-bold">
-              SYSTEM PRICING
+            <p className="font-mono text-xs text-amber-text uppercase tracking-widest font-semibold">
+              Simple Pricing
             </p>
           </motion.div>
           <motion.h1
-            className="font-serif text-5xl md:text-6xl lg:text-[4.5rem] font-bold tracking-tight text-text-primary leading-[1]"
+            className="font-sans text-5xl md:text-6xl lg:text-[4.5rem] font-bold tracking-tight text-slate-900 leading-[1.1]"
             {...fadeUp(0.04)}
           >
-            ONE PRICE PER PRODUCT.
+            One price per product.
             <br />
-            NO FEATURE GATING.
+            No feature gating.
           </motion.h1>
           <motion.div
-            className="mt-8 border-t-4 border-b-4 border-text-primary py-4 max-w-2xl mx-auto bg-surface"
+            className="mt-8 max-w-2xl mx-auto"
             {...fadeUp(0.08)}
           >
-            <p className="font-mono text-base text-text-primary">
-              $99/MO FOR 5 PRODUCTS. $6/MO EACH ADDITIONAL.
+            <p className="text-lg text-slate-600 leading-relaxed">
+              $99/mo for 5 products. $6/mo each additional.
               <br />
-              ONE WARNING LETTER COSTS $25K&ndash;$100K+. YOU DO THE MATH.
+              One warning letter costs $25K&ndash;$100K+. You do the math.
             </p>
           </motion.div>
 
           {/* Trust stats */}
           <motion.div
-            className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 mt-8"
+            className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 mt-10"
             {...fadeUp(0.12)}
           >
             {TRUST_STATS.map((stat, i) => (
               <div
                 key={stat.label}
-                className="flex items-center gap-4 sm:gap-8 border-2 border-text-primary px-4 py-2 bg-surface"
+                className="flex items-center gap-3"
               >
-                <div className="text-center flex gap-2 items-center">
-                  <p className="font-mono text-lg font-bold text-amber-action">
-                    {stat.value}
-                  </p>
-                  <p className="font-mono text-xs text-text-primary uppercase tracking-wider font-bold">
-                    {stat.label}
-                  </p>
-                </div>
+                <p className="font-sans text-xl font-bold text-slate-900">
+                  {stat.value}
+                </p>
+                <p className="font-mono text-xs text-slate-500 uppercase tracking-wide">
+                  {stat.label}
+                </p>
               </div>
             ))}
           </motion.div>
