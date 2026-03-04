@@ -1,14 +1,15 @@
 /**
  * Enrichment runner.
  *
- * Queries unenriched regulatory items and processes them sequentially:
+ * Queries unenriched regulatory items and processes them concurrently:
  * 1. LLM enrichment (geminiFlash / geminiPro via processor)
  * 2. Embedding generation (OpenAI via embeddings)
  * 3. DB writes via processor
  *
- * Rate-limited: 300ms between items to stay within Gemini quota.
+ * Concurrency controlled via p-limit (default: 5 parallel items).
  */
 
+import pLimit from "p-limit";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { enrichItem, loadCategoryIdMap } from "./processor";
@@ -24,6 +25,8 @@ import type { RegulatoryItem } from "../../types/database";
 export interface EnrichmentRunOptions {
   /** Max items to process in this run. Default: 10 (safety limit for dev). */
   limit?: number;
+  /** Number of items to process concurrently. Default: 5. */
+  concurrency?: number;
   /** Only enrich items with this item_type (e.g., "recall"). Optional. */
   itemTypeFilter?: string;
   /** Supabase URL override (for scripts that can't use env directly). */
@@ -79,6 +82,7 @@ export async function runEnrichment(
   const google = createGoogleGenerativeAI({ apiKey: googleApiKey });
 
   const limit = options.limit ?? 10;
+  const concurrency = options.concurrency ?? 5;
 
   // 1. Load category ID map (one DB call, reused per item)
   const categoryIdMap = await loadCategoryIdMap(supabase);
@@ -111,15 +115,18 @@ export async function runEnrichment(
     return { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, errors: 0, skipped: 0, durationMs: Date.now() - startTime };
   }
 
-  console.log(`Found ${items.length} items to enrich (limit: ${limit})`);
+  const typedItems = items as RegulatoryItem[];
+  const totalItems = typedItems.length;
+
+  console.log(`Found ${totalItems} items to enrich (limit: ${limit}, concurrency: ${concurrency})`);
 
   const counters = { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, errors: 0, skipped: 0 };
 
-  // 3. Process sequentially (rate limit safety)
-  for (const item of items as RegulatoryItem[]) {
-    counters.processed++;
-    const label = `[${counters.processed}/${items.length}] ${item.item_type} — ${item.title.slice(0, 60)}`;
-    process.stdout.write(`${label}... `);
+  // 3. Process concurrently with p-limit
+  const limit_ = pLimit(concurrency);
+
+  async function processItem(item: RegulatoryItem, index: number) {
+    const label = `[${index + 1}/${totalItems}] ${item.item_type} — ${item.title.slice(0, 60)}`;
 
     // a. Fetch full page content if source_url points to FDA.gov
     if (item.source_url && /^https?:\/\/www\.fda\.gov\//.test(item.source_url)) {
@@ -131,18 +138,16 @@ export async function runEnrichment(
           .eq("id", item.id);
         item.raw_content = content;
         counters.contentFetched++;
-        console.log(`fetched ${content.length} chars... `);
       } else if (fetchErr) {
-        console.log(`content-fetch skipped (${fetchErr})... `);
+        console.log(`${label} content-fetch skipped (${fetchErr})`);
       }
-      await sleep(200);
     }
 
     // b. Enrich
     const enrichResult = await enrichItem(item, supabase, categoryIdMap, google);
 
     if (!enrichResult.ok || !enrichResult.enrichmentId) {
-      console.log(`ERROR: ${enrichResult.error}`);
+      console.log(`${label} ERROR: ${enrichResult.error}`);
       counters.errors++;
 
       // Mark item as error so we don't retry endlessly
@@ -150,35 +155,37 @@ export async function runEnrichment(
         .from("regulatory_items")
         .update({ processing_status: "error", processing_error: enrichResult.error ?? "enrichment failed" })
         .eq("id", item.id);
-
-      await sleep(300);
-      continue;
+      return;
     }
 
     counters.enriched++;
     if (enrichResult.crossReferenced) counters.crossReferenced++;
 
-    // b. Generate embeddings
+    // c. Generate embeddings
     try {
       await generateItemEmbeddings(item, supabase, openaiApiKey);
       counters.embedded++;
-      console.log("done");
+      console.log(`${label} done`);
     } catch (embErr) {
       const msg = embErr instanceof Error ? embErr.message : String(embErr);
-      console.log(`enriched (embedding failed: ${msg})`);
-      // Don't fail the whole item — enrichment succeeded, embeddings can be retried
+      console.log(`${label} enriched (embedding failed: ${msg})`);
     }
+
+    counters.processed++;
 
     // Log progress every 10 items
     if (counters.processed % 10 === 0) {
       console.log(
-        `\nProgress: ${counters.processed}/${items.length} | enriched=${counters.enriched} crossRef=${counters.crossReferenced} embedded=${counters.embedded} contentFetched=${counters.contentFetched} errors=${counters.errors}\n`
+        `Progress: ${counters.processed}/${totalItems} | enriched=${counters.enriched} crossRef=${counters.crossReferenced} embedded=${counters.embedded} errors=${counters.errors}`
       );
     }
-
-    // Rate limit: 300ms between items
-    await sleep(300);
   }
+
+  await Promise.allSettled(
+    typedItems.map((item, i) =>
+      limit_(() => processItem(item, i))
+    )
+  );
 
   const durationMs = Date.now() - startTime;
 

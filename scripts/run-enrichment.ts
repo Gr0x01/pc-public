@@ -72,7 +72,9 @@ if (missing.length > 0) {
 
 const args = process.argv.slice(2);
 let limit = 10;
+let concurrency = 5;
 let itemTypeFilter: string | undefined;
+let noCap = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--limit" && args[i + 1]) {
@@ -81,13 +83,18 @@ for (let i = 0; i < args.length; i++) {
       console.error(`Invalid --limit value: ${args[i + 1]}`);
       process.exit(1);
     }
-    if (n > 500) {
-      console.error(`--limit ${n} exceeds safety cap of 500. Use a lower value.`);
-      console.error(`(Full backfills should run via Inngest, not this CLI script.)`);
-      process.exit(1);
-    }
     limit = n;
     i++;
+  } else if (args[i] === "--concurrency" && args[i + 1]) {
+    const n = parseInt(args[i + 1], 10);
+    if (isNaN(n) || n < 1 || n > 20) {
+      console.error(`Invalid --concurrency value: ${args[i + 1]} (must be 1-20)`);
+      process.exit(1);
+    }
+    concurrency = n;
+    i++;
+  } else if (args[i] === "--no-cap") {
+    noCap = true;
   } else if (args[i] === "--type" && args[i + 1]) {
     itemTypeFilter = args[i + 1];
     i++;
@@ -96,18 +103,25 @@ for (let i = 0; i < args.length; i++) {
 Usage: npx tsx scripts/run-enrichment.ts [options]
 
 Options:
-  --limit N     Max items to process (default: 10)
-  --type TYPE   Filter by item_type (recall, rule, warning_letter, etc.)
-  --help        Show this help
+  --limit N         Max items to process (default: 10, cap: 2000)
+  --concurrency N   Parallel items (default: 5, max: 20)
+  --no-cap          Remove the 2000-item safety cap (for background runs)
+  --type TYPE       Filter by item_type (recall, rule, warning_letter, etc.)
+  --help            Show this help
 
 Examples:
-  npx tsx scripts/run-enrichment.ts                    # enrich up to 10 items
-  npx tsx scripts/run-enrichment.ts --limit 5          # enrich 5 items
-  npx tsx scripts/run-enrichment.ts --type recall      # only recalls (up to 10)
-  npx tsx scripts/run-enrichment.ts --limit 100        # larger batch
+  npx tsx scripts/run-enrichment.ts                              # enrich up to 10 items
+  npx tsx scripts/run-enrichment.ts --limit 100 --concurrency 10 # 100 items, 10 parallel
+  npx tsx scripts/run-enrichment.ts --type recall                # only recalls (up to 10)
+  nohup npx tsx scripts/run-enrichment.ts --limit 8000 --no-cap &  # background full run
 `);
     process.exit(0);
   }
+}
+
+if (!noCap && limit > 2000) {
+  console.error(`--limit ${limit} exceeds safety cap of 2000. Use --no-cap for background runs.`);
+  process.exit(1);
 }
 
 // ---------------------------------------------------------------------------
@@ -116,13 +130,14 @@ Examples:
 
 async function main() {
   console.log(`\nEnrichment pipeline`);
-  console.log(`Limit: ${limit} items${itemTypeFilter ? ` | Type filter: ${itemTypeFilter}` : ""}`);
+  console.log(`Limit: ${limit} items | Concurrency: ${concurrency}${itemTypeFilter ? ` | Type filter: ${itemTypeFilter}` : ""}`);
   console.log("─".repeat(60));
 
   const { runEnrichment } = await import("../src/pipeline/enrichment/runner");
 
   const result = await runEnrichment({
     limit,
+    concurrency,
     itemTypeFilter,
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
