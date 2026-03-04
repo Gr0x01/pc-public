@@ -5,15 +5,16 @@ import { motion, useInView, useReducedMotion } from "framer-motion";
 
 const container = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.1 } },
+  visible: { transition: { staggerChildren: 0.15 } },
 };
 
 const card = {
-  hidden: { opacity: 0, y: 18 },
+  hidden: { opacity: 0, y: 30, scale: 0.98 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: "easeOut" as const },
+    scale: 1,
+    transition: { duration: 0.6, type: "spring" as const, bounce: 0.1 },
   },
 };
 
@@ -221,24 +222,27 @@ export default function FeatureComparison() {
   const reduce = useReducedMotion();
 
   return (
-    <section className="py-24 px-6 bg-white">
-      <div className="max-w-6xl mx-auto">
-        <p className="font-mono text-xs text-amber-text uppercase tracking-widest text-center mb-3">
-          THE DIFFERENCE
-        </p>
-        <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary text-center mb-4">
-          Every FDA action.
-          <br />
-          Matched to your products.
-        </h2>
-        <p className="text-text-secondary text-center mb-14 max-w-xl mx-auto">
-          Not summaries — product intelligence. Each card shows what Policy
-          Canary actually delivers to your inbox.
-        </p>
+    <section className="py-24 px-6 bg-slate-50 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-white pointer-events-none" />
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="text-center mb-16">
+          <p className="font-mono text-[11px] text-amber-text uppercase tracking-widest mb-3 font-semibold">
+            THE DIFFERENCE
+          </p>
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-slate-900 mb-6 leading-tight">
+            Every FDA action.
+            <br />
+            Matched to your products.
+          </h2>
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
+            Not summaries — product intelligence. Each card shows what Policy
+            Canary actually delivers to your inbox.
+          </p>
+        </div>
 
         <motion.div
           ref={ref}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
           variants={reduce ? undefined : container}
           initial="hidden"
           animate={inView ? "visible" : "hidden"}
@@ -246,24 +250,22 @@ export default function FeatureComparison() {
           {/* Card A — Email Intelligence (2-col span) */}
           <motion.div
             variants={reduce ? undefined : card}
-            className="md:col-span-2 relative rounded-lg overflow-hidden p-6"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(234,193,0,0.10) 0%, rgba(217,119,6,0.14) 100%)",
-            }}
+            className="md:col-span-2 relative rounded-2xl overflow-hidden p-8 soft-card"
           >
-            <div className="absolute inset-0 bg-white/60 pointer-events-none" />
-            <div className="relative z-10">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <div className="relative z-10 h-full flex flex-col justify-between">
+              <div>
               <p className="font-mono text-[10px] text-amber uppercase tracking-widest mb-1">
                 Email Intelligence
               </p>
-              <h3 className="text-lg font-semibold text-text-primary">
+              <h3 className="text-xl font-semibold text-slate-900">
                 Intelligence delivered, not searched for
               </h3>
-              <p className="text-sm text-text-secondary mt-1 max-w-md">
+              <p className="text-[15px] text-slate-500 mt-2 max-w-md">
                 Every alert arrives in your inbox, scoped to your products —
                 with the analysis and action items already written.
               </p>
+              </div>
               <EmailMockup />
             </div>
           </motion.div>
@@ -271,24 +273,21 @@ export default function FeatureComparison() {
           {/* Card B — Ingredient Match */}
           <motion.div
             variants={reduce ? undefined : card}
-            className="relative rounded-lg overflow-hidden p-6"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(234,193,0,0.08) 0%, rgba(217,119,6,0.12) 100%)",
-            }}
+            className="relative rounded-2xl overflow-hidden p-8 soft-card"
           >
-            <div className="absolute inset-0 bg-white/60 pointer-events-none" />
-            <div className="relative z-10">
-              <p className="font-mono text-[10px] text-amber uppercase tracking-widest mb-1">
+            <div className="relative z-10 h-full flex flex-col justify-between">
+              <div>
+              <p className="font-mono text-[10px] text-amber uppercase tracking-widest mb-1 font-semibold">
                 Ingredient Match
               </p>
-              <h3 className="text-lg font-semibold text-text-primary">
+              <h3 className="text-xl font-semibold text-slate-900">
                 Matched by formula
               </h3>
-              <p className="text-sm text-text-secondary mt-1">
+              <p className="text-[15px] text-slate-500 mt-2">
                 We match FDA actions to your actual ingredients — not just
                 product categories.
               </p>
+              </div>
               <IngredientMatch />
             </div>
           </motion.div>
@@ -296,23 +295,20 @@ export default function FeatureComparison() {
           {/* Card C — Alert Timeline */}
           <motion.div
             variants={reduce ? undefined : card}
-            className="relative rounded-lg overflow-hidden p-6"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(217,119,6,0.10) 0%, rgba(234,193,0,0.14) 100%)",
-            }}
+            className="relative rounded-2xl overflow-hidden p-8 soft-card"
           >
-            <div className="absolute inset-0 bg-white/60 pointer-events-none" />
-            <div className="relative z-10">
+            <div className="relative z-10 h-full flex flex-col justify-between">
+              <div>
               <p className="font-mono text-[10px] text-amber-text uppercase tracking-widest mb-1">
                 Speed
               </p>
-              <h3 className="text-lg font-semibold text-text-primary">
+              <h3 className="text-xl font-semibold text-slate-900">
                 FDA to inbox in hours
               </h3>
-              <p className="text-sm text-text-secondary mt-1">
+              <p className="text-[15px] text-slate-500 mt-2">
                 Our pipeline ingests every publication the same day.
               </p>
+              </div>
               <AlertTimeline />
             </div>
           </motion.div>
@@ -320,23 +316,21 @@ export default function FeatureComparison() {
           {/* Card D — Dashboard Status */}
           <motion.div
             variants={reduce ? undefined : card}
-            className="relative rounded-lg overflow-hidden p-6"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(15,23,42,0.04) 0%, rgba(15,23,42,0.08) 100%)",
-            }}
+            className="relative rounded-2xl overflow-hidden p-8 soft-card"
           >
-            <div className="absolute inset-0 bg-white/60 pointer-events-none" />
-            <div className="relative z-10">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-slate-200/50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <div className="relative z-10 h-full flex flex-col justify-between">
+              <div>
               <p className="font-mono text-[10px] text-amber-text uppercase tracking-widest mb-1">
                 Dashboard
               </p>
-              <h3 className="text-lg font-semibold text-text-primary">
+              <h3 className="text-xl font-semibold text-slate-900">
                 Every product at a glance
               </h3>
-              <p className="text-sm text-text-secondary mt-1">
+              <p className="text-[15px] text-slate-500 mt-2">
                 One view. All your products. Color-coded status.
               </p>
+              </div>
               <DashboardMini />
             </div>
           </motion.div>
@@ -344,24 +338,21 @@ export default function FeatureComparison() {
           {/* Card E — Coverage Sources */}
           <motion.div
             variants={reduce ? undefined : card}
-            className="relative rounded-lg overflow-hidden p-6"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(15,23,42,0.06) 0%, rgba(217,119,6,0.08) 100%)",
-            }}
+            className="relative rounded-2xl overflow-hidden p-8 soft-card"
           >
-            <div className="absolute inset-0 bg-white/60 pointer-events-none" />
-            <div className="relative z-10">
+            <div className="relative z-10 h-full flex flex-col justify-between">
+              <div>
               <p className="font-mono text-[10px] text-amber-text uppercase tracking-widest mb-1">
                 Coverage
               </p>
-              <h3 className="text-lg font-semibold text-text-primary">
+              <h3 className="text-xl font-semibold text-slate-900">
                 4 FDA data sources
               </h3>
-              <p className="text-sm text-text-secondary mt-1">
+              <p className="text-[15px] text-slate-500 mt-2">
                 Federal Register, warning letters, openFDA, and curated RSS —
                 all in one pipeline.
               </p>
+              </div>
               <CoverageSources />
             </div>
           </motion.div>

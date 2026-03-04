@@ -36,15 +36,16 @@ const roles = [
 
 const container = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.08 } },
+  visible: { transition: { staggerChildren: 0.15 } },
 };
 
 const card = {
-  hidden: { opacity: 0, y: 18 },
+  hidden: { opacity: 0, y: 30, scale: 0.98 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: "easeOut" as const },
+    scale: 1,
+    transition: { duration: 0.6, type: "spring" as const, bounce: 0.1 },
   },
 };
 
@@ -63,20 +64,22 @@ export default function BuyerRoleCard() {
         }}
         aria-hidden="true"
       />
-      <div className="max-w-5xl mx-auto">
-        <p className="font-mono text-xs text-amber-text uppercase tracking-widest text-center mb-3 relative z-10">
-          WHO IT&apos;S FOR
-        </p>
-        <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary text-center mb-4 relative z-10">
-          You don&apos;t have a regulatory team.
-          <br />
-          You have Policy Canary.
-        </h2>
-        <p className="text-text-secondary text-center mb-12 max-w-xl mx-auto relative z-10">
-          Whether you&apos;re the founder, the quality lead, or the person who
-          gets the call when something goes wrong — you need product-level
-          answers, not regulatory summaries.
-        </p>
+      <div className="max-w-5xl mx-auto relative z-10">
+        <div className="text-center mb-16">
+          <p className="font-mono text-[11px] text-amber-text uppercase tracking-widest mb-3 font-semibold">
+            WHO IT'S FOR
+          </p>
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-slate-900 mb-6 leading-tight">
+            You don't have a regulatory team.
+            <br />
+            You have Policy Canary.
+          </h2>
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
+            Whether you're the founder, the quality lead, or the person who
+            gets the call when something goes wrong — you need product-level
+            answers, not regulatory summaries.
+          </p>
+        </div>
 
         <motion.div
           ref={ref}
@@ -89,18 +92,28 @@ export default function BuyerRoleCard() {
             <motion.div
               key={role.title}
               variants={reduce ? undefined : card}
-              className="card-surface rounded-lg p-6 hover:-translate-y-0.5 transition-all duration-150"
-              style={{ background: role.gradient }}
+              className="soft-card p-8 group relative overflow-hidden"
             >
-              <p className="text-sm font-semibold uppercase tracking-wide text-amber mb-1">
-                {role.title}
-              </p>
-              <p className="font-mono text-xs text-text-secondary mb-3">
-                {role.detail}
-              </p>
-              <p className="text-text-body text-sm leading-relaxed">
-                &ldquo;{role.quote}&rdquo;
-              </p>
+              <div 
+                className="absolute inset-0 opacity-40 group-hover:opacity-60 transition-opacity duration-500 pointer-events-none" 
+                style={{ background: role.gradient }} 
+              />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[14px] font-semibold uppercase tracking-widest text-amber-text">
+                    {role.title}
+                  </p>
+                  <svg className="w-5 h-5 text-amber/30 group-hover:text-amber/50 transition-colors duration-300" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                  </svg>
+                </div>
+                <p className="font-mono text-[11px] text-slate-400 mb-6">
+                  {role.detail}
+                </p>
+                <p className="text-[17px] text-slate-700 leading-relaxed font-medium">
+                  &ldquo;{role.quote}&rdquo;
+                </p>
+              </div>
             </motion.div>
           ))}
         </motion.div>

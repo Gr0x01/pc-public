@@ -169,21 +169,23 @@ function FirehoseCard({
 }) {
   return (
     <div
-      className={`card-surface rounded-lg px-3 py-2.5 transition-all duration-500 ${
-        muted ? "opacity-40" : "opacity-100 ring-1 ring-amber/20"
+      className={`bg-white rounded-xl px-4 py-3 border transition-all duration-500 ${
+        muted 
+          ? "opacity-40 border-slate-100 shadow-sm grayscale-[50%]" 
+          : "opacity-100 border-amber/20 shadow-md ring-1 ring-amber/5 translate-y-[-2px]"
       }`}
     >
-      <div className="flex items-center gap-1.5 mb-1">
+      <div className="flex items-center gap-1.5 mb-2">
         <span
-          className={`text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${DOMAIN_PILL[item.domain].className}`}
+          className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md border ${DOMAIN_PILL[item.domain].className}`}
         >
           {item.source}
         </span>
       </div>
-      <p className="text-xs font-semibold text-text-primary truncate">
+      <p className="text-[13px] font-semibold text-slate-900 truncate">
         {item.company}
       </p>
-      <p className="text-[11px] text-text-secondary truncate mt-0.5">
+      <p className="text-[11px] text-slate-500 truncate mt-0.5">
         {item.oneLiner}
       </p>
     </div>
@@ -191,69 +193,70 @@ function FirehoseCard({
 }
 
 function SignalCard({ item }: { item: SignalItem }) {
-  const barColor = item.severity === "critical" ? "bg-urgent" : "bg-amber";
-  const badge =
-    item.severity === "critical"
-      ? "bg-red-50 text-red-700 border-red-200"
-      : "bg-amber-50 text-amber-700 border-amber-200";
+  const isCritical = item.severity === "critical";
+  const badgeBase = "text-[10px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-md border";
+  
+  const typeBadge = isCritical
+    ? `${badgeBase} bg-red-50 text-red-700 border-red-100`
+    : `${badgeBase} bg-amber-50 text-amber-700 border-amber-100`;
+    
+  const severityBadge = isCritical
+    ? `${badgeBase} bg-red-100 text-red-800 border-red-200 font-bold`
+    : `${badgeBase} bg-amber-100 text-amber-800 border-amber-200 font-bold`;
 
   return (
-    <div className="card-surface rounded-xl overflow-hidden">
-      <div className={`h-[3px] ${barColor}`} />
-      <div className="p-5 md:p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <span
-            className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border ${badge}`}
-          >
+    <div className="soft-card overflow-hidden relative group">
+      <div className={`absolute top-0 left-0 w-full h-1 ${isCritical ? 'bg-red-500' : 'bg-amber-500'}`} />
+      <div className="p-6 md:p-8 relative z-10">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className={typeBadge}>
             {item.type}
           </span>
-          <span
-            className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border ${badge}`}
-          >
+          <span className={severityBadge}>
             {item.severity}
           </span>
         </div>
 
-        <h4 className="font-serif text-lg font-bold text-text-primary">
+        <h4 className="font-serif text-xl md:text-2xl font-semibold text-slate-900 leading-tight">
           {item.product}
         </h4>
-        <p className="text-xs text-text-secondary mt-0.5">{item.company}</p>
+        <p className="text-[13px] text-slate-500 mt-1">{item.company}</p>
 
-        <p className="text-sm text-text-body mt-3 leading-relaxed">
+        <p className="text-[15px] text-slate-600 mt-4 leading-relaxed">
           {item.summary}
         </p>
 
-        <div className="mt-4">
-          <p className="text-[11px] font-mono uppercase tracking-wider text-text-secondary mb-2">
+        <div className="mt-6 bg-slate-50 rounded-xl p-4 border border-slate-100">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-3">
             Action Items
           </p>
-          <ul className="space-y-1.5">
-            {item.actions.map((action) => (
+          <ul className="space-y-2.5">
+            {item.actions.map((action, i) => (
               <li
                 key={action}
-                className="flex items-start gap-2 text-sm text-text-body"
+                className="flex items-start gap-2.5 text-[14px] text-slate-700 leading-snug"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-amber shrink-0 mt-1.5" />
+                <span className={`h-1.5 w-1.5 rounded-full shrink-0 mt-1.5 ${isCritical ? 'bg-red-400' : 'bg-amber-400'}`} />
                 {action}
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-5 pt-4 border-t border-border">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 mt-6 pt-5 border-t border-slate-100">
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-wider text-text-secondary">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">
               Deadline
             </p>
-            <p className="text-xs font-semibold text-text-primary mt-0.5">
+            <p className={`text-[13px] font-medium ${isCritical ? 'text-red-600' : 'text-amber-600'}`}>
               {item.deadline}
             </p>
           </div>
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-wider text-text-secondary">
+          <div className="text-right">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">
               Source
             </p>
-            <p className="font-mono text-[11px] text-text-secondary mt-0.5">
+            <p className="font-mono text-[11px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
               {item.citation}
             </p>
           </div>
@@ -316,19 +319,20 @@ export default function DayAtFda() {
   };
 
   return (
-    <section className="section-soft py-24 px-6">
-      <div className="max-w-5xl mx-auto" ref={ref}>
+    <section className="bg-slate-50 py-24 px-6 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-50/40 via-transparent to-transparent pointer-events-none" />
+      <div className="max-w-5xl mx-auto relative z-10" ref={ref}>
         {/* Header */}
-        <motion.div className="text-center mb-14" {...fadeUp(0)}>
-          <p className="font-mono text-xs text-amber-text uppercase tracking-widest mb-3">
+        <motion.div className="text-center mb-16" {...fadeUp(0)}>
+          <p className="font-mono text-[11px] text-amber-text uppercase tracking-widest mb-3 font-semibold">
             A REAL DAY
           </p>
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-text-primary mb-4">
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-slate-900 mb-6">
             February 24, 2026
           </h2>
-          <p className="text-text-secondary max-w-2xl mx-auto">
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
             12 regulatory actions published across warning letters, recalls, and
-            enforcement. Here&apos;s what Policy Canary does with them.
+            enforcement. Here's what Policy Canary does with them.
           </p>
         </motion.div>
 
@@ -347,15 +351,21 @@ export default function DayAtFda() {
         </motion.div>
 
         {/* Filter divider */}
-        <motion.div className="my-12 text-center" {...fadeUp(0)}>
-          <div className="flex items-center gap-4 max-w-lg mx-auto mb-4">
-            <div className="flex-1 h-px bg-border" />
-            <p className="font-mono text-[11px] text-text-secondary uppercase tracking-wider whitespace-nowrap">
-              Scanned for: Acme Foods &middot; dairy, imported botanicals
-            </p>
-            <div className="flex-1 h-px bg-border" />
+        <motion.div className="my-16 text-center" {...fadeUp(0)}>
+          <div className="flex items-center gap-4 max-w-xl mx-auto mb-6">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 to-slate-200" />
+            <div className="bg-white border border-slate-200 rounded-full px-4 py-1.5 shadow-sm flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber"></span>
+              </span>
+              <p className="font-mono text-[10px] text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                Scanned for: Acme Foods &middot; dairy, imported botanicals
+              </p>
+            </div>
+            <div className="flex-1 h-px bg-gradient-to-l from-transparent via-slate-200 to-slate-200" />
           </div>
-          <p className="text-2xl md:text-3xl font-semibold text-text-primary">
+          <p className="text-2xl md:text-4xl font-semibold text-slate-900">
             <StatCounter end={2} /> of 12 affect your products
           </p>
         </motion.div>

@@ -12,15 +12,15 @@ export default function Hero() {
       : {
           initial: { opacity: 0, y: 20 } as const,
           animate: { opacity: 1, y: 0 } as const,
-          transition: { duration: 0.5, ease: "easeOut" as const, delay },
+          transition: { duration: 0.7, type: "spring" as const, bounce: 0.2, delay },
         };
 
   const slideIn = reduce
     ? {}
     : {
-        initial: { opacity: 0, x: 24 } as const,
-        animate: { opacity: 1, x: 0 } as const,
-        transition: { duration: 0.55, ease: "easeOut" as const, delay: 0.3 },
+        initial: { opacity: 0, x: 30, scale: 0.98 } as const,
+        animate: { opacity: 1, x: 0, scale: 1 } as const,
+        transition: { duration: 0.8, type: "spring" as const, bounce: 0.2, delay: 0.3 },
       };
 
   return (
@@ -55,13 +55,13 @@ export default function Hero() {
           >
             <Link
               href="/#signup"
-              className="bg-surface-dark text-white font-semibold px-7 py-3 rounded-full hover:bg-[#1E293B] transition-colors duration-150"
+              className="bg-surface-dark text-white font-medium px-6 py-3 rounded-xl hover:bg-[#1E293B] hover:-translate-y-0.5 transition-all duration-300 shadow-sm hover:shadow-md"
             >
               Start Free
             </Link>
             <Link
               href="/sample"
-              className="border border-slate-300/80 bg-white/80 text-text-primary font-semibold px-7 py-3 rounded-full hover:bg-white transition-colors duration-150"
+              className="bg-white/90 backdrop-blur-sm text-text-primary font-medium px-6 py-3 rounded-xl hover:bg-white hover:-translate-y-0.5 transition-all duration-300 shadow-sm border border-slate-200/60 hover:shadow-md"
             >
               See a Sample Email
             </Link>
@@ -70,13 +70,8 @@ export default function Hero() {
 
         {/* Right — email mockup */}
         <motion.div className="relative lg:pl-6" {...slideIn}>
-          <div
-            className="card-surface rounded-xl overflow-hidden text-left"
-            style={{
-              boxShadow:
-                "0 8px 40px rgba(15,23,42,0.08), 0 1px 3px rgba(15,23,42,0.06)",
-            }}
-          >
+          <div className="soft-card overflow-hidden text-left relative group">
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/40 to-white/0 pointer-events-none z-10 rounded-xl" />
             {/* Canary top rule — brand mark */}
             <div className="h-[3px] bg-gradient-to-r from-canary via-amber to-canary" />
 

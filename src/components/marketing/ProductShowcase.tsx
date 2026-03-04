@@ -132,25 +132,30 @@ export default function ProductShowcase() {
 
         {/* Dashboard mockup */}
         <div
-          className="rounded-xl overflow-hidden border border-slate-900/10 relative z-10"
+          className="rounded-2xl overflow-hidden relative z-10 bg-white"
           style={{
             boxShadow:
-              "0 32px 64px rgba(15,23,42,0.24), 0 8px 20px rgba(15,23,42,0.16)",
+              "0 20px 40px -10px rgba(15,23,42,0.1), 0 10px 20px -5px rgba(15,23,42,0.05), inset 0 0 0 1px rgba(15,23,42,0.05), inset 0 1px 0 rgba(255,255,255,0.5)",
           }}
         >
+          {/* Subtle inner glow */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none z-20" />
           {/* Browser chrome */}
           <div
-            className="flex items-center gap-2 px-4 py-3 border-b border-white/10"
-            style={{ background: "#020B18" }}
+            className="flex items-center gap-2 px-4 py-3 border-b border-slate-200/50"
+            style={{ background: "#F8FAFC" }}
           >
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]" />
-              <span className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]" />
-              <span className="h-2.5 w-2.5 rounded-full bg-[#28C840]" />
+            <div className="flex items-center gap-1.5 opacity-80">
+              <span className="h-2.5 w-2.5 rounded-full bg-slate-300 shadow-inner" />
+              <span className="h-2.5 w-2.5 rounded-full bg-slate-300 shadow-inner" />
+              <span className="h-2.5 w-2.5 rounded-full bg-slate-300 shadow-inner" />
             </div>
             <div className="flex-1 mx-4">
-              <div className="bg-white/5 border border-white/10 rounded px-3 py-1 max-w-xs mx-auto">
-                <p className="font-mono text-[11px] text-slate-400 text-center">
+              <div className="bg-white border border-slate-200/80 rounded-md shadow-sm px-3 py-1 max-w-sm mx-auto flex items-center justify-center gap-2">
+                <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <p className="font-sans text-[11px] text-slate-500 font-medium tracking-wide">
                   app.policycanary.com/products
                 </p>
               </div>
@@ -159,100 +164,107 @@ export default function ProductShowcase() {
 
           {/* App layout */}
           <div
-            className="flex"
-            style={{ background: "#0F172A", minHeight: "440px" }}
+            className="flex relative z-10"
+            style={{ background: "#FFFFFF", minHeight: "440px" }}
           >
             {/* Left sidebar — product list */}
             <div
-              className="w-52 md:w-60 border-r border-white/10 flex-shrink-0 flex flex-col"
-              style={{ background: "#07111F" }}
+              className="w-52 md:w-64 border-r border-slate-100 flex-shrink-0 flex flex-col bg-slate-50/50 backdrop-blur-sm"
             >
-              <div className="px-4 py-3 border-b border-white/10">
-                <p className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">
+              <div className="px-5 py-4 border-b border-slate-100">
+                <p className="font-sans text-[11px] font-semibold text-slate-500 uppercase tracking-widest">
                   Monitored Products
                 </p>
               </div>
-              {PRODUCTS.map((p) => {
-                const cfg = STATUS_CONFIG[p.status];
-                const isSelected = p.id === selectedId;
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedId(p.id)}
-                    className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors duration-100 ${
-                      isSelected ? "" : "hover:bg-white/5"
-                    }`}
-                    style={isSelected ? { background: "rgba(255,255,255,0.08)" } : undefined}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 ${
-                        isSelected ? "bg-canary" : cfg.dot
+              <div className="p-2 space-y-1">
+                {PRODUCTS.map((p) => {
+                  const cfg = STATUS_CONFIG[p.status];
+                  const isSelected = p.id === selectedId;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedId(p.id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg flex items-start gap-3 transition-all duration-200 ${
+                        isSelected ? "bg-white shadow-sm ring-1 ring-slate-200/50" : "hover:bg-slate-100/50"
                       }`}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-white/90 leading-snug">
-                        {p.name}
-                      </p>
-                      <p className={`font-mono text-[10px] mt-0.5 ${cfg.text}`}>
-                        {cfg.label}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
+                    >
+                      <span
+                        className={`h-2 w-2 rounded-full mt-1.5 shrink-0 shadow-sm ${
+                          isSelected ? "bg-amber" : cfg.dot
+                        }`}
+                      />
+                      <div className="min-w-0">
+                        <p className={`text-[13px] font-medium leading-snug truncate ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
+                          {p.name}
+                        </p>
+                        <p className={`text-[11px] mt-0.5 ${isSelected ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {cfg.label}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Right panel — intelligence detail */}
-            <div className="flex-1 bg-white overflow-hidden">
+            <div className="flex-1 bg-white overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-amber/20 via-amber/40 to-transparent" />
               <AnimatePresence mode="wait">
                 <motion.div
                   key={product.id}
-                  initial={reduce ? { opacity: 1 } : { opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={reduce ? { opacity: 1 } : { opacity: 0, x: -12 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  initial={reduce ? { opacity: 1 } : { opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={reduce ? { opacity: 1 } : { opacity: 0, y: -10, scale: 0.98 }}
+                  transition={{ duration: 0.3, type: "spring", bounce: 0, stiffness: 200, damping: 20 }}
                   className="h-full"
                 >
-                  <div className="h-[3px] bg-canary" />
-                  <div className="p-5 md:p-6">
+                  <div className="p-8 md:p-10">
                     {/* Header */}
-                    <p className="font-mono text-[10px] text-text-secondary uppercase tracking-wider mb-2">
-                      Policy Canary · Product Intelligence
-                    </p>
-                    <div className="flex items-start gap-3 mb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="bg-amber/10 text-amber-text px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide">
+                        Intelligence Report
+                      </span>
+                      <span className="text-slate-400 text-xs text-[11px]">{product.time}</span>
+                    </div>
+                    <div className="flex items-start gap-4 mb-6 pb-6 border-b border-slate-100">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-serif text-xl md:text-2xl font-bold text-text-primary flex items-center gap-2">
-                          {product.status === "urgent" && (
-                            <span className="h-2 w-2 rounded-full bg-urgent shrink-0 mt-0.5" />
-                          )}
+                        <h3 className="font-serif text-2xl md:text-3xl font-semibold text-slate-900 leading-tight">
                           {product.name}
                         </h3>
                       </div>
                       {product.violation && (
-                        <span className="font-mono text-[10px] text-text-secondary bg-surface-subtle border border-border rounded px-2 py-1 shrink-0 mt-1">
+                        <span className="font-mono text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 shrink-0 mt-1 shadow-sm">
                           {product.violation}
                         </span>
                       )}
                     </div>
 
                     {/* Analysis */}
-                    <p className="text-sm text-text-body leading-relaxed mb-4">
-                      {product.analysis}
-                    </p>
+                    <div className="prose prose-sm prose-slate max-w-none mb-8">
+                      <p className="text-[15px] leading-relaxed text-slate-600">
+                        {product.analysis}
+                      </p>
+                    </div>
 
                     {/* Action items */}
                     {product.actions.length > 0 && (
-                      <div className="mb-4">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-2">
-                          Action Items
+                      <div className="mb-8 bg-slate-50 rounded-xl p-5 border border-slate-100">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">
+                          Recommended Actions
                         </p>
-                        <ol className="text-sm text-text-body space-y-1.5 list-decimal list-inside">
+                        <ul className="space-y-2.5">
                           {product.actions.map((action, i) => (
-                            <li key={i} className="leading-relaxed">
-                              {action}
+                            <li key={i} className="flex items-start gap-3">
+                              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-[10px] font-medium text-slate-500 mt-0.5">
+                                {i + 1}
+                              </span>
+                              <span className="text-[14px] text-slate-700 leading-snug pt-0.5">
+                                {action}
+                              </span>
                             </li>
                           ))}
-                        </ol>
+                        </ul>
                       </div>
                     )}
 

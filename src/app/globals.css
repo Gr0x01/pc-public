@@ -15,6 +15,7 @@
   --color-border-dark: #1E293B;
   --color-canary: #EAC100;
   --color-amber: #D97706;
+  --color-amber-action: #B45309;
   --color-amber-muted: #FEF3C7;
   --color-amber-text: #92400E;
   --color-navy-soft: #EEF2F7;
@@ -76,10 +77,83 @@
   box-shadow: var(--shadow-float);
 }
 
+.soft-card {
+  background: var(--color-surface);
+  border: 1px solid rgba(226, 232, 240, 0.8); /* border-border with opacity */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.soft-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+  border-color: rgba(203, 213, 225, 0.8);
+}
+
 .section-soft {
   background: var(--gradient-soft-section);
 }
 
+/* Smooth motion utilities */
+.motion-safe-spring {
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Pricing slider */
+.pricing-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.pricing-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: white;
+  border: 2px solid #D97706;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  cursor: pointer;
+  transition: box-shadow 150ms ease, transform 100ms ease;
+}
+
+.pricing-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transform: scale(1.1);
+}
+
+.pricing-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.25);
+}
+
+.pricing-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.25);
+}
+
+.pricing-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: white;
+  border: 2px solid #D97706;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  cursor: pointer;
+}
+
+.pricing-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-gradient { animation: none; }
+  .pricing-slider::-webkit-slider-thumb { transition: none; }
+  .pricing-slider::-moz-range-thumb { transition: none; }
 }

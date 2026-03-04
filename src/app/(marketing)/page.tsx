@@ -35,20 +35,22 @@ export default function LandingPage() {
 
       {/* Social Proof */}
       <RevealSection>
-        <section className="py-20 px-6 bg-white">
-          <div className="max-w-3xl mx-auto text-center card-surface rounded-xl p-8 md:p-12">
-            <p className="font-mono text-xs text-amber-text uppercase tracking-widest mb-6">
+        <section className="py-20 px-6 bg-slate-50 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent pointer-events-none" />
+          <div className="max-w-4xl mx-auto text-center soft-card p-10 md:p-14 relative z-10">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <p className="font-mono text-[11px] text-amber-text uppercase tracking-widest mb-6 font-semibold">
               EARLY ACCESS
             </p>
-            <p className="text-2xl md:text-3xl font-semibold tracking-tight text-text-primary mb-4 leading-snug">
+            <p className="text-2xl md:text-4xl font-semibold tracking-tight text-slate-900 mb-6 leading-tight">
               &ldquo;Finally — something that tells me what to do, not just what
               happened.&rdquo;
             </p>
-            <p className="text-text-secondary text-sm mb-12">
+            <p className="text-slate-500 text-[15px] mb-12">
               — QA Director, dietary supplement brand &middot; 47 products
               monitored
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-border pt-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-t border-slate-100 pt-10">
               {[
                 { value: "4", label: "FDA data sources monitored" },
                 {
@@ -58,8 +60,8 @@ export default function LandingPage() {
                 { value: "169K", label: "FDA substances indexed" },
               ].map(({ value, label }) => (
                 <div key={label} className="text-center">
-                  <p className="text-2xl font-bold text-text-primary mb-1">{value}</p>
-                  <p className="text-xs font-mono text-text-secondary uppercase tracking-wide">
+                  <p className="text-3xl font-bold text-slate-900 mb-2">{value}</p>
+                  <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest">
                     {label}
                   </p>
                 </div>
