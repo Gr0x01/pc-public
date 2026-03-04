@@ -72,7 +72,7 @@ if (missing.length > 0) {
 
 const args = process.argv.slice(2);
 let limit = 10;
-let concurrency = 5;
+let concurrency = 15;
 let itemTypeFilter: string | undefined;
 let noCap = false;
 

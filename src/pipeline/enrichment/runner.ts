@@ -25,7 +25,7 @@ import type { RegulatoryItem } from "../../types/database";
 export interface EnrichmentRunOptions {
   /** Max items to process in this run. Default: 10 (safety limit for dev). */
   limit?: number;
-  /** Number of items to process concurrently. Default: 5. */
+  /** Number of items to process concurrently. Default: 15. */
   concurrency?: number;
   /** Only enrich items with this item_type (e.g., "recall"). Optional. */
   itemTypeFilter?: string;
@@ -82,7 +82,7 @@ export async function runEnrichment(
   const google = createGoogleGenerativeAI({ apiKey: googleApiKey });
 
   const limit = options.limit ?? 10;
-  const concurrency = options.concurrency ?? 5;
+  const concurrency = options.concurrency ?? 15;
 
   // 1. Load category ID map (one DB call, reused per item)
   const categoryIdMap = await loadCategoryIdMap(supabase);
@@ -90,102 +90,115 @@ export async function runEnrichment(
     `Loaded ${Object.keys(categoryIdMap.topics).length} topics`
   );
 
-  // 2. Query unenriched items
-  // Items are marked 'enriched' after processing, so 'ok' = not yet enriched.
-  // Items that error get 'error' status — those are also skipped.
-  let query = supabase
-    .from("regulatory_items")
-    .select("*")
-    .eq("processing_status", "ok")
-    .order("published_date", { ascending: false })
-    .limit(limit);
-
-  if (options.itemTypeFilter) {
-    query = query.eq("item_type", options.itemTypeFilter);
-  }
-
-  const { data: items, error: queryErr } = await query;
-
-  if (queryErr) {
-    throw new Error(`Failed to query unenriched items: ${queryErr.message}`);
-  }
-
-  if (!items || items.length === 0) {
-    console.log("No unenriched items found.");
-    return { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, errors: 0, skipped: 0, durationMs: Date.now() - startTime };
-  }
-
-  const typedItems = items as RegulatoryItem[];
-  const totalItems = typedItems.length;
-
-  console.log(`Found ${totalItems} items to enrich (limit: ${limit}, concurrency: ${concurrency})`);
-
   const counters = { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, errors: 0, skipped: 0 };
-
-  // 3. Process concurrently with p-limit
+  const PAGE_SIZE = 1000; // Supabase max
   const limit_ = pLimit(concurrency);
+  let totalQueued = 0;
 
-  async function processItem(item: RegulatoryItem, index: number) {
-    const label = `[${index + 1}/${totalItems}] ${item.item_type} — ${item.title.slice(0, 60)}`;
+  // 2. Paginated processing loop
+  // Each page queries up to 1000 unenriched items, processes concurrently,
+  // then fetches the next page (items are marked 'enriched'/'error' so they
+  // won't appear again).
+  while (totalQueued < limit) {
+    const pageSize = Math.min(PAGE_SIZE, limit - totalQueued);
 
-    // a. Fetch full page content if source_url points to FDA.gov
-    if (item.source_url && /^https?:\/\/www\.fda\.gov\//.test(item.source_url)) {
-      const { content, error: fetchErr } = await fetchSourceContent(item.source_url);
-      if (content && content.length > (item.raw_content?.length ?? 0)) {
+    let query = supabase
+      .from("regulatory_items")
+      .select("*")
+      .eq("processing_status", "ok")
+      .order("published_date", { ascending: false })
+      .limit(pageSize);
+
+    if (options.itemTypeFilter) {
+      query = query.eq("item_type", options.itemTypeFilter);
+    }
+
+    const { data: items, error: queryErr } = await query;
+
+    if (queryErr) {
+      throw new Error(`Failed to query unenriched items: ${queryErr.message}`);
+    }
+
+    if (!items || items.length === 0) {
+      if (totalQueued === 0) {
+        console.log("No unenriched items found.");
+      } else {
+        console.log("No more unenriched items.");
+      }
+      break;
+    }
+
+    const typedItems = items as RegulatoryItem[];
+    totalQueued += typedItems.length;
+
+    console.log(`\nBatch: ${typedItems.length} items (${totalQueued} queued so far, limit: ${limit}, concurrency: ${concurrency})`);
+
+    async function processItem(item: RegulatoryItem, index: number) {
+      const label = `[${counters.processed + counters.errors + 1}] ${item.item_type} — ${item.title.slice(0, 60)}`;
+
+      // a. Fetch full page content if source_url points to FDA.gov
+      if (item.source_url && /^https?:\/\/www\.fda\.gov\//.test(item.source_url)) {
+        const { content, error: fetchErr } = await fetchSourceContent(item.source_url);
+        if (content && content.length > (item.raw_content?.length ?? 0)) {
+          await supabase
+            .from("regulatory_items")
+            .update({ raw_content: content })
+            .eq("id", item.id);
+          item.raw_content = content;
+          counters.contentFetched++;
+        } else if (fetchErr) {
+          console.log(`${label} content-fetch skipped (${fetchErr})`);
+        }
+      }
+
+      // b. Enrich
+      const enrichResult = await enrichItem(item, supabase, categoryIdMap, google);
+
+      if (!enrichResult.ok || !enrichResult.enrichmentId) {
+        console.log(`${label} ERROR: ${enrichResult.error}`);
+        counters.errors++;
+
+        // Mark item as error so we don't retry endlessly
         await supabase
           .from("regulatory_items")
-          .update({ raw_content: content })
+          .update({ processing_status: "error", processing_error: enrichResult.error ?? "enrichment failed" })
           .eq("id", item.id);
-        item.raw_content = content;
-        counters.contentFetched++;
-      } else if (fetchErr) {
-        console.log(`${label} content-fetch skipped (${fetchErr})`);
+        return;
+      }
+
+      counters.enriched++;
+      if (enrichResult.crossReferenced) counters.crossReferenced++;
+
+      // c. Generate embeddings
+      try {
+        await generateItemEmbeddings(item, supabase, openaiApiKey);
+        counters.embedded++;
+        console.log(`${label} done`);
+      } catch (embErr) {
+        const msg = embErr instanceof Error ? embErr.message : String(embErr);
+        console.log(`${label} enriched (embedding failed: ${msg})`);
+      }
+
+      counters.processed++;
+
+      // Log progress every 50 items
+      if (counters.processed % 50 === 0) {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+        console.log(
+          `Progress: ${counters.processed} enriched | ${counters.crossReferenced} crossRef | ${counters.errors} errors | ${elapsed}s elapsed`
+        );
       }
     }
 
-    // b. Enrich
-    const enrichResult = await enrichItem(item, supabase, categoryIdMap, google);
+    await Promise.allSettled(
+      typedItems.map((item, i) =>
+        limit_(() => processItem(item, i))
+      )
+    );
 
-    if (!enrichResult.ok || !enrichResult.enrichmentId) {
-      console.log(`${label} ERROR: ${enrichResult.error}`);
-      counters.errors++;
-
-      // Mark item as error so we don't retry endlessly
-      await supabase
-        .from("regulatory_items")
-        .update({ processing_status: "error", processing_error: enrichResult.error ?? "enrichment failed" })
-        .eq("id", item.id);
-      return;
-    }
-
-    counters.enriched++;
-    if (enrichResult.crossReferenced) counters.crossReferenced++;
-
-    // c. Generate embeddings
-    try {
-      await generateItemEmbeddings(item, supabase, openaiApiKey);
-      counters.embedded++;
-      console.log(`${label} done`);
-    } catch (embErr) {
-      const msg = embErr instanceof Error ? embErr.message : String(embErr);
-      console.log(`${label} enriched (embedding failed: ${msg})`);
-    }
-
-    counters.processed++;
-
-    // Log progress every 10 items
-    if (counters.processed % 10 === 0) {
-      console.log(
-        `Progress: ${counters.processed}/${totalItems} | enriched=${counters.enriched} crossRef=${counters.crossReferenced} embedded=${counters.embedded} errors=${counters.errors}`
-      );
-    }
+    // If we got fewer than pageSize, there are no more items
+    if (typedItems.length < pageSize) break;
   }
-
-  await Promise.allSettled(
-    typedItems.map((item, i) =>
-      limit_(() => processItem(item, i))
-    )
-  );
 
   const durationMs = Date.now() - startTime;
 

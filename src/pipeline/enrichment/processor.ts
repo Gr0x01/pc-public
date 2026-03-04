@@ -153,12 +153,26 @@ export async function enrichItem(
     const model = routeModel(item, google);
 
     // ── 2. Call LLM — Step 1 extraction ─────────────────────────────────────
-    const { object: rawOutput } = await generateObject({
-      model,
-      schema: EnrichmentOutputSchema,
-      system: SYSTEM_PROMPT,
-      prompt,
-    });
+    let rawOutput: EnrichmentOutput;
+    try {
+      const result = await generateObject({
+        model,
+        schema: EnrichmentOutputSchema,
+        system: SYSTEM_PROMPT,
+        prompt,
+        maxRetries: 2,
+      });
+      rawOutput = result.object;
+    } catch (llmErr) {
+      // Log diagnostic info for schema validation failures
+      const errMsg = llmErr instanceof Error ? llmErr.message : String(llmErr);
+      const cause = llmErr instanceof Error && 'cause' in llmErr ? String((llmErr as unknown as Record<string, unknown>).cause) : undefined;
+      const value = llmErr instanceof Error && 'value' in llmErr ? JSON.stringify((llmErr as unknown as Record<string, unknown>).value)?.slice(0, 500) : undefined;
+      console.error(`LLM schema error for "${item.title.slice(0, 60)}": ${errMsg}`);
+      if (cause) console.error(`  cause: ${cause}`);
+      if (value) console.error(`  partial value: ${value}`);
+      throw llmErr;
+    }
 
     // ── 3. Output (no post-LLM filtering — classify all categories honestly) ──
     const output = rawOutput;
@@ -255,7 +269,7 @@ export async function enrichItem(
 
     const { data: enrichmentRow, error: enrichErr } = await supabase
       .from("item_enrichments")
-      .insert({
+      .upsert({
         item_id: item.id,
         summary: output.summary,
         key_regulations: output.key_regulations,
@@ -267,7 +281,7 @@ export async function enrichItem(
         deadline: output.deadline,
         verification_status: "unverified",
         raw_response: rawResponseData,
-      })
+      }, { onConflict: "item_id,enrichment_version" })
       .select("id")
       .single();
 
