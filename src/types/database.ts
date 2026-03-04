@@ -142,6 +142,22 @@ export interface SubstanceCode {
 }
 
 // --------------------------------------------------------------------------
+// Layer 3b: Product Categories (controlled vocabulary)
+// --------------------------------------------------------------------------
+
+export interface ProductCategory {
+  id: string;
+  slug: string;
+  label: string;
+  sector: "food" | "supplement" | "cosmetic";
+  parent_id: string | null;
+  source_system: "21_cfr_170_3" | "mocra_vcrp" | "dsld_derived";
+  source_code: string | null;
+  description: string | null;
+  created_at: string;
+}
+
+// --------------------------------------------------------------------------
 // Layer 4: Enrichment
 // --------------------------------------------------------------------------
 
@@ -285,6 +301,7 @@ export interface User {
   id: string;
   email: string;
   name: string | null;
+  company_name: string | null;
   stripe_customer_id: string | null;
   access_level: SubscriptionTier; // DB default: 'free'
   max_products: number; // DB default: 1
@@ -356,6 +373,7 @@ export interface SubscriberProduct {
   name: string;
   brand: string | null;
   product_type: "supplement" | "food" | "cosmetic";
+  product_category_id: string | null;
   data_source: "dsld" | "fdc" | "manual" | "openfoodfacts";
   external_id: string | null;
   upc_barcode: string | null;

@@ -15,6 +15,7 @@ import {
   EnrichmentOutputSchema,
   SYSTEM_PROMPT,
   TOPIC_SLUGS,
+  PRODUCT_CATEGORY_SLUGS,
   buildEnrichmentPrompt,
   type EnrichmentOutput,
 } from "./prompts";
@@ -65,9 +66,9 @@ function applyRuleValidators(
   output: EnrichmentOutput,
   item: RegulatoryItem
 ): EnrichmentOutput {
-  let { segments } = output;
+  let { segments, affected_product_categories } = output;
 
-  // Rule 1: CDER or CDRH → pharmaceutical/device domain → clear all segments
+  // Rule 1: CDER or CDRH → pharmaceutical/device domain → clear all segments + categories
   const office = item.issuing_office?.toLowerCase() ?? "";
   if (
     office.includes("center for drug evaluation") ||
@@ -76,14 +77,16 @@ function applyRuleValidators(
     office.includes("cdrh")
   ) {
     segments = [];
+    affected_product_categories = [];
   }
 
-  // Rule 2: CFR Parts 500-599 = animal drugs → clear all segments
+  // Rule 2: CFR Parts 500-599 = animal drugs → clear all segments + categories
   const hasAnimalDrugCfr = item.cfr_references?.some(
     (r) => r.part >= 500 && r.part <= 599
   );
   if (hasAnimalDrugCfr) {
     segments = [];
+    affected_product_categories = [];
   }
 
   // Rule 3: Infer recall segment from raw content if segments empty and item_type is recall
@@ -139,7 +142,7 @@ function applyRuleValidators(
     }
   }
 
-  return { ...output, segments };
+  return { ...output, segments, affected_product_categories };
 }
 
 // ---------------------------------------------------------------------------
@@ -259,6 +262,12 @@ export async function enrichItem(
     // ── 5. Filter topics to controlled vocab only ───────────────────────────
     const validTopicSlugs = new Set<string>(TOPIC_SLUGS);
     const validTopics = output.topics.filter((t) => validTopicSlugs.has(t.slug));
+
+    // ── 5b. Filter product categories to controlled vocab only ──────────────
+    const validCategorySlugs = new Set<string>(PRODUCT_CATEGORY_SLUGS);
+    const validProductCategories = output.affected_product_categories.filter(
+      (slug) => validCategorySlugs.has(slug)
+    );
 
     // ── 6. Verify citations ─────────────────────────────────────────────────
     const verifiedCitations = verifyCitations(output, item.raw_content ?? item.title);
@@ -446,7 +455,7 @@ export async function enrichItem(
       signal_source: string;
     }> = [];
 
-    for (const v of output.affected_product_types) {
+    for (const v of validProductCategories) {
       if (v.trim()) tagInserts.push({ item_id: item.id, tag_dimension: "product_type", tag_value: v.trim(), confidence: output.confidence, signal_source: "direct" });
     }
     for (const v of output.affected_facility_types) {
@@ -459,21 +468,21 @@ export async function enrichItem(
       if (v.trim()) tagInserts.push({ item_id: item.id, tag_dimension: "regulation", tag_value: v.trim(), confidence: output.confidence, signal_source: "direct" });
     }
 
-    // 14b. Add cross-reference product types from Step 1c (deduplicated)
+    // 14b. Add cross-reference product categories from Step 1c (deduplicated + validated)
     if (crossRefResult) {
       const existingTagKeys = new Set(
         tagInserts.map((t) => `${t.tag_dimension}::${t.tag_value}`)
       );
       for (const ref of crossRefResult.cross_references) {
-        for (const pt of ref.new_product_types) {
-          if (pt.trim()) {
-            const key = `product_type::${pt.trim()}`;
+        for (const pc of ref.new_product_categories) {
+          if (pc.trim() && validCategorySlugs.has(pc.trim())) {
+            const key = `product_type::${pc.trim()}`;
             if (!existingTagKeys.has(key)) {
               existingTagKeys.add(key);
               tagInserts.push({
                 item_id: item.id,
                 tag_dimension: "product_type",
-                tag_value: pt.trim(),
+                tag_value: pc.trim(),
                 confidence: output.confidence,
                 signal_source: "cross_reference",
               });

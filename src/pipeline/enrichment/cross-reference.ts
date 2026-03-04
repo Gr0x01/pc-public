@@ -18,7 +18,7 @@ import { generateObject } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { EnrichmentOutput } from "./prompts";
+import { PRODUCT_CATEGORY_SLUGS, type EnrichmentOutput } from "./prompts";
 
 // ---------------------------------------------------------------------------
 // Step 1b: Use-Context Categories (deterministic)
@@ -120,7 +120,8 @@ export async function lookupUseContexts(
     let category: UseContextCategory | null = null;
     let detail: string | null = null;
 
-    // KEEP IN SYNC with RELEVANT_CODE_SYSTEMS in scripts/bootstrap-gsrs.ts
+    // All code systems are stored in substance_codes (no ingestion filter).
+    // This switch maps the systems we know how to interpret to UseContextCategories.
     switch (code.code_system) {
       case "CFR":
         category = deriveCfrCategory(code.code_value);
@@ -140,12 +141,10 @@ export async function lookupUseContexts(
         category = "supplement_ingredient";
         break;
 
-      case "COSMETIC INGREDIENT REVIEW (CIR)":
-        category = "cosmetic_ingredient";
-        break;
+      // NOTE: CIR does not exist in GSRS. Cosmetic data needs a separate source.
 
       case "RXCUI":
-      case "DRUGBANK":
+      case "DRUG BANK":
       case "DAILYMED":
         category = "pharmaceutical";
         break;
@@ -154,7 +153,7 @@ export async function lookupUseContexts(
         category = "pesticide";
         break;
 
-      case "Food Contact Substance Notif":
+      case "Food Contact Sustance Notif, (FCN No.)":
         category = "food_contact";
         break;
     }
@@ -193,7 +192,7 @@ export const CrossReferenceOutputSchema = z.object({
           who_affected: z.string().max(200),
         })
       ),
-      new_product_types: z.array(z.string()),
+      new_product_categories: z.array(z.string()),
     })
   ),
   should_expand: z.boolean(),
@@ -239,7 +238,9 @@ Your task: Given a regulatory action affecting a substance in one segment, deter
    - Import/trade restrictions (segment-specific)
    - Administrative actions
 
-6. **Immutability rule:** You are ONLY adding new segments. Never modify or remove the existing direct segments from Step 1.`;
+6. **Immutability rule:** You are ONLY adding new segments. Never modify or remove the existing direct segments from Step 1.
+
+7. **Product categories:** Use ONLY slugs from the provided PRODUCT CATEGORY SLUGS list for new_product_categories. Do not invent new slugs.`;
 
 function buildCrossRefPrompt(
   output: EnrichmentOutput,
@@ -293,10 +294,18 @@ function buildCrossRefPrompt(
     parts.push("");
   }
 
+  parts.push("## Product Category Slugs (controlled vocabulary)");
+  parts.push(
+    "Only assign product categories from this list: " +
+      PRODUCT_CATEGORY_SLUGS.join(", ")
+  );
+  parts.push("");
+
   parts.push("## Task");
   parts.push(
     "Analyze whether this regulatory action creates genuine risk for segments NOT already identified in Step 1. " +
-    "Only expand to segments where the substance is actually used (per GSRS data above) AND the regulatory mechanism applies."
+    "Only expand to segments where the substance is actually used (per GSRS data above) AND the regulatory mechanism applies. " +
+    "For new_product_categories, use ONLY slugs from the product category list above."
   );
 
   return parts.join("\n");
@@ -401,7 +410,7 @@ export async function inferCrossSegments(
 
     // Remove empty cross-references
     object.cross_references = object.cross_references.filter(
-      (ref) => ref.new_segments.length > 0 || ref.new_product_types.length > 0
+      (ref) => ref.new_segments.length > 0 || ref.new_product_categories.length > 0
     );
 
     if (object.cross_references.length === 0) return null;

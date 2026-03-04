@@ -1,14 +1,16 @@
 /**
  * bootstrap-gsrs.ts
  *
- * One-time script to seed the substances + substance_names tables from FDA GSRS.
+ * Seed the substances, substance_names, and substance_codes tables from FDA GSRS.
  * FDA Global Substance Registration System: https://gsrs.ncats.nih.gov/
  *
- * Run once during initial setup:
- *   npx tsx scripts/bootstrap-gsrs.ts
+ * Usage:
+ *   npx tsx scripts/bootstrap-gsrs.ts              # full bootstrap (substances + names + codes)
+ *   npx tsx scripts/bootstrap-gsrs.ts --codes-only  # backfill codes only (substances already loaded)
  *
- * Fetches ~169K substances in pages of 100, inserts canonical names and synonyms.
- * Safe to re-run: upserts on UNII conflict, skips existing records.
+ * Fetches ~169K substances in pages of 500, inserts canonical names, synonyms, and all codes.
+ * Safe to re-run: upserts on conflict, skips existing records.
+ * Checkpoint-based resume: kills and restarts continue from the last completed page.
  */
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
@@ -68,20 +70,21 @@ const NAME_TYPE_MAP: Record<string, string> = {
   cd: "abbreviation",
 };
 
-// Code systems relevant for cross-reference inference (Step 1b).
-// KEEP IN SYNC with the switch statement in src/pipeline/enrichment/cross-reference.ts
-const RELEVANT_CODE_SYSTEMS = new Set([
-  "CFR",                              // Food additive, color additive, cosmetic, OTC drug (by Part)
-  "CODEX ALIMENTARIUS (GSFA)",        // Food additive + functional class
-  "JECFA EVALUATION",                 // Food additive evaluation
-  "DSLD",                             // Supplement ingredient presence
-  "COSMETIC INGREDIENT REVIEW (CIR)", // Cosmetic safety reviewed
-  "RXCUI",                            // Pharmaceutical use
-  "DRUGBANK",                         // Pharmaceutical use
-  "DAILYMED",                         // Drug/pharmaceutical
-  "EPA PESTICIDE CODE",               // Pesticide registration
-  "Food Contact Substance Notif",     // Food-contact material
-]);
+// --codes-only flag: skip substance + name upserts, only backfill codes
+// Useful when substances are already loaded and you need to add/refresh codes
+const CODES_ONLY = process.argv.includes("--codes-only");
+
+// We capture ALL code systems from GSRS into substance_codes.
+// Filtering to relevant systems happens at query time in cross-reference.ts (Step 1b).
+// This avoids re-running the full bootstrap whenever we need a new code system.
+//
+// Code systems used by Step 1b (cross-reference inference):
+//   CFR, CODEX ALIMENTARIUS (GSFA), JECFA EVALUATION, DSLD, RXCUI,
+//   DRUG BANK, DAILYMED, EPA PESTICIDE CODE, Food Contact Sustance Notif (FCN No.)
+// See: src/pipeline/enrichment/cross-reference.ts
+//
+// Code systems NOT in GSRS (need separate sources):
+//   COSMETIC INGREDIENT REVIEW (CIR) — cosmetic ingredient data
 
 interface GsrsCode {
   codeSystem: string;
@@ -143,7 +146,8 @@ async function main() {
   });
 
   const startSkip = readCheckpoint();
-  console.log(`Starting GSRS bootstrap${startSkip > 0 ? ` (resuming from skip=${startSkip})` : ""}...`);
+  const mode = CODES_ONLY ? "codes-only" : "full";
+  console.log(`Starting GSRS bootstrap [${mode}]${startSkip > 0 ? ` (resuming from skip=${startSkip})` : ""}...`);
 
   // Always fetch page 0 to get total count
   const probePage = await fetchPage(0);
@@ -199,24 +203,26 @@ async function processPage(
   let skipped = 0;
   let codesInserted = 0;
 
-  // 1. Batch upsert all substances in the page
-  const substanceRows = data.content.map((s) => ({
-    canonical_name: s._name,
-    unii: extractCode(s, "FDA UNII"),
-    cas_number: extractCode(s, "CAS"),
-    substance_class: SUBSTANCE_CLASS_MAP[s.substanceClass?.toLowerCase()] ?? null,
-  }));
+  // 1. Batch upsert all substances in the page (skip in codes-only mode)
+  const canonicalNames = data.content.map((s) => s._name);
 
-  // Upsert on canonical_name — handles both UNII and non-UNII substances
-  const { error: upsertErr } = await supabase.from("substances").upsert(substanceRows, {
-    onConflict: "canonical_name",
-    ignoreDuplicates: true,
-  });
-  if (upsertErr) throw new Error(`substances upsert: ${upsertErr.message}`);
+  if (!CODES_ONLY) {
+    const substanceRows = data.content.map((s) => ({
+      canonical_name: s._name,
+      unii: extractCode(s, "FDA UNII"),
+      cas_number: extractCode(s, "CAS"),
+      substance_class: SUBSTANCE_CLASS_MAP[s.substanceClass?.toLowerCase()] ?? null,
+    }));
 
-  // 2. Fetch IDs back for name + code insertion
+    const { error: upsertErr } = await supabase.from("substances").upsert(substanceRows, {
+      onConflict: "canonical_name",
+      ignoreDuplicates: true,
+    });
+    if (upsertErr) throw new Error(`substances upsert: ${upsertErr.message}`);
+  }
+
+  // 2. Fetch IDs back for code insertion (always needed)
   // Batch in chunks of 50 to avoid URL length limits on .in() with long substance names
-  const canonicalNames = substanceRows.map((s) => s.canonical_name);
   const allRows: Array<{ id: string; canonical_name: string }> = [];
   const ID_BATCH = 50;
   for (let i = 0; i < canonicalNames.length; i += ID_BATCH) {
@@ -232,10 +238,10 @@ async function processPage(
 
   const nameToId = Object.fromEntries(allRows.map((r) => [r.canonical_name, r.id]));
 
-  // 3. Batch upsert all names for the page
+  // 3. Batch upsert all names for the page (skip in codes-only mode)
   const nameRows: Array<{ substance_id: string; name: string; name_type: string; language: string; source: string }> = [];
 
-  // 4. Collect relevant codes for substance_codes table
+  // 4. Collect ALL codes for substance_codes table (no system filter — capture everything)
   const codeRows: Array<{
     substance_id: string;
     code_system: string;
@@ -249,20 +255,21 @@ async function processPage(
     const substanceId = nameToId[s._name];
     if (!substanceId) { skipped++; continue; }
 
-    for (const n of s.names ?? []) {
-      if (!n.name?.trim()) continue;
-      nameRows.push({
-        substance_id: substanceId,
-        name: n.name,
-        name_type: NAME_TYPE_MAP[n.type?.toLowerCase()] ?? "common",
-        language: n.languages?.[0]?.slice(0, 2) ?? "en",
-        source: "gsrs",
-      });
+    if (!CODES_ONLY) {
+      for (const n of s.names ?? []) {
+        if (!n.name?.trim()) continue;
+        nameRows.push({
+          substance_id: substanceId,
+          name: n.name,
+          name_type: NAME_TYPE_MAP[n.type?.toLowerCase()] ?? "common",
+          language: n.languages?.[0]?.slice(0, 2) ?? "en",
+          source: "gsrs",
+        });
+      }
     }
 
-    // Capture relevant codes for cross-reference inference
+    // Capture all codes — filtering happens at query time in cross-reference.ts
     for (const c of s.codes ?? []) {
-      if (!RELEVANT_CODE_SYSTEMS.has(c.codeSystem)) continue;
       if (!c.code?.trim()) continue;
 
       codeRows.push({
@@ -278,7 +285,7 @@ async function processPage(
     inserted++;
   }
 
-  if (nameRows.length > 0) {
+  if (!CODES_ONLY && nameRows.length > 0) {
     const { error: namesErr } = await supabase.from("substance_names").upsert(nameRows, {
       onConflict: "substance_id,name",
       ignoreDuplicates: true,
