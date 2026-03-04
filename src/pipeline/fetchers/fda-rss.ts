@@ -91,10 +91,9 @@ function stripHtml(html: string): string {
  * One `pipeline_runs` entry is logged after all feeds are polled.
  */
 export async function fetchFdaRss(
-  supabase: SupabaseClient,
-  _params: { mode: "poll" }
+  supabase: SupabaseClient
 ): Promise<FetcherResult> {
-  // RSS has no backfill concept — always returns "incremental" in FetcherResult
+  // RSS has no backfill concept — always polls for new items
   const mode = "incremental" as const;
 
   const startedAt = new Date();

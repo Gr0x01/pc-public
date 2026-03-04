@@ -68,8 +68,17 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
 // ---------------------------------------------------------------------------
 
 const command = process.argv[2];
-const TEST_START = "2025-01-01";
-const TEST_END = "2025-02-01";
+
+// Parse --start and --end flags, fall back to test window
+function parseFlag(flag: string): string | undefined {
+  const idx = process.argv.indexOf(flag);
+  return idx !== -1 && process.argv[idx + 1] ? process.argv[idx + 1] : undefined;
+}
+
+const DEFAULT_START = "2025-01-01";
+const DEFAULT_END = "2025-02-01";
+const START_DATE = parseFlag("--start") ?? DEFAULT_START;
+const END_DATE = parseFlag("--end") ?? DEFAULT_END;
 
 async function main() {
   if (!command) {
@@ -81,11 +90,11 @@ async function main() {
 
   if (command === "fr-backfill") {
     const { fetchFederalRegister } = await import("../src/pipeline/fetchers/federal-register");
-    console.log(`Running Federal Register backfill (${TEST_START} → ${TEST_END})...\n`);
+    console.log(`Running Federal Register backfill (${START_DATE} → ${END_DATE})...\n`);
     const result = await fetchFederalRegister(supabase, {
       mode: "backfill",
-      startDate: TEST_START,
-      endDate: TEST_END,
+      startDate: START_DATE,
+      endDate: END_DATE,
     });
     console.log("\n--- Result ---");
     console.log(JSON.stringify(result, null, 2));
@@ -93,11 +102,11 @@ async function main() {
     const { fetchOpenFDAEnforcement } = await import(
       "../src/pipeline/fetchers/openfda-enforcement"
     );
-    console.log(`Running openFDA enforcement backfill (${TEST_START} → ${TEST_END})...\n`);
+    console.log(`Running openFDA enforcement backfill (${START_DATE} → ${END_DATE})...\n`);
     const result = await fetchOpenFDAEnforcement(supabase, {
       mode: "backfill",
-      startDate: TEST_START,
-      endDate: TEST_END,
+      startDate: START_DATE,
+      endDate: END_DATE,
     });
     console.log("\n--- Result ---");
     console.log(JSON.stringify(result, null, 2));
@@ -116,7 +125,7 @@ async function main() {
   } else if (command === "rss-poll") {
     const { fetchFdaRss } = await import("../src/pipeline/fetchers/fda-rss");
     console.log("Polling FDA RSS feeds...\n");
-    const result = await fetchFdaRss(supabase, { mode: "poll" });
+    const result = await fetchFdaRss(supabase);
     console.log("\n--- Result ---");
     console.log(JSON.stringify(result, null, 2));
   } else {

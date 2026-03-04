@@ -1,3 +1,15 @@
-import { Inngest } from "inngest";
+import { EventSchemas, Inngest } from "inngest";
 
-export const inngest = new Inngest({ id: "policy-canary" });
+type Events = {
+  "pipeline/enrich.requested": {
+    data: {
+      limit?: number;
+      itemTypeFilter?: string;
+    };
+  };
+};
+
+export const inngest = new Inngest({
+  id: "policy-canary",
+  schemas: new EventSchemas().fromRecord<Events>(),
+});
