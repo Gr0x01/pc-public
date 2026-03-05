@@ -8,7 +8,7 @@
 
 import { extractMainContent } from "../fetchers/utils";
 
-const FDA_PATTERN = /^https?:\/\/www\.fda\.gov\//;
+const ALLOWED_HOSTS = /^https?:\/\/(www\.fda\.gov|www\.federalregister\.gov)\//;
 const FETCH_TIMEOUT_MS = 10_000;
 
 export interface ContentFetchResult {
@@ -17,15 +17,14 @@ export interface ContentFetchResult {
 }
 
 /**
- * Fetch and extract article text from an FDA source URL.
+ * Fetch and extract article text from a source URL.
  * Returns null content on any failure (caller proceeds with thin content).
  */
 export async function fetchSourceContent(
   sourceUrl: string
 ): Promise<ContentFetchResult> {
-  // Only fetch FDA pages — guard against SSRF
-  if (!FDA_PATTERN.test(sourceUrl)) {
-    return { content: null, error: `Not an FDA URL: ${sourceUrl.slice(0, 80)}` };
+  if (!ALLOWED_HOSTS.test(sourceUrl)) {
+    return { content: null, error: `Not an allowed source: ${sourceUrl.slice(0, 80)}` };
   }
 
   try {
