@@ -8,7 +8,6 @@ import Spinner from "@/components/ui/Spinner";
 
 type ProductType = "supplement" | "food" | "cosmetic" | "drug" | "medical_device" | "biologic" | "tobacco" | "veterinary";
 type Step = "pick_type" | "dsld_search" | "label_entry" | "ingredient_preview" | "preview" | "submitting";
-
 const PRODUCT_TYPES: { value: ProductType; label: string; sub: string }[] = [
   { value: "supplement", label: "Supplement", sub: "Dietary Supplement" },
   { value: "food", label: "Food", sub: "Food & Beverage" },
@@ -20,6 +19,46 @@ const PRODUCT_TYPES: { value: ProductType; label: string; sub: string }[] = [
   { value: "veterinary", label: "Veterinary", sub: "" },
 ];
 
+function toTitleCase(text: string): string {
+  return text
+    .split(" ")
+    .map((word) => {
+      if (/[a-z]/.test(word) && /[A-Z]/.test(word)) return word; // mixed-case like CoQ10, leave alone
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
+function toUpperCase(text: string): string {
+  return text.toUpperCase();
+}
+
+/** Inline case toggle buttons: AA (uppercase) and Aa (title case) */
+function CaseToggle({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  return (
+    <div className="flex shrink-0">
+      <button
+        type="button"
+        onClick={() => onChange(toUpperCase(value))}
+        disabled={disabled || !value}
+        title="UPPERCASE"
+        className="px-1.5 py-1 text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-slate-100 rounded-l border border-border transition-colors disabled:opacity-40 disabled:cursor-default"
+      >
+        AA
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange(toTitleCase(value))}
+        disabled={disabled || !value}
+        title="Title Case"
+        className="px-1.5 py-1 text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-slate-100 rounded-r border border-l-0 border-border transition-colors disabled:opacity-40 disabled:cursor-default"
+      >
+        Aa
+      </button>
+    </div>
+  );
+}
+
 interface AddProductPanelProps {
   onCancel: () => void;
   onProductAdded: (product: { id: string; name: string; brand?: string | null; productType: ProductType }) => void;
@@ -28,7 +67,6 @@ interface AddProductPanelProps {
 export default function AddProductPanel({ onCancel, onProductAdded }: AddProductPanelProps) {
   const [step, setStep] = useState<Step>("pick_type");
   const [productType, setProductType] = useState<ProductType | null>(null);
-  const [selected, setSelected] = useState<DSLDSearchResult | null>(null);
   const [detail, setDetail] = useState<DSLDProductDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +76,9 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
   const [editableIngredients, setEditableIngredients] = useState<ParsedIngredient[]>([]);
   const [editableName, setEditableName] = useState("");
   const [editableBrand, setEditableBrand] = useState("");
+
+  // QoL state
+  const [ingredientFilter, setIngredientFilter] = useState("");
 
   const handlePickType = useCallback((type: ProductType) => {
     setProductType(type);
@@ -52,18 +93,17 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
   const handleBackToType = useCallback(() => {
     setStep("pick_type");
     setProductType(null);
-    setSelected(null);
     setDetail(null);
     setParsedLabel(null);
     setEditableIngredients([]);
     setEditableName("");
     setEditableBrand("");
     setError(null);
+    setIngredientFilter("");
   }, []);
 
   // DSLD flow
   const handleDSLDSelect = useCallback(async (result: DSLDSearchResult) => {
-    setSelected(result);
     setError(null);
     setLoadingDetail(true);
     try {
@@ -92,22 +132,19 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
   // DSLD fallback → switch to label entry
   const handleDSLDFallback = useCallback(() => {
     setStep("label_entry");
-    setSelected(null);
     setError(null);
   }, []);
 
   const handleBackFromPreview = useCallback(() => {
     if (detail) {
-      // DSLD preview → back to search
       setStep("dsld_search");
-      setSelected(null);
       setDetail(null);
     } else {
-      // Ingredient preview → back to label entry
       setStep("label_entry");
       setParsedLabel(null);
     }
     setError(null);
+    setIngredientFilter("");
   }, [detail]);
 
   // Remove ingredient from editable list
@@ -147,7 +184,7 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
         external_id: String(detail.dsld_id),
       };
     } else if (parsedLabel?.isLabelScan) {
-      // Vision scan path — store storage paths (not signed URLs) for persistence
+      // Vision scan path
       const paths = parsedLabel.imagePaths.filter(Boolean);
       body = {
         name: editableName.trim(),
@@ -158,7 +195,7 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
         parsed_ingredients: editableIngredients,
       };
     } else {
-      // Manual path (from LabelUpload manual tab)
+      // Manual path
       body = {
         name: editableName.trim(),
         brand: editableBrand.trim() || null,
@@ -205,10 +242,13 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
     }
   }, [productType, detail, parsedLabel, editableName, editableBrand, editableIngredients, onProductAdded]);
 
+  // Determine if we're on a wide step
+  const isWideStep = step === "ingredient_preview" || step === "preview" || (step === "submitting");
+
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8">
+    <div className={`mx-auto px-6 py-8 transition-[max-width] duration-300 ease-out ${isWideStep ? "max-w-5xl" : "max-w-2xl"}`}>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="font-serif text-xl font-bold text-text-primary">
+        <h2 className="text-xl font-bold text-text-primary">
           {step === "pick_type" ? "What type of product are you adding?" : "Add Product"}
         </h2>
         <button
@@ -284,58 +324,210 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
         />
       )}
 
-      {/* Ingredient preview + edit step (from vision or manual parse) */}
+      {/* Ingredient preview + edit step (from vision or manual parse) — TWO COLUMN */}
       {(step === "ingredient_preview" || (step === "submitting" && !detail)) && !detail && (
+        <IngredientPreviewLayout
+          editableName={editableName}
+          editableBrand={editableBrand}
+          editableIngredients={editableIngredients}
+          ingredientFilter={ingredientFilter}
+          isLabelScan={parsedLabel?.isLabelScan ?? false}
+          isSubmitting={step === "submitting"}
+          onNameChange={setEditableName}
+          onBrandChange={setEditableBrand}
+          onFilterChange={setIngredientFilter}
+          onRemoveIngredient={handleRemoveIngredient}
+          onAddSubstance={handleAddSubstance}
+          onBack={handleBackFromPreview}
+          onSubmit={handleSubmit}
+        />
+      )}
+
+      {/* DSLD preview step — TWO COLUMN */}
+      {(step === "preview" || (step === "submitting" && detail)) && detail && (
+        <DSLDPreviewLayout
+          detail={detail}
+          ingredientFilter={ingredientFilter}
+          isSubmitting={step === "submitting"}
+          onFilterChange={setIngredientFilter}
+          onBack={handleBackFromPreview}
+          onSubmit={handleSubmit}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Two-column ingredient preview (vision / manual path)
+// ---------------------------------------------------------------------------
+
+interface IngredientPreviewLayoutProps {
+  editableName: string;
+  editableBrand: string;
+  editableIngredients: ParsedIngredient[];
+  ingredientFilter: string;
+  isLabelScan: boolean;
+  isSubmitting: boolean;
+  onNameChange: (v: string) => void;
+  onBrandChange: (v: string) => void;
+  onFilterChange: (v: string) => void;
+  onRemoveIngredient: (index: number) => void;
+  onAddSubstance: (substance: { substanceId: string; name: string; canonicalName: string }) => void;
+  onBack: () => void;
+  onSubmit: () => void;
+}
+
+function IngredientPreviewLayout({
+  editableName,
+  editableBrand,
+  editableIngredients,
+  ingredientFilter,
+  isLabelScan,
+  isSubmitting,
+  onNameChange,
+  onBrandChange,
+  onFilterChange,
+  onRemoveIngredient,
+  onAddSubstance,
+  onBack,
+  onSubmit,
+}: IngredientPreviewLayoutProps) {
+  const matched = editableIngredients.filter((i) => i.matchStatus === "matched").length;
+  const ambiguous = editableIngredients.filter((i) => i.matchStatus === "ambiguous").length;
+  const unmatched = editableIngredients.filter((i) => i.matchStatus === "unmatched").length;
+
+  const filteredIngredients = ingredientFilter
+    ? editableIngredients.filter((ing) => ing.name.toLowerCase().includes(ingredientFilter.toLowerCase()))
+    : editableIngredients;
+
+  return (
+    <div className="md:grid md:grid-cols-[340px_1fr] md:gap-8 flex flex-col gap-6">
+      {/* LEFT COLUMN: Product Info */}
+      <div className="md:sticky md:top-8 space-y-4 self-start">
         <div>
-          {/* Name + Brand (editable) */}
-          <div className="space-y-3 mb-4">
-            <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1">Product Name *</label>
-              <input
-                type="text"
-                value={editableName}
-                onChange={(e) => setEditableName(e.target.value)}
-                placeholder="Product name"
-                disabled={step === "submitting"}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/60 disabled:opacity-60"
-              />
+          <label className="block text-xs font-medium text-text-secondary mb-1.5">Product Name *</label>
+          <div className="flex gap-1.5">
+            <input
+              type="text"
+              value={editableName}
+              onChange={(e) => onNameChange(e.target.value)}
+              placeholder="Product name"
+              disabled={isSubmitting}
+              className="flex-1 min-w-0 px-3 py-2.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/60 disabled:opacity-60"
+            />
+            <CaseToggle value={editableName} onChange={onNameChange} disabled={isSubmitting} />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-text-secondary mb-1.5">Brand</label>
+          <div className="flex gap-1.5">
+            <input
+              type="text"
+              value={editableBrand}
+              onChange={(e) => onBrandChange(e.target.value)}
+              placeholder="Brand name"
+              disabled={isSubmitting}
+              className="flex-1 min-w-0 px-3 py-2.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/60 disabled:opacity-60"
+            />
+            <CaseToggle value={editableBrand} onChange={onBrandChange} disabled={isSubmitting} />
+          </div>
+        </div>
+
+        {/* Monitoring summary card */}
+        {isLabelScan && editableIngredients.length > 0 && (
+          <div className="border border-border rounded bg-slate-50/50 px-4 py-3">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
+              Monitoring Summary
+            </p>
+            <div className="space-y-1.5">
+              {matched > 0 && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="h-2 w-2 rounded-full bg-clear shrink-0" />
+                  <span className="text-text-body">{matched} monitored</span>
+                </div>
+              )}
+              {ambiguous > 0 && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="h-2 w-2 rounded-full bg-amber shrink-0" />
+                  <span className="text-text-body">{ambiguous} ambiguous</span>
+                </div>
+              )}
+              {unmatched > 0 && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="h-2 w-2 rounded-full bg-slate-300 shrink-0" />
+                  <span className="text-text-secondary">{unmatched} not trackable</span>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1">Brand</label>
-              <input
-                type="text"
-                value={editableBrand}
-                onChange={(e) => setEditableBrand(e.target.value)}
-                placeholder="Brand name"
-                disabled={step === "submitting"}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/60 disabled:opacity-60"
-              />
-            </div>
+            <p className="text-[11px] text-text-secondary mt-2.5 leading-relaxed">
+              Green ingredients generate FDA regulatory alerts.
+              Gray ingredients are too generic to track individually.
+            </p>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onBack}
+            disabled={isSubmitting}
+            className="px-4 py-2.5 text-sm text-text-secondary border border-border rounded hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            Back
+          </button>
+          <button
+            onClick={onSubmit}
+            disabled={isSubmitting || !editableName.trim()}
+            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-amber rounded hover:bg-amber-action transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <Spinner />
+                Adding...
+              </>
+            ) : (
+              "Start Monitoring This Product"
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN: Ingredient List */}
+      {editableIngredients.length > 0 && (
+        <div className="border border-border rounded-lg overflow-hidden bg-white">
+          {/* Header */}
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-border flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider shrink-0">
+              Ingredients{" "}
+              {ingredientFilter
+                ? `(${filteredIngredients.length} of ${editableIngredients.length})`
+                : `(${editableIngredients.length})`}
+            </p>
+            <input
+              type="text"
+              value={ingredientFilter}
+              onChange={(e) => onFilterChange(e.target.value)}
+              placeholder="Filter..."
+              className="w-36 px-2.5 py-1 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/50"
+            />
           </div>
 
-          {/* Ingredient list */}
-          {editableIngredients.length > 0 && (<>
-            <div className="border border-border rounded-lg overflow-hidden mb-4">
-              <div className="px-4 py-2.5 bg-slate-50 border-b border-border flex items-center justify-between">
-                <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Ingredients ({editableIngredients.length})
-                </p>
-                {parsedLabel?.isLabelScan && (() => {
-                  const matched = editableIngredients.filter((i) => i.matchStatus === "matched").length;
-                  const ambiguous = editableIngredients.filter((i) => i.matchStatus === "ambiguous").length;
-                  const unmatched = editableIngredients.filter((i) => i.matchStatus === "unmatched").length;
-                  const monitored = matched + ambiguous;
-                  return (
-                    <span className="text-[10px] text-text-secondary">
-                      {monitored > 0 && <span className="text-clear">{monitored} monitored</span>}
-                      {unmatched > 0 && <span className="text-text-secondary ml-2">{unmatched} not trackable</span>}
-                    </span>
-                  );
-                })()}
-              </div>
-              <div className="divide-y divide-border max-h-64 overflow-y-auto">
-                {editableIngredients.map((ing, i) => (
-                  <div key={i} className="flex items-center justify-between px-4 py-2 text-sm group">
+          {/* Add substance input */}
+          <div className="px-4 py-2.5 border-b border-border bg-slate-50/50">
+            <SubstanceAutocomplete
+              onSelect={onAddSubstance}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* Rows */}
+          <div className="divide-y divide-border max-h-96 md:max-h-[calc(100vh-280px)] min-h-[280px] overflow-y-auto">
+            {filteredIngredients.length > 0 ? (
+              filteredIngredients.map((ing, i) => {
+                const originalIndex = editableIngredients.indexOf(ing);
+                return (
+                  <div key={i} className="flex items-center justify-between px-4 py-2 text-sm group hover:bg-slate-50/50 transition-colors">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       {ing.matchStatus && (
                         <span
@@ -364,13 +556,13 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
                           <p className="text-[10px] text-amber truncate">Possible: {ing.normalizedName}</p>
                         )}
                         {ing.matchStatus === "unmatched" && (
-                          <p className="text-[10px] text-text-secondary">Not in FDA substance database — won&apos;t generate alerts</p>
+                          <p className="text-[10px] text-text-secondary">Not in FDA substance database</p>
                         )}
                       </div>
                     </div>
                     <button
-                      onClick={() => handleRemoveIngredient(i)}
-                      disabled={step === "submitting"}
+                      onClick={() => onRemoveIngredient(originalIndex)}
+                      disabled={isSubmitting}
                       className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-red-500 transition-all disabled:opacity-0 shrink-0 ml-2"
                       title="Remove ingredient"
                     >
@@ -379,132 +571,160 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
                       </svg>
                     </button>
                   </div>
-                ))}
+                );
+              })
+            ) : (
+              <div className="px-4 py-8 text-center text-sm text-text-secondary">
+                No ingredients match &ldquo;{ingredientFilter}&rdquo;
               </div>
-            </div>
-            {/* Add ingredient autocomplete — outside the overflow-hidden card */}
-            <div className="mt-2">
-              <SubstanceAutocomplete
-                onSelect={handleAddSubstance}
-                disabled={step === "submitting"}
-              />
-            </div>
-          </>)}
-
-          {parsedLabel?.isLabelScan && (
-            <p className="text-[11px] text-text-secondary mb-4">
-              Green ingredients will be monitored for FDA regulatory activity. Gray ingredients are too generic to track. Add specific substances you know are in the product.
-            </p>
-          )}
-
-          <div className="flex gap-3">
-            <button
-              onClick={handleBackFromPreview}
-              disabled={step === "submitting"}
-              className="px-4 py-2 text-sm text-text-secondary border border-border rounded hover:bg-slate-50 transition-colors disabled:opacity-50"
-            >
-              Back
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={step === "submitting" || !editableName.trim()}
-              className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-amber rounded hover:bg-amber-action transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
-            >
-              {step === "submitting" ? (
-                <>
-                  <Spinner />
-                  Adding...
-                </>
-              ) : (
-                "Add to Monitored Products"
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* DSLD preview step */}
-      {(step === "preview" || (step === "submitting" && detail)) && detail && (
-        <div>
-          <div className="border border-border rounded-lg overflow-hidden">
-            <div className="px-4 py-3 bg-slate-50 border-b border-border">
-              <p className="text-sm font-semibold text-text-primary">{detail.product_name}</p>
-              {detail.brand_name && (
-                <p className="text-xs text-text-secondary mt-0.5">{detail.brand_name}</p>
-              )}
-              <div className="flex gap-3 mt-1.5 text-[11px] text-text-secondary">
-                {detail.supplement_form && <span>{detail.supplement_form}</span>}
-                {detail.serving_size && <span>Serving: {detail.serving_size}</span>}
-              </div>
-            </div>
-            <PreviewIngredients detail={detail} />
-          </div>
-          <div className="flex gap-3 mt-4">
-            <button
-              onClick={handleBackFromPreview}
-              disabled={step === "submitting"}
-              className="px-4 py-2 text-sm text-text-secondary border border-border rounded hover:bg-slate-50 transition-colors disabled:opacity-50"
-            >
-              Back
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={step === "submitting"}
-              className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-amber rounded hover:bg-amber-action transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
-            >
-              {step === "submitting" ? (
-                <>
-                  <Spinner />
-                  Adding...
-                </>
-              ) : (
-                "Add to Monitored Products"
-              )}
-            </button>
+            )}
           </div>
         </div>
       )}
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Two-column DSLD preview
+// ---------------------------------------------------------------------------
+
+interface DSLDPreviewLayoutProps {
+  detail: DSLDProductDetail;
+  ingredientFilter: string;
+  isSubmitting: boolean;
+  onFilterChange: (v: string) => void;
+  onBack: () => void;
+  onSubmit: () => void;
+}
+
+function DSLDPreviewLayout({
+  detail,
+  ingredientFilter,
+  isSubmitting,
+  onFilterChange,
+  onBack,
+  onSubmit,
+}: DSLDPreviewLayoutProps) {
+  const otherNames = detail.other_ingredients ? parseOtherIngredients(detail.other_ingredients) : [];
+  const allIngredients = [
+    ...detail.ingredients.map((ing) => ({ name: ing.ingredient_name, amount: ing.amount, unit: ing.unit })),
+    ...otherNames.map((name) => ({ name, amount: undefined as string | undefined, unit: undefined as string | undefined })),
+  ];
+  const totalCount = allIngredients.length;
+
+  const filtered = ingredientFilter
+    ? allIngredients.filter((ing) => ing.name.toLowerCase().includes(ingredientFilter.toLowerCase()))
+    : allIngredients;
+
+  return (
+    <div className="md:grid md:grid-cols-[340px_1fr] md:gap-8 flex flex-col gap-6">
+      {/* LEFT COLUMN: Product Info */}
+      <div className="md:sticky md:top-8 space-y-4 self-start">
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 bg-slate-50 border-b border-border">
+            <p className="text-sm font-semibold text-text-primary">{detail.product_name}</p>
+            {detail.brand_name && (
+              <p className="text-xs text-text-secondary mt-0.5">{detail.brand_name}</p>
+            )}
+            <div className="flex gap-3 mt-1.5 text-[11px] text-text-secondary">
+              {detail.supplement_form && <span>{detail.supplement_form}</span>}
+              {detail.serving_size && <span>Serving: {detail.serving_size}</span>}
+            </div>
+          </div>
+          <div className="px-4 py-3">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
+              Monitoring Summary
+            </p>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="h-2 w-2 rounded-full bg-clear shrink-0" />
+              <span className="text-text-body">All {totalCount} ingredients will be monitored</span>
+            </div>
+            <p className="text-[11px] text-text-secondary mt-2 leading-relaxed">
+              Policy Canary will watch FDA regulatory changes for every ingredient in this product.
+            </p>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onBack}
+            disabled={isSubmitting}
+            className="px-4 py-2.5 text-sm text-text-secondary border border-border rounded hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            Back
+          </button>
+          <button
+            onClick={onSubmit}
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-amber rounded hover:bg-amber-action transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <Spinner />
+                Adding...
+              </>
+            ) : (
+              "Start Monitoring This Product"
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN: Ingredient List */}
+      {totalCount > 0 && (
+        <div className="border border-border rounded-lg overflow-hidden bg-white">
+          {/* Header */}
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-border flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider shrink-0">
+              Ingredients{" "}
+              {ingredientFilter
+                ? `(${filtered.length} of ${totalCount})`
+                : `(${totalCount})`}
+            </p>
+            <input
+              type="text"
+              value={ingredientFilter}
+              onChange={(e) => onFilterChange(e.target.value)}
+              placeholder="Filter..."
+              className="w-36 px-2.5 py-1 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/50"
+            />
+          </div>
+
+          {/* Rows */}
+          <div className="divide-y divide-border max-h-96 md:max-h-[calc(100vh-220px)] min-h-[320px] overflow-y-auto">
+            {filtered.length > 0 ? (
+              filtered.map((ing, i) => (
+                <div key={i} className="flex items-baseline justify-between px-4 py-2 text-sm hover:bg-slate-50/50 transition-colors">
+                  <span className="text-text-body truncate mr-2">{ing.name}</span>
+                  {ing.amount && (
+                    <span className="text-xs text-text-secondary shrink-0 font-mono">
+                      {ing.amount} {ing.unit}
+                    </span>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="px-4 py-8 text-center text-sm text-text-secondary">
+                No ingredients match &ldquo;{ingredientFilter}&rdquo;
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 /** Parse semicolon/comma-separated other_ingredients into individual names */
 function parseOtherIngredients(raw: string): string[] {
   const sep = raw.includes(";") ? ";" : ",";
   return raw.split(sep).map((s) => s.trim()).filter(Boolean);
-}
-
-/** Merge structured ingredients + other_ingredients into one flat list */
-function PreviewIngredients({ detail }: { detail: DSLDProductDetail }) {
-  const otherNames = detail.other_ingredients ? parseOtherIngredients(detail.other_ingredients) : [];
-  const totalCount = detail.ingredients.length + otherNames.length;
-
-  return (
-    <div className="px-4 py-3">
-      <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
-        Ingredients ({totalCount})
-      </p>
-      {totalCount > 0 ? (
-        <div className="space-y-1 max-h-64 overflow-y-auto">
-          {detail.ingredients.map((ing, i) => (
-            <div key={`s-${i}`} className="flex items-baseline justify-between text-sm">
-              <span className="text-text-body truncate mr-2">{ing.ingredient_name}</span>
-              {ing.amount && (
-                <span className="text-xs text-text-secondary shrink-0 font-mono">
-                  {ing.amount} {ing.unit}
-                </span>
-              )}
-            </div>
-          ))}
-          {otherNames.map((name, i) => (
-            <div key={`o-${i}`} className="text-sm text-text-body truncate">{name}</div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-text-secondary">No ingredient data available</p>
-      )}
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -520,9 +740,11 @@ interface SubstanceResult {
 function SubstanceAutocomplete({
   onSelect,
   disabled,
+  dropUp,
 }: {
   onSelect: (substance: SubstanceResult) => void;
   disabled?: boolean;
+  dropUp?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SubstanceResult[]>([]);
@@ -590,17 +812,22 @@ function SubstanceAutocomplete({
         </div>
       )}
       {open && results.length > 0 && (
-        <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+        <div className={`absolute z-10 left-0 right-0 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto ${
+          dropUp ? "bottom-full mb-1" : "mt-1"
+        }`}>
           {results.map((r) => (
             <button
               key={r.substanceId}
               onClick={() => handleSelect(r)}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-amber/5 transition-colors border-b border-border last:border-0"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-amber/5 transition-colors border-b border-border last:border-0 flex items-center justify-between group/row"
             >
-              <span className="text-text-body">{r.canonicalName}</span>
-              {r.name.toLowerCase() !== r.canonicalName.toLowerCase() && (
-                <span className="text-[11px] text-text-secondary ml-2">({r.name})</span>
-              )}
+              <span>
+                <span className="text-text-body">{r.canonicalName}</span>
+                {r.name.toLowerCase() !== r.canonicalName.toLowerCase() && (
+                  <span className="text-[11px] text-text-secondary ml-2">({r.name})</span>
+                )}
+              </span>
+              <span className="text-[10px] font-semibold text-amber opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0 ml-2">ADD</span>
             </button>
           ))}
         </div>
