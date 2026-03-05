@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, Suspense } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, Suspense } from "react";
 import Link from "next/link";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import FeedFilters from "./FeedFilters";
@@ -11,11 +11,10 @@ import FeedDetailPanel from "./FeedDetailPanel";
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Group items by published_date (YYYY-MM-DD string) preserving order. */
 function groupByDate(items: FeedItemEnriched[]): Map<string, FeedItemEnriched[]> {
   const groups = new Map<string, FeedItemEnriched[]>();
   for (const item of items) {
-    const key = item.published_date; // already YYYY-MM-DD
+    const key = item.published_date;
     const arr = groups.get(key);
     if (arr) arr.push(item);
     else groups.set(key, [item]);
@@ -23,7 +22,6 @@ function groupByDate(items: FeedItemEnriched[]): Map<string, FeedItemEnriched[]>
   return groups;
 }
 
-/** Format a YYYY-MM-DD date as a friendly label. */
 function formatDateLabel(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   const now = new Date();
@@ -48,17 +46,31 @@ interface FeedPageClientProps {
 export default function FeedPageClient({ items, productCount }: FeedPageClientProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
   const sidebarOpen = selectedId !== null;
 
   const dateGroups = useMemo(() => groupByDate(items), [items]);
 
-  // Detect scroll to add border/shadow to sticky header
+  // Set --header-h CSS variable on the scroll container so date headers
+  // can position themselves below the sticky filter bar via pure CSS.
+  const headerCallbackRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node || !contentRef.current) return;
+    const update = () => {
+      contentRef.current?.style.setProperty(
+        "--header-h",
+        `${node.offsetHeight + 2}px`
+      );
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(node);
+    // Cleanup isn't critical — the element lives for the page lifetime
+  }, []);
+
+  // Detect scroll to show border/shadow on sticky header
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
@@ -70,29 +82,19 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
     return () => observer.disconnect();
   }, []);
 
-  // Measure sticky header height for date header offset
-  useEffect(() => {
-    const header = headerRef.current;
-    if (!header) return;
-    const ro = new ResizeObserver(() => {
-      setHeaderHeight(header.offsetHeight);
-    });
-    ro.observe(header);
-    return () => ro.disconnect();
-  }, []);
-
   function handleSelect(id: string) {
     setSelectedId((prev) => (prev === id ? null : id));
   }
 
   // Check if "My Products" filter is active (for all-clear state)
-  const isMyProductsFilter = typeof window !== "undefined" &&
+  const isMyProductsFilter =
+    typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("myProducts") === "true";
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-      {/* Feed — always the primary surface */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto min-w-0">
+      {/* Feed */}
+      <div ref={contentRef} className="flex-1 overflow-y-auto min-w-0" style={{ "--header-h": "90px" } as React.CSSProperties}>
         <div className="max-w-3xl mx-auto px-6 py-8">
           {/* Onboarding banner — scrolls away, above sticky zone */}
           {productCount === 0 && (
@@ -114,15 +116,15 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
             </div>
           )}
 
-          {/* Scroll sentinel — when this leaves viewport, sticky header gets border */}
+          {/* Scroll sentinel */}
           <div ref={sentinelRef} className="h-0" />
 
           {/* Sticky header: title + filters */}
           <div
-            ref={headerRef}
+            ref={headerCallbackRef}
             className={`sticky top-0 z-10 -mx-6 px-6 pt-2 pb-3 transition-[border-color,box-shadow] duration-200 ${
               isScrolled
-                ? "border-b border-border bg-surface-muted/90 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+                ? "border-b border-border bg-surface-muted backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
                 : "border-b border-transparent bg-surface-muted"
             }`}
           >
@@ -138,7 +140,6 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
           <div className="mt-4">
             {items.length === 0 ? (
               isMyProductsFilter ? (
-                /* All-clear confirmed state */
                 <div className="border border-clear/20 bg-clear-muted rounded-lg p-8 text-center mt-6">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-clear/10 mb-3">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -151,7 +152,6 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
                   </p>
                 </div>
               ) : (
-                /* Neutral empty state */
                 <div className="border border-border rounded-lg p-8 text-center mt-6">
                   <p className="text-text-secondary text-sm">No items match your filters.</p>
                   <p className="text-text-secondary text-xs mt-1">
@@ -160,18 +160,19 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
                 </div>
               )
             ) : (
-              /* Date-grouped feed */
               <div>
                 {Array.from(dateGroups.entries()).map(([date, groupItems]) => (
                   <div key={date}>
-                    {/* Sticky date header — offset below the sticky filter bar */}
-                    <div className="sticky z-[5] flex items-center gap-3 py-2 bg-surface-muted/95 backdrop-blur-sm" style={{ top: headerHeight }}>
-                      <span className="font-mono text-[11px] uppercase tracking-wider text-text-secondary shrink-0">
+                    {/* Sticky date header — sits just below sticky filter bar */}
+                    <div
+                      className="sticky z-[5] flex items-center gap-3 pt-3 pb-2 -mt-0.5 bg-surface-muted"
+                      style={{ top: "calc(var(--header-h, 90px) - 2px)" }}
+                    >
+                      <span className="font-sans text-xs font-semibold uppercase tracking-wide text-text-secondary shrink-0">
                         {formatDateLabel(date)}
                       </span>
                       <span className="flex-1 h-px bg-border" />
                     </div>
-                    {/* Items for this date */}
                     <div className="space-y-1.5 pb-2">
                       {groupItems.map((item) => (
                         <FeedItemCard
@@ -190,7 +191,7 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
         </div>
       </div>
 
-      {/* Sidebar — slides in from right */}
+      {/* Sidebar */}
       <div className="relative flex-shrink-0 overflow-hidden" style={{ width: sidebarOpen ? 480 : 0, transition: "width 200ms ease-out" }}>
         <div
           className={`absolute inset-y-0 right-0 w-[480px] border-l border-border bg-white transition-transform duration-200 ease-out ${

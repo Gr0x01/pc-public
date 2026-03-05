@@ -90,7 +90,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   const myProducts = params.myProducts === "true";
   const showArchived = params.showArchived === "true";
 
-  const feedItems = await getFeedItems(userId, { limit: 100 });
+  const feedItems = await getFeedItems(userId, { limit: 100, includeArchived: showArchived });
   const items = filterItems(feedItems, type, range, myProducts, showArchived);
 
   return (
