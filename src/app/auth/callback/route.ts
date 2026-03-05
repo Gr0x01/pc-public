@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
     const { error: insertError } = await adminClient.from("users").insert({
       id: user.id,
       email: user.email!,
-      name: meta.name ?? null,
+      first_name: meta.first_name ?? null,
+      last_name: meta.last_name ?? null,
       company_name: meta.company_name ?? null,
       pilot_feedback_consent: isPilot,
       pilot_consented_at: isPilot ? new Date().toISOString() : null,

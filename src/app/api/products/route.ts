@@ -82,6 +82,7 @@ export async function POST(request: Request) {
   const {
     name, brand, product_type, data_source, external_id,
     raw_ingredients_text, image_paths, parsed_ingredients,
+    manufacturer_name, manufacturer_fei,
   } = parsed.data;
 
   // 3. Plan limit check (fast-path rejection; DB trigger is the authoritative guard)
@@ -139,6 +140,8 @@ export async function POST(request: Request) {
       data_source,
       external_id: external_id ?? null,
       raw_ingredients_text: raw_ingredients_text ?? null,
+      manufacturer_name: manufacturer_name ?? null,
+      manufacturer_fei: manufacturer_fei || null,
     })
     .select("id, name")
     .single();

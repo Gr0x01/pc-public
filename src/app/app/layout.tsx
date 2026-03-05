@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { adminClient } from "@/lib/supabase/admin";
-import AppNav from "@/components/app/AppNav";
 
 // TODO: remove dev bypass before launch
 const isDev = process.env.NODE_ENV === "development";
@@ -11,10 +9,6 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  let email = "dev@localhost";
-  let accessLevel = "free";
-  let hasSubscription = false;
-
   if (!isDev) {
     const supabase = await createClient();
     const {
@@ -23,37 +17,7 @@ export default async function AppLayout({
     if (!user) {
       redirect("/login");
     }
-    email = user.email!;
-
-    // Fetch subscription info from public.users
-    const { data: dbUser } = await adminClient
-      .from("users")
-      .select("access_level, max_products, stripe_customer_id")
-      .eq("id", user.id)
-      .single();
-
-    if (dbUser) {
-      accessLevel = dbUser.access_level ?? "free";
-      hasSubscription = accessLevel !== "free";
-    }
   }
 
-  async function signOut() {
-    "use server";
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-    redirect("/login");
-  }
-
-  return (
-    <div className="min-h-screen bg-surface-muted text-text-primary flex flex-col">
-      <AppNav
-        email={email}
-        signOut={signOut}
-        accessLevel={accessLevel}
-        hasSubscription={hasSubscription}
-      />
-      <main className="flex-1">{children}</main>
-    </div>
-  );
+  return <>{children}</>;
 }

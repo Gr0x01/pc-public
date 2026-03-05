@@ -20,6 +20,12 @@ export const CreateProductSchema = z.object({
   data_source: z.enum(["dsld", "fdc", "manual", "openfoodfacts", "label_scan"]),
   external_id: z.string().max(100).nullish(),
   raw_ingredients_text: z.string().max(50_000).nullish(),
+  manufacturer_name: z.string().max(300).nullish(),
+  manufacturer_fei: z
+    .string()
+    .regex(/^\d{7,10}$/, "Manufacturer FEI must be 7-10 digits")
+    .nullish()
+    .or(z.literal("")),
   image_paths: z.array(z.string().max(500)).max(5).nullish(),
   parsed_ingredients: z
     .array(

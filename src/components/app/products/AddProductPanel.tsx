@@ -77,6 +77,10 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
   const [editableName, setEditableName] = useState("");
   const [editableBrand, setEditableBrand] = useState("");
 
+  // Manufacturer fields
+  const [manufacturerName, setManufacturerName] = useState("");
+  const [manufacturerFei, setManufacturerFei] = useState("");
+
   // QoL state
   const [ingredientFilter, setIngredientFilter] = useState("");
 
@@ -98,6 +102,8 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
     setEditableIngredients([]);
     setEditableName("");
     setEditableBrand("");
+    setManufacturerName("");
+    setManufacturerFei("");
     setError(null);
     setIngredientFilter("");
   }, []);
@@ -174,6 +180,11 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
 
     let body: Record<string, unknown>;
 
+    const mfgFields = {
+      manufacturer_name: manufacturerName.trim() || null,
+      manufacturer_fei: manufacturerFei.replace(/\D/g, "") || null,
+    };
+
     if (detail) {
       // DSLD path
       body = {
@@ -182,6 +193,7 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
         product_type: productType,
         data_source: "dsld",
         external_id: String(detail.dsld_id),
+        ...mfgFields,
       };
     } else if (parsedLabel?.isLabelScan) {
       // Vision scan path
@@ -193,6 +205,7 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
         data_source: "label_scan",
         image_paths: paths.length > 0 ? paths : null,
         parsed_ingredients: editableIngredients,
+        ...mfgFields,
       };
     } else {
       // Manual path
@@ -205,6 +218,7 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
         raw_ingredients_text: editableIngredients.length > 0
           ? editableIngredients.map((i) => i.name).join(", ")
           : null,
+        ...mfgFields,
       };
     }
 
@@ -240,7 +254,7 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
       setError("Network error. Please try again.");
       setStep(detail ? "preview" : "ingredient_preview");
     }
-  }, [productType, detail, parsedLabel, editableName, editableBrand, editableIngredients, onProductAdded]);
+  }, [productType, detail, parsedLabel, editableName, editableBrand, editableIngredients, manufacturerName, manufacturerFei, onProductAdded]);
 
   // Determine if we're on a wide step
   const isWideStep = step === "ingredient_preview" || step === "preview" || (step === "submitting");
@@ -329,12 +343,16 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
         <IngredientPreviewLayout
           editableName={editableName}
           editableBrand={editableBrand}
+          manufacturerName={manufacturerName}
+          manufacturerFei={manufacturerFei}
           editableIngredients={editableIngredients}
           ingredientFilter={ingredientFilter}
           isLabelScan={parsedLabel?.isLabelScan ?? false}
           isSubmitting={step === "submitting"}
           onNameChange={setEditableName}
           onBrandChange={setEditableBrand}
+          onManufacturerNameChange={setManufacturerName}
+          onManufacturerFeiChange={setManufacturerFei}
           onFilterChange={setIngredientFilter}
           onRemoveIngredient={handleRemoveIngredient}
           onAddSubstance={handleAddSubstance}
@@ -347,8 +365,12 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
       {(step === "preview" || (step === "submitting" && detail)) && detail && (
         <DSLDPreviewLayout
           detail={detail}
+          manufacturerName={manufacturerName}
+          manufacturerFei={manufacturerFei}
           ingredientFilter={ingredientFilter}
           isSubmitting={step === "submitting"}
+          onManufacturerNameChange={setManufacturerName}
+          onManufacturerFeiChange={setManufacturerFei}
           onFilterChange={setIngredientFilter}
           onBack={handleBackFromPreview}
           onSubmit={handleSubmit}
@@ -365,12 +387,16 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
 interface IngredientPreviewLayoutProps {
   editableName: string;
   editableBrand: string;
+  manufacturerName: string;
+  manufacturerFei: string;
   editableIngredients: ParsedIngredient[];
   ingredientFilter: string;
   isLabelScan: boolean;
   isSubmitting: boolean;
   onNameChange: (v: string) => void;
   onBrandChange: (v: string) => void;
+  onManufacturerNameChange: (v: string) => void;
+  onManufacturerFeiChange: (v: string) => void;
   onFilterChange: (v: string) => void;
   onRemoveIngredient: (index: number) => void;
   onAddSubstance: (substance: { substanceId: string; name: string; canonicalName: string }) => void;
@@ -381,12 +407,16 @@ interface IngredientPreviewLayoutProps {
 function IngredientPreviewLayout({
   editableName,
   editableBrand,
+  manufacturerName,
+  manufacturerFei,
   editableIngredients,
   ingredientFilter,
   isLabelScan,
   isSubmitting,
   onNameChange,
   onBrandChange,
+  onManufacturerNameChange,
+  onManufacturerFeiChange,
   onFilterChange,
   onRemoveIngredient,
   onAddSubstance,
@@ -432,6 +462,33 @@ function IngredientPreviewLayout({
             />
             <CaseToggle value={editableBrand} onChange={onBrandChange} disabled={isSubmitting} />
           </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-text-secondary mb-1.5">Manufacturer / Co-packer</label>
+          <input
+            type="text"
+            value={manufacturerName}
+            onChange={(e) => onManufacturerNameChange(e.target.value)}
+            placeholder="Who manufactures this product?"
+            disabled={isSubmitting}
+            className="w-full px-3 py-2.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/60 disabled:opacity-60"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-text-secondary mb-1.5">Manufacturer FEI</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={manufacturerFei}
+            onChange={(e) => onManufacturerFeiChange(e.target.value.replace(/\D/g, ""))}
+            placeholder="Facility Establishment Identifier"
+            maxLength={10}
+            disabled={isSubmitting}
+            className="w-full px-3 py-2.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/60 disabled:opacity-60"
+          />
+          <p className="mt-1 text-[11px] text-text-secondary">
+            Found on your manufacturer&apos;s FDA registration. Enables alerts when this facility gets an FDA action.
+          </p>
         </div>
 
         {/* Monitoring summary card */}
@@ -591,8 +648,12 @@ function IngredientPreviewLayout({
 
 interface DSLDPreviewLayoutProps {
   detail: DSLDProductDetail;
+  manufacturerName: string;
+  manufacturerFei: string;
   ingredientFilter: string;
   isSubmitting: boolean;
+  onManufacturerNameChange: (v: string) => void;
+  onManufacturerFeiChange: (v: string) => void;
   onFilterChange: (v: string) => void;
   onBack: () => void;
   onSubmit: () => void;
@@ -600,8 +661,12 @@ interface DSLDPreviewLayoutProps {
 
 function DSLDPreviewLayout({
   detail,
+  manufacturerName,
+  manufacturerFei,
   ingredientFilter,
   isSubmitting,
+  onManufacturerNameChange,
+  onManufacturerFeiChange,
   onFilterChange,
   onBack,
   onSubmit,
@@ -644,6 +709,35 @@ function DSLDPreviewLayout({
               Policy Canary will watch FDA regulatory changes for every ingredient in this product.
             </p>
           </div>
+        </div>
+
+        {/* Manufacturer fields */}
+        <div>
+          <label className="block text-xs font-medium text-text-secondary mb-1.5">Manufacturer / Co-packer</label>
+          <input
+            type="text"
+            value={manufacturerName}
+            onChange={(e) => onManufacturerNameChange(e.target.value)}
+            placeholder="Who manufactures this product?"
+            disabled={isSubmitting}
+            className="w-full px-3 py-2.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/60 disabled:opacity-60"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-text-secondary mb-1.5">Manufacturer FEI</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={manufacturerFei}
+            onChange={(e) => onManufacturerFeiChange(e.target.value.replace(/\D/g, ""))}
+            placeholder="Facility Establishment Identifier"
+            maxLength={10}
+            disabled={isSubmitting}
+            className="w-full px-3 py-2.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/60 disabled:opacity-60"
+          />
+          <p className="mt-1 text-[11px] text-text-secondary">
+            Found on your manufacturer&apos;s FDA registration. Enables alerts when this facility gets an FDA action.
+          </p>
         </div>
 
         {/* Action buttons */}
