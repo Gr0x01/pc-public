@@ -1,10 +1,14 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { countActiveProducts } from "@/lib/products/queries";
 import { MOCK_FEED_ITEMS } from "@/lib/mock/app-data";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import type { ItemType } from "@/types/enums";
 import FeedPageClient from "@/components/app/FeedPageClient";
 import AutoCheckout from "@/components/app/AutoCheckout";
 
+const isDev = process.env.NODE_ENV === "development";
 const USE_MOCK = true;
 
 const VALID_TYPES = new Set<string>([
@@ -58,6 +62,17 @@ interface FeedPageProps {
 }
 
 export default async function FeedPage({ searchParams }: FeedPageProps) {
+  let productCount = 0;
+
+  if (!isDev) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+    productCount = await countActiveProducts(user.id).catch(() => 0);
+  }
+
   const params = await searchParams;
   const type = params.type ?? null;
   const range = params.range ?? null;
@@ -72,7 +87,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       <Suspense fallback={null}>
         <AutoCheckout />
       </Suspense>
-      <FeedPageClient items={items} />
+      <FeedPageClient items={items} productCount={productCount} />
     </>
   );
 }

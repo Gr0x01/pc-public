@@ -2,12 +2,14 @@
 
 import { useState, useMemo } from "react";
 import type { ProductSidebarItem } from "@/lib/mock/products-data";
-import { StatusDot, STATUS_LABELS, STATUS_TEXT_COLORS, type ProductStatusType } from "./ProductsLayout";
+import { StatusDot, STATUS_TEXT_COLORS, type ProductStatusType } from "./ProductsLayout";
 
 interface ProductSidebarProps {
   items: ProductSidebarItem[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onAdd: () => void;
+  maxProducts: number;
 }
 
 const STATUS_FILTER_OPTIONS: { value: ProductStatusType | "all"; label: string }[] = [
@@ -18,9 +20,11 @@ const STATUS_FILTER_OPTIONS: { value: ProductStatusType | "all"; label: string }
   { value: "all_clear", label: "All Clear" },
 ];
 
-export default function ProductSidebar({ items, selectedId, onSelect }: ProductSidebarProps) {
+export default function ProductSidebar({ items, selectedId, onSelect, onAdd, maxProducts }: ProductSidebarProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProductStatusType | "all">("all");
+
+  const atLimit = items.length >= maxProducts;
 
   const filtered = useMemo(() => {
     let result = items;
@@ -44,7 +48,7 @@ export default function ProductSidebar({ items, selectedId, onSelect }: ProductS
           <h2 className="font-sans text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
             Monitored Products
           </h2>
-          <span className="font-mono text-[11px] text-text-secondary">{items.length}</span>
+          <span className="font-mono text-[11px] text-text-secondary">{items.length}/{maxProducts}</span>
         </div>
       </div>
 
@@ -121,8 +125,16 @@ export default function ProductSidebar({ items, selectedId, onSelect }: ProductS
 
       {/* Add Product button — pinned bottom */}
       <div className="px-3 py-3 border-t border-border">
-        <button className="w-full py-2 text-[13px] font-medium text-text-secondary border border-dashed border-border-strong rounded hover:border-amber hover:text-amber transition-colors">
-          + Add Product
+        <button
+          onClick={onAdd}
+          disabled={atLimit}
+          className={`w-full py-2 text-[13px] font-medium border border-dashed rounded transition-colors ${
+            atLimit
+              ? "text-text-secondary/50 border-border cursor-not-allowed"
+              : "text-text-secondary border-border-strong hover:border-amber hover:text-amber"
+          }`}
+        >
+          {atLimit ? `Limit reached (${maxProducts})` : "+ Add Product"}
         </button>
       </div>
     </div>

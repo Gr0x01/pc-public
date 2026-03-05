@@ -1,48 +1,153 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { ProductSidebarItem, ProductDetailData } from "@/lib/mock/products-data";
+import type { ProductDetail } from "@/lib/products/types";
+import type { SubscriberProduct } from "@/types/database";
 import ProductSidebar from "./ProductSidebar";
 import IntelligencePanel from "./IntelligencePanel";
 import ProductContextPanel from "./ProductContextPanel";
+import AddProductPanel from "./AddProductPanel";
 
 interface ProductsLayoutProps {
   sidebarItems: ProductSidebarItem[];
-  productDetails: Record<string, ProductDetailData>;
-  initialProductId?: string;
+  maxProducts: number;
+}
+
+/** Map API ProductDetail → the ProductDetailData shape used by Intelligence/Context panels */
+function toDetailData(detail: ProductDetail): ProductDetailData {
+  const product: SubscriberProduct = {
+    id: detail.id,
+    user_id: "", // Not needed client-side; API doesn't expose it
+    name: detail.name,
+    brand: detail.brand,
+    product_type: detail.product_type as SubscriberProduct["product_type"],
+    product_category_id: detail.product_category_id,
+    data_source: detail.data_source as SubscriberProduct["data_source"],
+    external_id: detail.external_id,
+    upc_barcode: null,
+    label_image_url: null,
+    raw_ingredients_text: detail.raw_ingredients_text,
+    product_metadata: null,
+    is_active: detail.is_active,
+    created_at: detail.created_at,
+    updated_at: detail.updated_at,
+  };
+
+  return {
+    product,
+    status: "all_clear",
+    activeMatches: [],
+    resolvedHistory: [],
+    lastScannedAt: new Date().toISOString(),
+    ingredients: detail.ingredients,
+  };
 }
 
 export default function ProductsLayout({
-  sidebarItems,
-  productDetails,
-  initialProductId,
+  sidebarItems: initialItems,
+  maxProducts,
 }: ProductsLayoutProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  // Determine selected product from URL or default to first
-  const [selectedId, setSelectedId] = useState<string | null>(() => {
-    if (initialProductId && productDetails[initialProductId]) return initialProductId;
-    return sidebarItems[0]?.id ?? null;
-  });
+  const [sidebarItems, setSidebarItems] = useState(initialItems);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialItems[0]?.id ?? null
+  );
+  const [mode, setMode] = useState<"view" | "add">("view");
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [currentDetail, setCurrentDetail] = useState<ProductDetailData | null>(null);
+  const detailCache = useRef(new Map<string, ProductDetailData>());
 
   const [highlightedSubstanceIds, setHighlightedSubstanceIds] = useState<Set<string>>(new Set());
   const [isEditing, setIsEditing] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  const detail = selectedId ? productDetails[selectedId] ?? null : null;
+  // C2 fix: track intended selection to prevent stale fetch from overwriting
+  const intendedIdRef = useRef<string | null>(selectedId);
+
+  // W4 fix: remember previous selection for cancel-add
+  const prevSelectedIdRef = useRef<string | null>(null);
+
+  const fetchDetail = useCallback(async (id: string) => {
+    intendedIdRef.current = id;
+
+    // Check cache first
+    const cached = detailCache.current.get(id);
+    if (cached) {
+      setCurrentDetail(cached);
+      return;
+    }
+
+    setLoadingDetail(true);
+    setCurrentDetail(null);
+    try {
+      const res = await fetch(`/api/products/${id}`);
+      if (!res.ok) throw new Error("Failed to fetch product detail");
+      const { data } = (await res.json()) as { data: ProductDetail };
+      const detail = toDetailData(data);
+      detailCache.current.set(id, detail);
+      // C2 fix: only apply if user hasn't navigated away during fetch
+      if (intendedIdRef.current === id) {
+        setCurrentDetail(detail);
+      }
+    } catch (err) {
+      console.error("[ProductsLayout] fetch detail error:", err);
+      if (intendedIdRef.current === id) {
+        setCurrentDetail(null);
+      }
+    } finally {
+      if (intendedIdRef.current === id) {
+        setLoadingDetail(false);
+      }
+    }
+  }, []);
 
   const handleSelectProduct = useCallback(
     (id: string) => {
       setSelectedId(id);
+      setMode("view");
       setIsEditing(false);
       setHighlightedSubstanceIds(new Set());
       setIsMobileSidebarOpen(false);
-      // Update URL without full reload
-      router.push(`/app/products/${id}`, { scroll: false });
+      fetchDetail(id);
     },
-    [router]
+    [fetchDetail]
+  );
+
+  const handleAdd = useCallback(() => {
+    prevSelectedIdRef.current = selectedId;
+    setMode("add");
+    setSelectedId(null);
+    setCurrentDetail(null);
+  }, [selectedId]);
+
+  const handleCancelAdd = useCallback(() => {
+    setMode("view");
+    // W4 fix: return to previously selected product, not index 0
+    const returnTo = prevSelectedIdRef.current ?? sidebarItems[0]?.id ?? null;
+    if (returnTo) {
+      setSelectedId(returnTo);
+      fetchDetail(returnTo);
+    }
+  }, [sidebarItems, fetchDetail]);
+
+  const handleProductAdded = useCallback(
+    (newProduct: { id: string; name: string; brand?: string | null }) => {
+      const newItem: ProductSidebarItem = {
+        id: newProduct.id,
+        name: newProduct.name,
+        brand: newProduct.brand ?? null,
+        productType: "supplement",
+        status: "all_clear",
+        activeMatchCount: 0,
+        lastScannedAt: new Date().toISOString(),
+      };
+      setSidebarItems((prev) => [newItem, ...prev]);
+      setMode("view");
+      setSelectedId(newProduct.id);
+      detailCache.current.delete(newProduct.id);
+      fetchDetail(newProduct.id);
+    },
+    [fetchDetail]
   );
 
   const handleHighlight = useCallback((ids: string[]) => {
@@ -53,8 +158,17 @@ export default function ProductsLayout({
     setHighlightedSubstanceIds(new Set());
   }, []);
 
+  // W2 fix: auto-fetch first product in useEffect, not during render
+  const hasAutoFetched = useRef(false);
+  useEffect(() => {
+    if (!hasAutoFetched.current && selectedId) {
+      hasAutoFetched.current = true;
+      fetchDetail(selectedId);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Empty state: no products at all
-  if (sidebarItems.length === 0) {
+  if (sidebarItems.length === 0 && mode !== "add") {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
         <div className="text-center max-w-md px-6">
@@ -69,7 +183,10 @@ export default function ProductsLayout({
           <p className="text-sm text-text-secondary mb-6">
             Policy Canary watches every FDA regulatory change and tells you which ones affect your specific products.
           </p>
-          <button className="bg-amber text-white font-semibold text-sm px-5 py-2.5 rounded hover:bg-amber-action transition-colors">
+          <button
+            onClick={handleAdd}
+            className="bg-amber text-white font-semibold text-sm px-5 py-2.5 rounded hover:bg-amber-action transition-colors"
+          >
             + Add Your First Product
           </button>
         </div>
@@ -85,11 +202,11 @@ export default function ProductsLayout({
           onClick={() => setIsMobileSidebarOpen(true)}
           className="flex items-center gap-2 w-full text-left"
         >
-          {detail && (
+          {currentDetail && (
             <>
-              <StatusDot status={detail.status} />
+              <StatusDot status={currentDetail.status} />
               <span className="text-sm font-semibold text-text-primary truncate flex-1">
-                {detail.product.name}
+                {currentDetail.product.name}
               </span>
             </>
           )}
@@ -108,6 +225,8 @@ export default function ProductsLayout({
               items={sidebarItems}
               selectedId={selectedId}
               onSelect={handleSelectProduct}
+              onAdd={handleAdd}
+              maxProducts={maxProducts}
             />
           </div>
         </div>
@@ -119,17 +238,26 @@ export default function ProductsLayout({
           items={sidebarItems}
           selectedId={selectedId}
           onSelect={handleSelectProduct}
+          onAdd={handleAdd}
+          maxProducts={maxProducts}
         />
       </div>
 
-      {/* Intelligence panel (center) */}
+      {/* Center panel */}
       <div className="flex-1 min-w-0 overflow-y-auto lg:mt-0 mt-12">
-        {detail ? (
+        {mode === "add" ? (
+          <AddProductPanel
+            onCancel={handleCancelAdd}
+            onProductAdded={handleProductAdded}
+          />
+        ) : loadingDetail ? (
+          <DetailSkeleton />
+        ) : currentDetail ? (
           <IntelligencePanel
-            detail={detail}
+            detail={currentDetail}
             onHighlight={handleHighlight}
             onClearHighlight={handleClearHighlight}
-            isWideLayout={false} // Will be overridden by CSS — content stacks at <1440px
+            isWideLayout={false}
           />
         ) : (
           <div className="flex items-center justify-center h-full">
@@ -138,17 +266,19 @@ export default function ProductsLayout({
         )}
       </div>
 
-      {/* Product context panel (right, ≥1440px only) */}
+      {/* Product context panel (right, >=1440px only) */}
       <div className="hidden 3col:flex flex-shrink-0 w-[360px] min-[1600px]:w-[400px] border-l border-border bg-white overflow-y-auto">
-        {detail && (
+        {loadingDetail ? (
+          <ContextSkeleton />
+        ) : currentDetail ? (
           <ProductContextPanel
-            detail={detail}
+            detail={currentDetail}
             highlightedSubstanceIds={highlightedSubstanceIds}
             isEditing={isEditing}
             onStartEdit={() => setIsEditing(true)}
             onStopEdit={() => setIsEditing(false)}
           />
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -185,3 +315,35 @@ export const STATUS_TEXT_COLORS: Record<ProductStatusType, string> = {
   watch: "text-watch",
   all_clear: "text-clear",
 };
+
+// ---------------------------------------------------------------------------
+// Loading skeletons
+// ---------------------------------------------------------------------------
+
+const SKELETON_WIDTHS = [85, 72, 91, 78, 83, 69];
+
+function DetailSkeleton() {
+  return (
+    <div className="p-6 space-y-4 animate-pulse">
+      <div className="h-6 w-48 bg-slate-200 rounded" />
+      <div className="h-4 w-32 bg-slate-100 rounded" />
+      <div className="mt-8 space-y-3">
+        <div className="h-20 bg-slate-100 rounded" />
+        <div className="h-20 bg-slate-100 rounded" />
+      </div>
+    </div>
+  );
+}
+
+function ContextSkeleton() {
+  return (
+    <div className="p-5 space-y-4 animate-pulse w-full">
+      <div className="h-5 w-32 bg-slate-200 rounded" />
+      <div className="space-y-2">
+        {SKELETON_WIDTHS.map((w, i) => (
+          <div key={i} className="h-4 bg-slate-100 rounded" style={{ width: `${w}%` }} />
+        ))}
+      </div>
+    </div>
+  );
+}

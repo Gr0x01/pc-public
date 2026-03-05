@@ -29,7 +29,10 @@ export default function ProductContextPanel({
   onStopEdit,
 }: ProductContextPanelProps) {
   const { product } = detail;
-  const ingredients = parseIngredients(product.raw_ingredients_text);
+  // Prefer structured ingredients from API, fallback to raw text parsing
+  const ingredients = detail.ingredients
+    ? detail.ingredients.map((ing) => ing.name)
+    : parseIngredients(product.raw_ingredients_text);
 
   return (
     <div className="w-full h-full">

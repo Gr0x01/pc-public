@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Link from "next/link";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import FeedFilters from "./FeedFilters";
 import FeedItemCard from "./FeedItemCard";
@@ -8,9 +9,10 @@ import FeedDetailPanel from "./FeedDetailPanel";
 
 interface FeedPageClientProps {
   items: FeedItemEnriched[];
+  productCount: number;
 }
 
-export default function FeedPageClient({ items }: FeedPageClientProps) {
+export default function FeedPageClient({ items, productCount }: FeedPageClientProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
@@ -26,6 +28,25 @@ export default function FeedPageClient({ items }: FeedPageClientProps) {
       {/* Feed — always the primary surface */}
       <div className="flex-1 overflow-y-auto min-w-0">
         <div className="max-w-3xl mx-auto px-6 py-8">
+          {productCount === 0 && (
+            <div className="mb-4 px-4 py-3 bg-amber/5 border border-amber/20 rounded-lg flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-text-primary">
+                  Add products to get personalized alerts
+                </p>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  Policy Canary matches regulatory changes to your specific ingredients.
+                </p>
+              </div>
+              <Link
+                href="/app/products"
+                className="shrink-0 ml-4 px-3 py-1.5 text-sm font-semibold text-white bg-amber rounded hover:bg-amber-action transition-colors"
+              >
+                Add Products
+              </Link>
+            </div>
+          )}
+
           <div className="mb-6">
             <h1 className="font-serif text-2xl font-bold text-text-primary mb-3">
               Regulatory Feed

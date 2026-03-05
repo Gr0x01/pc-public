@@ -10,6 +10,7 @@ import {
   type FeedItemEnriched,
 } from "./app-data";
 import type { SubscriberProduct, ProductMatch } from "@/types/database";
+import type { ProductIngredientRow } from "@/lib/products/types";
 
 // ---------------------------------------------------------------------------
 // Types for the Products view
@@ -39,6 +40,8 @@ export interface ProductDetailData {
   activeMatches: ProductMatchWithItem[];
   resolvedHistory: ResolvedHistoryItem[];
   lastScannedAt: string;
+  /** Structured ingredients from product_ingredients table (when available) */
+  ingredients?: ProductIngredientRow[];
 }
 
 export interface ResolvedHistoryItem {
