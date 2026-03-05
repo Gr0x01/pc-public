@@ -130,17 +130,25 @@ export async function getProductById(
     return null;
   }
 
-  const { data: ingredients } = await adminClient
-    .from("product_ingredients")
-    .select(
-      "id, name, normalized_name, substance_id, amount, unit, sort_order, normalization_status, normalization_confidence"
-    )
-    .eq("product_id", productId)
-    .order("sort_order");
+  const [ingredientsRes, imagesRes] = await Promise.all([
+    adminClient
+      .from("product_ingredients")
+      .select(
+        "id, name, normalized_name, substance_id, amount, unit, sort_order, normalization_status, normalization_confidence"
+      )
+      .eq("product_id", productId)
+      .order("sort_order"),
+    adminClient
+      .from("product_images")
+      .select("id, storage_path, sort_order")
+      .eq("product_id", productId)
+      .order("sort_order"),
+  ]);
 
   return {
     ...product,
-    ingredients: (ingredients ?? []) as ProductIngredientRow[],
+    ingredients: (ingredientsRes.data ?? []) as ProductIngredientRow[],
+    images: (imagesRes.data ?? []) as { id: string; storage_path: string; sort_order: number }[],
   } as ProductDetail;
 }
 
@@ -297,6 +305,50 @@ export async function ingestDSLDIngredients(
 
   if (error) {
     console.error("[products] ingestDSLDIngredients error:", error);
+    return 0;
+  }
+
+  return rows.length;
+}
+
+// ---------------------------------------------------------------------------
+// Ingredient Ingestion (from vision-parsed or manual entry)
+// ---------------------------------------------------------------------------
+
+export async function ingestParsedIngredients(
+  productId: string,
+  ingredients: { name: string; amount?: string; unit?: string }[]
+): Promise<number> {
+  if (ingredients.length === 0) return 0;
+
+  // Resolve substances in batches of 25 to avoid overwhelming the connection pool
+  const BATCH_SIZE = 25;
+  const resolutions: Awaited<ReturnType<typeof resolveSubstance>>[] = [];
+  for (let i = 0; i < ingredients.length; i += BATCH_SIZE) {
+    const batch = ingredients.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(batch.map((ing) => resolveSubstance(ing.name)));
+    resolutions.push(...results);
+  }
+
+  const rows = ingredients.map((ing, i) => ({
+    product_id: productId,
+    name: ing.name,
+    normalized_name: resolutions[i].normalized_name,
+    substance_id: resolutions[i].substance_id,
+    amount: ing.amount ?? null,
+    unit: ing.unit ?? null,
+    sort_order: i + 1,
+    normalization_status: resolutions[i].normalization_status,
+    normalization_confidence: resolutions[i].normalization_confidence,
+    normalization_method: resolutions[i].substance_id ? "fuzzy" : null,
+  }));
+
+  const { error } = await adminClient
+    .from("product_ingredients")
+    .insert(rows);
+
+  if (error) {
+    console.error("[products] ingestParsedIngredients error:", error);
     return 0;
   }
 

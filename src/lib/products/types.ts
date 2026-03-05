@@ -17,9 +17,20 @@ export const CreateProductSchema = z.object({
     "tobacco",
     "veterinary",
   ]),
-  data_source: z.enum(["dsld", "fdc", "manual", "openfoodfacts"]),
+  data_source: z.enum(["dsld", "fdc", "manual", "openfoodfacts", "label_scan"]),
   external_id: z.string().max(100).nullish(),
   raw_ingredients_text: z.string().max(50_000).nullish(),
+  image_paths: z.array(z.string().max(500)).max(5).nullish(),
+  parsed_ingredients: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(200),
+        amount: z.string().max(50).optional(),
+        unit: z.string().max(20).optional(),
+      })
+    )
+    .max(200)
+    .nullish(),
 }).refine(
   (data) => {
     if (data.data_source === "dsld" && data.external_id) {
@@ -97,6 +108,16 @@ export interface ProductDetail {
   created_at: string;
   updated_at: string;
   ingredients: ProductIngredientRow[];
+  images: { id: string; storage_path: string; sort_order: number }[];
+}
+
+export interface ParsedLabel {
+  imageUrls: string[];
+  imagePaths: string[];
+  isLabelScan: boolean;
+  ingredients: { name: string; amount?: string; unit?: string }[];
+  productName: string | null;
+  brand: string | null;
 }
 
 export interface ProductIngredientRow {

@@ -8,7 +8,7 @@ import ProductsLayout from "@/components/app/products/ProductsLayout";
 const isDev = process.env.NODE_ENV === "development";
 
 export default async function ProductsPage() {
-  let userId = "dev-user-id";
+  let userId = "70360df8-4888-4401-9aa0-b2b15da354b0";
 
   if (!isDev) {
     const supabase = await createClient();

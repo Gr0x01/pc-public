@@ -26,7 +26,6 @@ function toDetailData(detail: ProductDetail): ProductDetailData {
     data_source: detail.data_source as SubscriberProduct["data_source"],
     external_id: detail.external_id,
     upc_barcode: null,
-    label_image_url: null,
     raw_ingredients_text: detail.raw_ingredients_text,
     product_metadata: null,
     is_active: detail.is_active,

@@ -6,6 +6,7 @@ import {
   getMaxProducts,
   checkDuplicateProduct,
   ingestDSLDIngredients,
+  ingestParsedIngredients,
 } from "@/lib/products/queries";
 import { CreateProductSchema } from "@/lib/products/types";
 
@@ -14,16 +15,22 @@ import { CreateProductSchema } from "@/lib/products/types";
 // ---------------------------------------------------------------------------
 
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json(
-      { error: { message: "Authentication required." } },
-      { status: 401 }
-    );
+  let userId: string;
+  if (isDev) {
+    userId = DEV_USER_ID;
+  } else {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return Response.json(
+        { error: { message: "Authentication required." } },
+        { status: 401 }
+      );
+    }
+    userId = user.id;
   }
 
-  const data = await getUserProducts(user.id);
+  const data = await getUserProducts(userId);
   return Response.json({ data });
 }
 
@@ -31,15 +38,24 @@ export async function GET() {
 // POST /api/products — create a new product
 // ---------------------------------------------------------------------------
 
+const isDev = process.env.NODE_ENV === "development";
+const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
+
 export async function POST(request: Request) {
   // 1. Auth
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json(
-      { error: { message: "Authentication required." } },
-      { status: 401 }
-    );
+  let userId: string;
+  if (isDev) {
+    userId = DEV_USER_ID;
+  } else {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return Response.json(
+        { error: { message: "Authentication required." } },
+        { status: 401 }
+      );
+    }
+    userId = user.id;
   }
 
   // 2. Validate body
@@ -61,15 +77,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, brand, product_type, data_source, external_id, raw_ingredients_text } =
-    parsed.data;
+  const {
+    name, brand, product_type, data_source, external_id,
+    raw_ingredients_text, image_paths, parsed_ingredients,
+  } = parsed.data;
 
   // 3. Plan limit check (fast-path rejection; DB trigger is the authoritative guard)
   let maxProducts: number;
   try {
     const [activeCount, max] = await Promise.all([
-      countActiveProducts(user.id),
-      getMaxProducts(user.id),
+      countActiveProducts(userId),
+      getMaxProducts(userId),
     ]);
     maxProducts = max;
 
@@ -94,7 +112,7 @@ export async function POST(request: Request) {
 
   // 4. Duplicate check for external-source products (fast-path; unique index is the guard)
   if (data_source !== "manual" && external_id) {
-    const isDuplicate = await checkDuplicateProduct(user.id, data_source, external_id);
+    const isDuplicate = await checkDuplicateProduct(userId, data_source, external_id);
     if (isDuplicate) {
       return Response.json(
         {
@@ -112,7 +130,7 @@ export async function POST(request: Request) {
   const { data: product, error: insertError } = await adminClient
     .from("subscriber_products")
     .insert({
-      user_id: user.id,
+      user_id: userId,
       name,
       brand: brand ?? null,
       product_type,
@@ -155,17 +173,39 @@ export async function POST(request: Request) {
     );
   }
 
-  // 6. Ingest ingredients if DSLD
+  // 6. Insert product images (if any)
+  if (image_paths && image_paths.length > 0) {
+    const imageRows = image_paths.map((path, i) => ({
+      product_id: product.id,
+      storage_path: path,
+      sort_order: i,
+    }));
+    const { error: imgError } = await adminClient
+      .from("product_images")
+      .insert(imageRows);
+    if (imgError) {
+      console.error("[products] product_images insert error:", imgError);
+      // Non-fatal — product already created
+    }
+  }
+
+  // 7. Ingest ingredients
   let ingredientCount = 0;
   if (data_source === "dsld" && external_id) {
     ingredientCount = await ingestDSLDIngredients(product.id, parseInt(external_id, 10));
+  } else if (parsed_ingredients && parsed_ingredients.length > 0) {
+    ingredientCount = await ingestParsedIngredients(product.id, parsed_ingredients);
   }
+
+  const ingredientsFailed =
+    (data_source === "dsld" && ingredientCount === 0 && external_id) ||
+    (parsed_ingredients && parsed_ingredients.length > 0 && ingredientCount === 0);
 
   return Response.json(
     {
       data: { id: product.id, name: product.name, ingredient_count: ingredientCount },
-      ...(data_source === "dsld" && ingredientCount === 0 && external_id
-        ? { warning: "Ingredients could not be loaded. The product was saved but may not generate alerts." }
+      ...(ingredientsFailed
+        ? { warning: "Ingredients could not be saved. The product was created but may not generate alerts." }
         : {}),
     },
     { status: 201 }
