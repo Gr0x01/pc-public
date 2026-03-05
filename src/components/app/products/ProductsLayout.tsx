@@ -52,7 +52,7 @@ export default function ProductsLayout({
   const [selectedId, setSelectedId] = useState<string | null>(
     initialItems[0]?.id ?? null
   );
-  const [mode, setMode] = useState<"view" | "add">("view");
+  const [mode, setMode] = useState<"view" | "add">(initialItems.length === 0 ? "add" : "view");
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [currentDetail, setCurrentDetail] = useState<ProductDetailData | null>(null);
   const detailCache = useRef(new Map<string, ProductDetailData>());
@@ -131,12 +131,12 @@ export default function ProductsLayout({
   }, [sidebarItems, fetchDetail]);
 
   const handleProductAdded = useCallback(
-    (newProduct: { id: string; name: string; brand?: string | null }) => {
+    (newProduct: { id: string; name: string; brand?: string | null; productType: string }) => {
       const newItem: ProductSidebarItem = {
         id: newProduct.id,
         name: newProduct.name,
         brand: newProduct.brand ?? null,
-        productType: "supplement",
+        productType: newProduct.productType,
         status: "all_clear",
         activeMatchCount: 0,
         lastScannedAt: new Date().toISOString(),
@@ -166,33 +166,6 @@ export default function ProductsLayout({
       fetchDetail(selectedId);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Empty state: no products at all
-  if (sidebarItems.length === 0 && mode !== "add") {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
-        <div className="text-center max-w-md px-6">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-slate-400">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-text-primary mb-2">
-            Add your first product to start monitoring.
-          </h2>
-          <p className="text-sm text-text-secondary mb-6">
-            Policy Canary watches every FDA regulatory change and tells you which ones affect your specific products.
-          </p>
-          <button
-            onClick={handleAdd}
-            className="bg-amber text-white font-semibold text-sm px-5 py-2.5 rounded hover:bg-amber-action transition-colors"
-          >
-            + Add Your First Product
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
@@ -266,20 +239,22 @@ export default function ProductsLayout({
         )}
       </div>
 
-      {/* Product context panel (right, >=1440px only) */}
-      <div className="hidden 3col:flex flex-shrink-0 w-[360px] min-[1600px]:w-[400px] border-l border-border bg-white overflow-y-auto">
-        {loadingDetail ? (
-          <ContextSkeleton />
-        ) : currentDetail ? (
-          <ProductContextPanel
-            detail={currentDetail}
-            highlightedSubstanceIds={highlightedSubstanceIds}
-            isEditing={isEditing}
-            onStartEdit={() => setIsEditing(true)}
-            onStopEdit={() => setIsEditing(false)}
-          />
-        ) : null}
-      </div>
+      {/* Product context panel (right, >=1440px only) — hidden during add mode */}
+      {mode !== "add" && (
+        <div className="hidden 3col:flex flex-shrink-0 w-[360px] min-[1600px]:w-[400px] border-l border-border bg-white overflow-y-auto">
+          {loadingDetail ? (
+            <ContextSkeleton />
+          ) : currentDetail ? (
+            <ProductContextPanel
+              detail={currentDetail}
+              highlightedSubstanceIds={highlightedSubstanceIds}
+              isEditing={isEditing}
+              onStartEdit={() => setIsEditing(true)}
+              onStopEdit={() => setIsEditing(false)}
+            />
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
