@@ -67,7 +67,7 @@ export default function MatchCard({ matchWithItem, isExpanded, onToggle, onResol
         onClick={onToggle}
         className="w-full text-left px-4 py-3 flex items-start gap-3"
       >
-        <StatusDot status={matchStatus} ring={isWatching} />
+        <StatusDot status={isWatching ? "watch" : matchStatus} />
         <div className="flex-1 min-w-0">
           <p className={`text-[14px] font-serif font-semibold leading-snug transition-colors duration-150 ${
             isWatching ? "text-text-body" : "text-text-primary"

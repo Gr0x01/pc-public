@@ -418,18 +418,8 @@ const STATUS_DOT_COLORS: Record<ProductStatusType, string> = {
   all_clear: "bg-clear",
 };
 
-const STATUS_RING_COLORS: Record<ProductStatusType, string> = {
-  action_required: "border-urgent",
-  under_review: "border-amber",
-  watch: "border-watch",
-  all_clear: "border-clear",
-};
-
-export function StatusDot({ status, size = "sm", ring = false }: { status: ProductStatusType; size?: "sm" | "md"; ring?: boolean }) {
+export function StatusDot({ status, size = "sm" }: { status: ProductStatusType; size?: "sm" | "md" }) {
   const sizeClass = size === "md" ? "h-2.5 w-2.5" : "h-2 w-2";
-  if (ring) {
-    return <span className={`${sizeClass} rounded-full shrink-0 bg-transparent border-2 ${STATUS_RING_COLORS[status]}`} />;
-  }
   return <span className={`${sizeClass} rounded-full shrink-0 ${STATUS_DOT_COLORS[status]}`} />;
 }
 
