@@ -57,7 +57,7 @@ export default function Hero() {
               href="/#signup"
               className="bg-surface-dark text-white font-medium px-6 py-3 rounded-xl hover:bg-[#1E293B] hover:-translate-y-0.5 transition-all duration-300 shadow-sm hover:shadow-md"
             >
-              Start Free
+              Join the Pilot
             </Link>
             <Link
               href="/sample"

@@ -48,7 +48,7 @@ function LoginForm() {
       email: trimmed,
       options: {
         emailRedirectTo: callbackUrl,
-        shouldCreateUser: true,
+        shouldCreateUser: false,
       },
     });
     if (error) {
@@ -132,9 +132,9 @@ export default function LoginPage() {
           </div>
         </div>
         <p className="text-center text-xs text-slate-500 mt-6">
-          Not a subscriber yet?{" "}
+          Not signed up yet?{" "}
           <a href="/#signup" className="text-slate-400 hover:text-white underline transition-colors">
-            Join the free weekly digest
+            Join the pilot
           </a>
         </p>
         {process.env.NODE_ENV === "development" && (

@@ -254,9 +254,13 @@ export interface User {
   name: string | null;
   company_name: string | null;
   stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
   access_level: SubscriptionTier; // DB default: 'free'
   max_products: number; // DB default: 1
   trial_ends_at: string | null;
+  pilot_feedback_consent: boolean;
+  pilot_consented_at: string | null;
+  terms_version: string | null;
   created_at: string;
   updated_at: string;
 }

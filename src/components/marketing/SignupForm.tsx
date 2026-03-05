@@ -4,12 +4,16 @@ import { useReducer } from "react";
 import { useReducedMotion, AnimatePresence, motion } from "framer-motion";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 // Client-side pre-validation only — server is authoritative.
-// Keep in sync with /src/app/api/signup/route.ts SignupSchema.
 const SignupSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  name: z.string().max(100).optional(),
+  name: z.string().min(1, "Please enter your name").max(100),
+  company: z.string().min(1, "Please enter your company name").max(200),
+  feedback_consent: z.literal(true, {
+    message: "Please agree to the terms to continue",
+  }),
 });
 
 type Status = "idle" | "loading" | "success" | "error";
@@ -17,16 +21,20 @@ type Status = "idle" | "loading" | "success" | "error";
 interface State {
   email: string;
   name: string;
+  company: string;
+  feedbackConsent: boolean;
   status: Status;
   errorMessage: string;
-  subscribedName: string;
+  submittedEmail: string;
 }
 
 type Action =
   | { type: "SET_EMAIL"; payload: string }
   | { type: "SET_NAME"; payload: string }
+  | { type: "SET_COMPANY"; payload: string }
+  | { type: "SET_FEEDBACK_CONSENT"; payload: boolean }
   | { type: "SUBMIT" }
-  | { type: "SUCCESS"; name: string }
+  | { type: "SUCCESS"; email: string }
   | { type: "ERROR"; message: string };
 
 function reducer(state: State, action: Action): State {
@@ -35,10 +43,14 @@ function reducer(state: State, action: Action): State {
       return { ...state, email: action.payload };
     case "SET_NAME":
       return { ...state, name: action.payload };
+    case "SET_COMPANY":
+      return { ...state, company: action.payload };
+    case "SET_FEEDBACK_CONSENT":
+      return { ...state, feedbackConsent: action.payload };
     case "SUBMIT":
       return { ...state, status: "loading", errorMessage: "" };
     case "SUCCESS":
-      return { ...state, status: "success", subscribedName: action.name };
+      return { ...state, status: "success", submittedEmail: action.email };
     case "ERROR":
       return { ...state, status: "error", errorMessage: action.message };
     default:
@@ -55,9 +67,11 @@ export function SignupForm({ dark = false }: SignupFormProps) {
   const [state, dispatch] = useReducer(reducer, {
     email: "",
     name: "",
+    company: "",
+    feedbackConsent: false,
     status: "idle",
     errorMessage: "",
-    subscribedName: "",
+    submittedEmail: "",
   });
 
   const inputClasses = dark
@@ -68,7 +82,9 @@ export function SignupForm({ dark = false }: SignupFormProps) {
     e.preventDefault();
     const parsed = SignupSchema.safeParse({
       email: state.email,
-      name: state.name || undefined,
+      name: state.name,
+      company: state.company,
+      feedback_consent: state.feedbackConsent || undefined,
     });
     if (!parsed.success) {
       dispatch({
@@ -86,8 +102,9 @@ export function SignupForm({ dark = false }: SignupFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: state.email,
-          name: state.name || undefined,
-          source: "signup_form",
+          name: state.name,
+          company: state.company,
+          feedback_consent: true,
         }),
       });
       const json = await res.json();
@@ -100,7 +117,7 @@ export function SignupForm({ dark = false }: SignupFormProps) {
         return;
       }
 
-      dispatch({ type: "SUCCESS", name: state.name });
+      dispatch({ type: "SUCCESS", email: state.email });
     } catch {
       dispatch({
         type: "ERROR",
@@ -120,12 +137,15 @@ export function SignupForm({ dark = false }: SignupFormProps) {
             transition={{ duration: 0.3 }}
             className="text-center py-4"
           >
-            <p className="text-white font-semibold text-lg">
-              You&apos;re on the list
-              {state.subscribedName ? `, ${state.subscribedName}` : ""}!
+            <p className={`font-semibold text-lg ${dark ? "text-white" : "text-text-primary"}`}>
+              Check your email
             </p>
-            <p className="text-slate-300 text-sm mt-1">
-              We&apos;ll help you add your first products next.
+            <p className={`text-sm mt-2 ${dark ? "text-slate-300" : "text-text-secondary"}`}>
+              We sent a magic link to{" "}
+              <span className="text-canary font-mono">{state.submittedEmail}</span>
+            </p>
+            <p className={`text-xs mt-3 ${dark ? "text-slate-500" : "text-text-secondary"}`}>
+              The link expires in 1 hour. Check spam if it doesn&apos;t arrive.
             </p>
           </motion.div>
         ) : (
@@ -136,11 +156,25 @@ export function SignupForm({ dark = false }: SignupFormProps) {
           >
             <input
               type="text"
-              placeholder="Your name (optional)"
+              placeholder="Your name"
               value={state.name}
               onChange={(e) =>
                 dispatch({ type: "SET_NAME", payload: e.target.value })
               }
+              required
+              autoComplete="name"
+              className={inputClasses}
+              disabled={state.status === "loading"}
+            />
+            <input
+              type="text"
+              placeholder="Company name"
+              value={state.company}
+              onChange={(e) =>
+                dispatch({ type: "SET_COMPANY", payload: e.target.value })
+              }
+              required
+              autoComplete="organization"
               className={inputClasses}
               disabled={state.status === "loading"}
             />
@@ -152,27 +186,49 @@ export function SignupForm({ dark = false }: SignupFormProps) {
                 dispatch({ type: "SET_EMAIL", payload: e.target.value })
               }
               required
+              autoComplete="email"
               className={inputClasses}
               disabled={state.status === "loading"}
             />
+
+            {/* Pilot agreement checkbox */}
+            <label className="flex items-start gap-2.5 cursor-pointer group mt-1">
+              <input
+                type="checkbox"
+                checked={state.feedbackConsent}
+                onChange={(e) =>
+                  dispatch({ type: "SET_FEEDBACK_CONSENT", payload: e.target.checked })
+                }
+                disabled={state.status === "loading"}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-amber accent-amber focus:ring-amber"
+              />
+              <span className={`text-xs leading-relaxed ${dark ? "text-slate-400" : "text-text-secondary"}`}>
+                I agree to the{" "}
+                <Link href="/terms" className={`underline ${dark ? "text-slate-300 hover:text-white" : "text-text-primary hover:text-text-primary"}`}>
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className={`underline ${dark ? "text-slate-300 hover:text-white" : "text-text-primary hover:text-text-primary"}`}>
+                  Privacy Policy
+                </Link>
+                , and I&apos;m open to sharing feedback during the pilot. I can unsubscribe anytime.
+              </span>
+            </label>
+
             <button
               type="submit"
-              disabled={state.status === "loading"}
+              disabled={state.status === "loading" || !state.feedbackConsent}
               className="bg-surface-dark text-white px-6 py-3 rounded font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1E293B] transition-colors duration-150 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {state.status === "loading" && (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               )}
-              Start Free
+              Join the Pilot
             </button>
 
             {state.status === "error" && (
               <p className="text-sm text-urgent mt-1">{state.errorMessage}</p>
             )}
-
-            <p className="text-xs text-slate-400 mt-1">
-              We&apos;ll personalize based on the products you add after signup.
-            </p>
           </motion.form>
         )}
       </AnimatePresence>

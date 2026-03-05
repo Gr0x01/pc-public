@@ -69,7 +69,6 @@ export default function Header() {
         <nav className="flex items-center gap-6">
           {/* Content links */}
           <NavLink href="/blog">Blog</NavLink>
-          <NavLink href="/pricing">Pricing</NavLink>
           <NavLink href="/sample">Sample Email</NavLink>
 
           {/* Sign in — ghost button, separate tier */}
@@ -85,7 +84,7 @@ export default function Header() {
             href="/#signup"
             className="bg-surface-dark text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#1E293B] hover:scale-[1.02] transition-all duration-150"
           >
-            Start Free
+            Join the Pilot
           </Link>
         </nav>
       </div>

@@ -40,15 +40,12 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto text-center soft-card p-10 md:p-14 relative z-10">
             <div className="absolute top-0 right-0 w-64 h-64 bg-amber/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
             <p className="font-mono text-[11px] text-amber-text uppercase tracking-widest mb-6 font-semibold">
-              EARLY ACCESS
+              PILOT PROGRAM
             </p>
-            <p className="text-2xl md:text-4xl font-semibold tracking-tight text-slate-900 mb-6 leading-tight">
-              &ldquo;Finally — something that tells me what to do, not just what
-              happened.&rdquo;
-            </p>
-            <p className="text-slate-500 text-[15px] mb-12">
-              — QA Director, dietary supplement brand &middot; 47 products
-              monitored
+            <p className="text-xl md:text-2xl font-medium tracking-tight text-slate-900 mb-6 leading-relaxed max-w-2xl mx-auto">
+              Product-level FDA monitoring for food, supplement, and cosmetic
+              brands. Your products matched against every regulatory change — by
+              name and ingredient.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-t border-slate-100 pt-10">
               {[
@@ -71,7 +68,7 @@ export default function LandingPage() {
         </section>
       </RevealSection>
 
-      {/* Signup CTA — dark gradient with cost math */}
+      {/* Signup CTA — dark gradient, pilot framing */}
       <section
         id="signup"
         className="py-24 px-6 bg-white"
@@ -80,31 +77,16 @@ export default function LandingPage() {
           className="max-w-4xl mx-auto text-center rounded-xl px-6 py-12 md:p-14 border border-white/10"
           style={{ background: "var(--gradient-dark-surface)" }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Know before the warning letter.
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Don&apos;t find out from a recall notice.
           </h2>
-          {/* Cost comparison */}
-          <div className="flex items-center justify-center gap-6 mb-8">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-slate-400 line-through decoration-slate-500">
-                $25K–$100K+
-              </p>
-              <p className="text-xs font-mono text-slate-500 uppercase tracking-wide mt-0.5">
-                One warning letter
-              </p>
-            </div>
-            <span className="text-slate-600 text-xl">vs</span>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-amber">$99 / month</p>
-              <p className="text-xs font-mono text-slate-400 uppercase tracking-wide mt-0.5">
-                Policy Canary Monitor
-              </p>
-            </div>
-          </div>
-          <p className="text-slate-400 mb-8">
-            Your Marine Collagen Powder. Your BHA Eye Cream. Monitored.
-            <br />
-            Intelligence delivered to your inbox — start free.
+          <p className="text-slate-400 mb-3 max-w-xl mx-auto">
+            We&apos;re onboarding a small group of brands for early access to
+            product-level FDA monitoring.
+          </p>
+          <p className="text-slate-500 mb-8 text-sm">
+            Your Marine Collagen Powder. Your BHA Eye Cream. Monitored by name,
+            matched by ingredient.
           </p>
           <div className="flex justify-center">
             <SignupForm dark={true} />

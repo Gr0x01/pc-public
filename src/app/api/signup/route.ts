@@ -4,9 +4,11 @@ import { headers } from "next/headers";
 
 const SignupSchema = z.object({
   email: z.string().email("Invalid email address"),
-  // name is collected for UX warmth but not persisted (no DB column until Phase 4 user accounts)
-  name: z.string().max(100).optional(),
-  // source is ignored from client — pinned to "signup_form" server-side for data integrity
+  name: z.string().min(1, "Name is required").max(100),
+  company: z.string().min(1, "Company name is required").max(200),
+  feedback_consent: z.literal(true, {
+    message: "You must agree to the pilot terms",
+  }),
 });
 
 // In-memory rate limiter (MVP only — upgrade to Redis/Upstash for production)
@@ -33,7 +35,6 @@ function checkRateLimit(ip: string): boolean {
 
 export async function POST(request: Request) {
   // 1. Rate limit (5 requests/min per IP)
-  // Fail open when IP is unresolvable — do not group all unknown callers under one bucket
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim();
 
@@ -63,9 +64,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const { email } = result.data;
+  const email = result.data.email.trim().toLowerCase();
+  const { name, company } = result.data;
 
-  // 3. Check for existing subscriber
+  // 3. Upsert email_subscribers (insert or reactivate)
   const { data: existing } = await adminClient
     .from("email_subscribers")
     .select("id, status")
@@ -73,44 +75,62 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (existing) {
-    if (existing.status === "active") {
-      return Response.json({ data: { message: "already_subscribed" }, error: null });
-    }
-    // Reactivate unsubscribed user
-    const { error: reactivateError } = await adminClient
-      .from("email_subscribers")
-      .update({ status: "active", unsubscribed_at: null })
-      .eq("id", existing.id);
+    if (existing.status !== "active") {
+      const { error: reactivateError } = await adminClient
+        .from("email_subscribers")
+        .update({ status: "active", unsubscribed_at: null })
+        .eq("id", existing.id);
 
-    if (reactivateError) {
-      console.error("[signup] DB reactivation error:", reactivateError);
+      if (reactivateError) {
+        console.error("[signup] DB reactivation error:", reactivateError);
+        return Response.json(
+          { error: { message: "Failed to sign up. Please try again." } },
+          { status: 500 }
+        );
+      }
+    }
+  } else {
+    const unsubscribe_token = crypto.randomUUID();
+    const { error } = await adminClient.from("email_subscribers").insert({
+      email,
+      status: "active",
+      source: "signup_form",
+      unsubscribe_token,
+    });
+
+    if (error) {
+      console.error("[signup] DB insert error:", error);
       return Response.json(
-        { error: { message: "Failed to resubscribe. Please try again." } },
+        { error: { message: "Failed to sign up. Please try again." } },
         { status: 500 }
       );
     }
-    return Response.json({ data: { message: "reactivated" }, error: null });
   }
 
-  // 4. Insert new subscriber
-  // source pinned server-side — never accept from client
-  // crypto.randomUUID() returns 36-char UUID (satisfies >= 32 char constraint)
-  const unsubscribe_token = crypto.randomUUID();
+  // 4. Send magic link via Supabase Auth (creates user if needed)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-  const { error } = await adminClient.from("email_subscribers").insert({
+  const { error: otpError } = await adminClient.auth.signInWithOtp({
     email,
-    status: "active",
-    source: "signup_form",
-    unsubscribe_token,
+    options: {
+      emailRedirectTo: `${siteUrl}/auth/callback`,
+      shouldCreateUser: true,
+      data: {
+        name,
+        company_name: company,
+        pilot_feedback_consent: true,
+        terms_version: "2026-03",
+      },
+    },
   });
 
-  if (error) {
-    console.error("[signup] DB insert error:", error);
+  if (otpError) {
+    console.error("[signup] OTP error:", otpError);
     return Response.json(
-      { error: { message: "Failed to subscribe. Please try again." } },
+      { error: { message: "Failed to send magic link. Please try again." } },
       { status: 500 }
     );
   }
 
-  return Response.json({ data: { message: "subscribed" }, error: null });
+  return Response.json({ data: { message: "magic_link_sent" }, error: null });
 }

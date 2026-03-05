@@ -20,12 +20,6 @@ export default function Footer() {
               Blog
             </Link>
             <Link
-              href="/pricing"
-              className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
-            >
-              Pricing
-            </Link>
-            <Link
               href="/sample"
               className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
             >

@@ -36,6 +36,11 @@ const faqs = [
 export default function PricingPage() {
   return (
     <>
+      {/* Pilot banner */}
+      <div className="bg-amber/10 border-b border-amber/20 px-6 py-3 text-center text-sm text-amber-text font-medium">
+        Pilot program active — pilot partners get full Monitor access. Pricing shown for reference.
+      </div>
+
       {/* Hero + Calculator — warm gradient, glass-morph card */}
       <PricingHero />
 
@@ -76,7 +81,7 @@ export default function PricingPage() {
         </section>
       </RevealSection>
 
-      {/* Signup CTA — dark gradient with cost math */}
+      {/* Signup CTA — dark gradient, pilot framing */}
       <section
         id="signup"
         className="py-24 px-6 bg-white"
@@ -85,31 +90,16 @@ export default function PricingPage() {
           className="max-w-4xl mx-auto text-center rounded-xl px-6 py-12 md:p-14 border border-white/10"
           style={{ background: "var(--gradient-dark-surface)" }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Know before the warning letter.
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Don&apos;t find out from a recall notice.
           </h2>
-          {/* Cost comparison */}
-          <div className="flex items-center justify-center gap-6 mb-8">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-slate-400 line-through decoration-slate-500">
-                $25K–$100K+
-              </p>
-              <p className="text-xs font-mono text-slate-500 uppercase tracking-wide mt-0.5">
-                One warning letter
-              </p>
-            </div>
-            <span className="text-slate-600 text-xl">vs</span>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-amber">$99 / month</p>
-              <p className="text-xs font-mono text-slate-400 uppercase tracking-wide mt-0.5">
-                Policy Canary Monitor
-              </p>
-            </div>
-          </div>
-          <p className="text-slate-400 mb-8">
-            Your Marine Collagen Powder. Your BHA Eye Cream. Monitored.
-            <br />
-            Intelligence delivered to your inbox — start free.
+          <p className="text-slate-400 mb-3 max-w-xl mx-auto">
+            We&apos;re onboarding a small group of brands for early access to
+            product-level FDA monitoring.
+          </p>
+          <p className="text-slate-500 mb-8 text-sm">
+            Your Marine Collagen Powder. Your BHA Eye Cream. Monitored by name,
+            matched by ingredient.
           </p>
           <div className="flex justify-center">
             <SignupForm dark={true} />
