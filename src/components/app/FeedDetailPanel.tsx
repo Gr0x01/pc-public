@@ -1,14 +1,16 @@
 import Link from "next/link";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
+import type { LifecycleState } from "@/lib/utils/lifecycle";
 import { formatDate } from "@/lib/utils/format";
 import ItemTypeTag from "./ItemTypeTag";
 import ProductMatchBadge from "./ProductMatchBadge";
 
-function urgencyBadge(score: number): { label: string; className: string } | null {
-  if (score >= 80) return { label: "Urgent", className: "bg-urgent/10 text-urgent border-urgent/30" };
-  if (score >= 60) return { label: "Watch", className: "bg-amber/10 text-amber border-amber/30" };
-  return null;
-}
+const LIFECYCLE_BADGE: Record<LifecycleState, { label: string; className: string }> = {
+  urgent: { label: "Urgent", className: "bg-urgent/10 text-urgent border-urgent/30" },
+  active: { label: "Active", className: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" },
+  grace: { label: "Grace Period", className: "bg-amber/10 text-amber border-amber/30" },
+  archived: { label: "Archived", className: "bg-slate-100 text-text-secondary border-border" },
+};
 
 interface FeedDetailPanelProps {
   item: FeedItemEnriched | null;
@@ -18,7 +20,7 @@ interface FeedDetailPanelProps {
 export default function FeedDetailPanel({ item, onClose }: FeedDetailPanelProps) {
   if (!item) return null;
 
-  const badge = item.urgency_score != null ? urgencyBadge(item.urgency_score) : null;
+  const badge = LIFECYCLE_BADGE[item.lifecycle_state];
 
   return (
     <div className="px-6 py-6">
@@ -27,11 +29,9 @@ export default function FeedDetailPanel({ item, onClose }: FeedDetailPanelProps)
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-2 flex-wrap">
           <ItemTypeTag type={item.item_type} />
-          {badge && (
-            <span className={`inline-block rounded px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wide leading-relaxed ${badge.className}`}>
-              {badge.label}
-            </span>
-          )}
+          <span className={`inline-block rounded px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wide leading-relaxed ${badge.className}`}>
+            {badge.label}
+          </span>
         </div>
         <button
           onClick={onClose}

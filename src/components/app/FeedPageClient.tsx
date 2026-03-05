@@ -1,11 +1,44 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useRef, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import FeedFilters from "./FeedFilters";
 import FeedItemCard from "./FeedItemCard";
 import FeedDetailPanel from "./FeedDetailPanel";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Group items by published_date (YYYY-MM-DD string) preserving order. */
+function groupByDate(items: FeedItemEnriched[]): Map<string, FeedItemEnriched[]> {
+  const groups = new Map<string, FeedItemEnriched[]>();
+  for (const item of items) {
+    const key = item.published_date; // already YYYY-MM-DD
+    const arr = groups.get(key);
+    if (arr) arr.push(item);
+    else groups.set(key, [item]);
+  }
+  return groups;
+}
+
+/** Format a YYYY-MM-DD date as a friendly label. */
+function formatDateLabel(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = (today.getTime() - target.getTime()) / 86_400_000;
+
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 interface FeedPageClientProps {
   items: FeedItemEnriched[];
@@ -14,20 +47,54 @@ interface FeedPageClientProps {
 
 export default function FeedPageClient({ items, productCount }: FeedPageClientProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
 
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
   const sidebarOpen = selectedId !== null;
 
+  const dateGroups = useMemo(() => groupByDate(items), [items]);
+
+  // Detect scroll to add border/shadow to sticky header
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsScrolled(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
+  // Measure sticky header height for date header offset
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const ro = new ResizeObserver(() => {
+      setHeaderHeight(header.offsetHeight);
+    });
+    ro.observe(header);
+    return () => ro.disconnect();
+  }, []);
+
   function handleSelect(id: string) {
-    // Toggle: clicking the selected item closes the sidebar
     setSelectedId((prev) => (prev === id ? null : id));
   }
+
+  // Check if "My Products" filter is active (for all-clear state)
+  const isMyProductsFilter = typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("myProducts") === "true";
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
       {/* Feed — always the primary surface */}
-      <div className="flex-1 overflow-y-auto min-w-0">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto min-w-0">
         <div className="max-w-3xl mx-auto px-6 py-8">
+          {/* Onboarding banner — scrolls away, above sticky zone */}
           {productCount === 0 && (
             <div className="mb-4 px-4 py-3 bg-amber/5 border border-amber/20 rounded-lg flex items-center justify-between">
               <div>
@@ -47,8 +114,19 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
             </div>
           )}
 
-          <div className="mb-6">
-            <h1 className="font-serif text-2xl font-bold text-text-primary mb-3">
+          {/* Scroll sentinel — when this leaves viewport, sticky header gets border */}
+          <div ref={sentinelRef} className="h-0" />
+
+          {/* Sticky header: title + filters */}
+          <div
+            ref={headerRef}
+            className={`sticky top-0 z-10 -mx-6 px-6 pt-2 pb-3 transition-[border-color,box-shadow] duration-200 ${
+              isScrolled
+                ? "border-b border-border bg-surface-muted/90 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+                : "border-b border-transparent bg-surface-muted"
+            }`}
+          >
+            <h1 className="font-sans text-lg font-semibold text-text-primary mb-2.5">
               Regulatory Feed
             </h1>
             <Suspense fallback={null}>
@@ -56,39 +134,75 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
             </Suspense>
           </div>
 
-          {items.length === 0 ? (
-            <div className="border border-border rounded p-8 text-center">
-              <p className="text-text-secondary text-sm">No items match your filters.</p>
-              <p className="text-text-secondary text-xs mt-1 font-mono">
-                Try adjusting the type or date range.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {items.map((item) => (
-                <FeedItemCard
-                  key={item.id}
-                  item={item}
-                  isSelected={item.id === selectedId}
-                  onSelect={handleSelect}
-                />
-              ))}
-            </div>
-          )}
+          {/* Feed content */}
+          <div className="mt-4">
+            {items.length === 0 ? (
+              isMyProductsFilter ? (
+                /* All-clear confirmed state */
+                <div className="border border-clear/20 bg-clear-muted rounded-lg p-8 text-center mt-6">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-clear/10 mb-3">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path d="M6 10l3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-clear" />
+                    </svg>
+                  </div>
+                  <p className="font-semibold text-clear text-sm">All Clear</p>
+                  <p className="text-text-secondary text-xs mt-1">
+                    No active regulatory items match your monitored products.
+                  </p>
+                </div>
+              ) : (
+                /* Neutral empty state */
+                <div className="border border-border rounded-lg p-8 text-center mt-6">
+                  <p className="text-text-secondary text-sm">No items match your filters.</p>
+                  <p className="text-text-secondary text-xs mt-1">
+                    Try adjusting the type or date range.
+                  </p>
+                </div>
+              )
+            ) : (
+              /* Date-grouped feed */
+              <div>
+                {Array.from(dateGroups.entries()).map(([date, groupItems]) => (
+                  <div key={date}>
+                    {/* Sticky date header — offset below the sticky filter bar */}
+                    <div className="sticky z-[5] flex items-center gap-3 py-2 bg-surface-muted/95 backdrop-blur-sm" style={{ top: headerHeight }}>
+                      <span className="font-mono text-[11px] uppercase tracking-wider text-text-secondary shrink-0">
+                        {formatDateLabel(date)}
+                      </span>
+                      <span className="flex-1 h-px bg-border" />
+                    </div>
+                    {/* Items for this date */}
+                    <div className="space-y-1.5 pb-2">
+                      {groupItems.map((item) => (
+                        <FeedItemCard
+                          key={item.id}
+                          item={item}
+                          isSelected={item.id === selectedId}
+                          onSelect={handleSelect}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Sidebar — slides in from the right when an item is selected */}
-      <div
-        className={`flex-shrink-0 border-l border-border bg-white overflow-hidden transition-all duration-200 ease-in-out ${
-          sidebarOpen ? "w-[480px]" : "w-0"
-        }`}
-      >
-        <div className="w-[480px] h-full overflow-y-auto">
-          <FeedDetailPanel
-            item={selectedItem}
-            onClose={() => setSelectedId(null)}
-          />
+      {/* Sidebar — slides in from right */}
+      <div className="relative flex-shrink-0 overflow-hidden" style={{ width: sidebarOpen ? 480 : 0, transition: "width 200ms ease-out" }}>
+        <div
+          className={`absolute inset-y-0 right-0 w-[480px] border-l border-border bg-white transition-transform duration-200 ease-out ${
+            sidebarOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          <div className="h-full overflow-y-auto">
+            <FeedDetailPanel
+              item={selectedItem}
+              onClose={() => setSelectedId(null)}
+            />
+          </div>
         </div>
       </div>
     </div>

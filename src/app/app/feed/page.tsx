@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { countActiveProducts, getFeedItems } from "@/lib/products/queries";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import type { ItemType } from "@/types/enums";
+import { isLiveState } from "@/lib/utils/lifecycle";
 import FeedPageClient from "@/components/app/FeedPageClient";
 import AutoCheckout from "@/components/app/AutoCheckout";
 
@@ -27,9 +28,14 @@ function filterItems(
   items: FeedItemEnriched[],
   type: string | null,
   range: string | null,
-  myProducts: boolean
+  myProducts: boolean,
+  showArchived: boolean
 ): FeedItemEnriched[] {
   let filtered = items;
+
+  if (!showArchived) {
+    filtered = filtered.filter((i) => isLiveState(i.lifecycle_state));
+  }
 
   if (type && VALID_TYPES.has(type)) {
     if (type === "rule") {
@@ -58,7 +64,7 @@ function filterItems(
 }
 
 interface FeedPageProps {
-  searchParams: Promise<{ type?: string; range?: string; myProducts?: string }>;
+  searchParams: Promise<{ type?: string; range?: string; myProducts?: string; showArchived?: string }>;
 }
 
 export default async function FeedPage({ searchParams }: FeedPageProps) {
@@ -82,9 +88,10 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   const type = params.type ?? null;
   const range = params.range ?? null;
   const myProducts = params.myProducts === "true";
+  const showArchived = params.showArchived === "true";
 
   const feedItems = await getFeedItems(userId, { limit: 100 });
-  const items = filterItems(feedItems, type, range, myProducts);
+  const items = filterItems(feedItems, type, range, myProducts, showArchived);
 
   return (
     <>

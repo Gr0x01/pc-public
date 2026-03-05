@@ -11,34 +11,45 @@ interface FeedItemCardProps {
 
 export default function FeedItemCard({ item, isSelected, onSelect }: FeedItemCardProps) {
   const hasEnrichment = item.summary !== null;
-  const isUrgent = item.urgency_score !== null && item.urgency_score >= 80;
+  const ls = item.lifecycle_state;
+  const isReduced = ls === "grace" || ls === "archived";
 
   return (
     <button
       onClick={() => onSelect(item.id)}
-      className={`w-full text-left rounded p-3 transition-all duration-100 border ${
+      className={`group w-full text-left rounded bg-white p-3 transition-all duration-150 ease-out border ${
         isSelected
-          ? "border-amber/40 bg-amber/5"
-          : "border-transparent hover:border-border hover:bg-white"
-      }`}
+          ? "border-border-strong border-l-amber border-l-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+          : "border-border hover:border-border-strong hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
+      } ${isReduced ? "opacity-60" : ""}`}
     >
-      {/* Top row: type tag + urgency dot + date */}
+      {/* Top row: type tag + date */}
       <div className="flex items-center justify-between gap-2 mb-1.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <ItemTypeTag type={item.item_type} />
-          {isUrgent && (
-            <span className="h-1.5 w-1.5 rounded-full bg-urgent shrink-0" />
-          )}
-        </div>
+        <ItemTypeTag type={item.item_type} />
         <span className="font-mono text-[10px] text-text-secondary shrink-0">
           {formatDateShort(item.published_date)}
         </span>
       </div>
 
-      {/* Title */}
-      <h3 className="font-serif text-sm font-semibold text-text-primary leading-snug line-clamp-2 mb-1">
-        {item.title}
-      </h3>
+      {/* Title with urgency dot */}
+      <div className="flex items-start gap-1.5 mb-1">
+        {ls === "urgent" && (
+          <span className="h-2 w-2 rounded-full bg-urgent shrink-0 mt-1" />
+        )}
+        {ls === "grace" && (
+          <span className="h-2 w-2 rounded-full bg-amber shrink-0 mt-1" />
+        )}
+        <h3 className="font-serif text-sm font-semibold text-text-primary leading-snug line-clamp-2">
+          {item.title}
+        </h3>
+      </div>
+
+      {/* Product match badge — right under title for scan priority */}
+      {item.matched_products.length > 0 && (
+        <div className="mb-1.5 ml-3.5">
+          <ProductMatchBadge products={item.matched_products} />
+        </div>
+      )}
 
       {/* Issuing office */}
       {item.issuing_office && (
@@ -49,16 +60,9 @@ export default function FeedItemCard({ item, isSelected, onSelect }: FeedItemCar
 
       {/* Impact summary (only if enriched) */}
       {hasEnrichment && item.impact_summary && (
-        <p className="text-xs text-text-body leading-relaxed line-clamp-2 mb-1.5">
+        <p className="text-xs text-text-body leading-relaxed line-clamp-2">
           {item.impact_summary}
         </p>
-      )}
-
-      {/* Product match badge */}
-      {item.matched_products.length > 0 && (
-        <div className="mt-1.5">
-          <ProductMatchBadge products={item.matched_products} />
-        </div>
       )}
     </button>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ProductMatchWithItem } from "@/lib/mock/products-data";
+import type { LifecycleState } from "@/lib/utils/lifecycle";
 import { StatusDot, type ProductStatusType } from "./ProductsLayout";
 import { formatDateShort } from "@/lib/utils/format";
 
@@ -10,12 +11,12 @@ interface MatchCardProps {
   onToggle: () => void;
 }
 
-function urgencyToStatus(score: number | null): ProductStatusType {
-  if (!score) return "watch";
-  if (score >= 80) return "action_required";
-  if (score >= 60) return "under_review";
-  return "watch";
-}
+const LIFECYCLE_TO_STATUS: Record<LifecycleState, ProductStatusType> = {
+  urgent: "action_required",
+  active: "under_review",
+  grace: "watch",
+  archived: "all_clear",
+};
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
   warning_letter: "Warning Letter",
@@ -30,7 +31,7 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
 
 export default function MatchCard({ matchWithItem, isExpanded, onToggle }: MatchCardProps) {
   const { match, item } = matchWithItem;
-  const matchStatus = urgencyToStatus(item.urgency_score);
+  const matchStatus = LIFECYCLE_TO_STATUS[item.lifecycle_state];
   const typeLabel = ACTION_TYPE_LABELS[item.item_type] ?? item.item_type;
 
   return (

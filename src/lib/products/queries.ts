@@ -10,6 +10,7 @@ import type {
 } from "./types";
 import type { NormalizationStatus, ItemType } from "@/types/enums";
 import type { FeedItemEnriched, ItemDetailData } from "@/lib/mock/app-data";
+import { getLifecycleState, isLiveState, type LifecycleState } from "@/lib/utils/lifecycle";
 
 // ---------------------------------------------------------------------------
 // DSLD Search
@@ -411,6 +412,11 @@ export async function getFeedItems(
     const raw = enrichment?.raw_response;
     const actionItems = (raw?.action_items as string[] | undefined) ?? null;
 
+    const deadline = enrichment?.deadline ?? null;
+    const lifecycle_state = getLifecycleState(
+      { item_type: item.item_type, published_date: item.published_date, deadline },
+    );
+
     return {
       id: item.id,
       title: item.title,
@@ -423,7 +429,8 @@ export async function getFeedItems(
       relevance: verdictMap.has(item.id) ? "high" as const : null,
       impact_summary: null,
       action_items: actionItems,
-      deadline: enrichment?.deadline ?? null,
+      deadline,
+      lifecycle_state,
       matched_products: verdictMap.get(item.id) ?? [],
     };
   });
@@ -571,6 +578,7 @@ export interface ProductVerdictItem {
   action_items: string[] | null;
   deadline: string | null;
   regulatory_action_type: string | null;
+  lifecycle_state: LifecycleState;
 }
 
 export async function getProductVerdicts(
@@ -618,6 +626,11 @@ export async function getProductVerdicts(
       const raw = enrichment?.raw_response;
       const actionItems = Array.isArray(raw?.action_items) ? (raw!.action_items as string[]) : null;
 
+      const deadline = enrichment?.deadline ?? null;
+      const lifecycle_state = getLifecycleState(
+        { item_type: item.item_type, published_date: item.published_date, deadline },
+      );
+
       return {
         id: v.item_id,
         item_id: v.item_id,
@@ -630,8 +643,9 @@ export async function getProductVerdicts(
         issuing_office: item.issuing_office,
         summary: enrichment?.summary ?? null,
         action_items: actionItems,
-        deadline: enrichment?.deadline ?? null,
+        deadline,
         regulatory_action_type: enrichment?.regulatory_action_type ?? null,
+        lifecycle_state,
       };
     })
     .filter((v): v is ProductVerdictItem => v !== null);
@@ -647,21 +661,33 @@ export async function getProductVerdictCounts(
     .from("product_match_verdicts")
     .select(`
       product_id,
-      regulatory_items!inner(item_type)
+      regulatory_items!inner(item_type, published_date, item_enrichments(deadline))
     `)
     .eq("user_id", userId)
     .eq("relevant", true);
 
   if (error || !data) return new Map();
 
-  const URGENT_TYPES = new Set(["recall", "safety_alert", "warning_letter"]);
   const counts = new Map<string, { total: number; urgent: number }>();
 
   for (const row of data) {
-    const itemType = (row.regulatory_items as unknown as { item_type: string })?.item_type;
+    const ri = row.regulatory_items as unknown as {
+      item_type: string;
+      published_date: string;
+      item_enrichments: Array<{ deadline: string | null }> | null;
+    };
+    const deadline = ri.item_enrichments?.[0]?.deadline ?? null;
+    const state = getLifecycleState({
+      item_type: ri.item_type,
+      published_date: ri.published_date,
+      deadline,
+    });
+
+    if (!isLiveState(state)) continue;
+
     const entry = counts.get(row.product_id) ?? { total: 0, urgent: 0 };
     entry.total++;
-    if (URGENT_TYPES.has(itemType)) entry.urgent++;
+    if (state === "urgent") entry.urgent++;
     counts.set(row.product_id, entry);
   }
 

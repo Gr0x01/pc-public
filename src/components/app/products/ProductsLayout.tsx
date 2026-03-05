@@ -6,6 +6,7 @@ import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import type { ProductDetail } from "@/lib/products/types";
 import type { ProductVerdictItem } from "@/lib/products/queries";
 import type { SubscriberProduct } from "@/types/database";
+import { isLiveState } from "@/lib/utils/lifecycle";
 import ProductSidebar from "./ProductSidebar";
 import IntelligencePanel from "./IntelligencePanel";
 import ProductContextPanel from "./ProductContextPanel";
@@ -15,8 +16,6 @@ interface ProductsLayoutProps {
   sidebarItems: ProductSidebarItem[];
   maxProducts: number;
 }
-
-const URGENT_TYPES = new Set(["recall", "safety_alert", "warning_letter"]);
 
 /** Map API ProductDetail + verdicts → the ProductDetailData shape used by Intelligence/Context panels */
 function toDetailData(detail: ProductDetail, verdicts: ProductVerdictItem[]): ProductDetailData {
@@ -37,54 +36,69 @@ function toDetailData(detail: ProductDetail, verdicts: ProductVerdictItem[]): Pr
     updated_at: detail.updated_at,
   };
 
-  // Derive status from verdicts
+  const liveVerdicts = verdicts.filter((v) => isLiveState(v.lifecycle_state));
+  const archivedVerdicts = verdicts.filter((v) => !isLiveState(v.lifecycle_state));
+
+  // Derive status from live verdicts only
   let status: "action_required" | "under_review" | "watch" | "all_clear" = "all_clear";
-  if (verdicts.length > 0) {
-    const hasUrgent = verdicts.some((v) => URGENT_TYPES.has(v.item_type));
+  if (liveVerdicts.length > 0) {
+    const hasUrgent = liveVerdicts.some((v) => v.lifecycle_state === "urgent");
     status = hasUrgent ? "action_required" : "under_review";
   }
 
-  // Map verdicts → activeMatches shape expected by IntelligencePanel
-  const activeMatches = verdicts.map((v) => ({
-    match: {
-      id: v.item_id,
-      product_id: detail.id,
-      regulatory_item_id: v.item_id,
-      match_type: "direct_substance" as const,
-      match_method: "verdict",
-      confidence: 1,
-      matched_substances: null,
-      matched_tags: null,
-      impact_summary: v.reasoning,
-      action_items: v.action_items,
-      is_dismissed: false,
-      reviewed_at: null,
-      created_at: v.evaluated_at,
-      updated_at: v.evaluated_at,
-    },
-    item: {
-      id: v.item_id,
-      title: v.title,
-      item_type: v.item_type as FeedItemEnriched["item_type"],
-      published_date: v.published_date,
-      source_url: v.source_url,
-      issuing_office: v.issuing_office,
-      summary: v.summary,
-      urgency_score: URGENT_TYPES.has(v.item_type) ? 80 : 50,
-      relevance: "high" as const,
-      impact_summary: v.reasoning,
-      action_items: v.action_items,
-      deadline: v.deadline,
-      matched_products: [],
-    },
-    substanceIds: [],
+  function verdictToMatch(v: ProductVerdictItem) {
+    return {
+      match: {
+        id: v.item_id,
+        product_id: detail.id,
+        regulatory_item_id: v.item_id,
+        match_type: "direct_substance" as const,
+        match_method: "verdict",
+        confidence: 1,
+        matched_substances: null,
+        matched_tags: null,
+        impact_summary: v.reasoning,
+        action_items: v.action_items,
+        is_dismissed: false,
+        reviewed_at: null,
+        created_at: v.evaluated_at,
+        updated_at: v.evaluated_at,
+      },
+      item: {
+        id: v.item_id,
+        title: v.title,
+        item_type: v.item_type as FeedItemEnriched["item_type"],
+        published_date: v.published_date,
+        source_url: v.source_url,
+        issuing_office: v.issuing_office,
+        summary: v.summary,
+        urgency_score: null,
+        relevance: "high" as const,
+        impact_summary: v.reasoning,
+        action_items: v.action_items,
+        deadline: v.deadline,
+        lifecycle_state: v.lifecycle_state,
+        matched_products: [],
+      },
+      substanceIds: [],
+    };
+  }
+
+  const activeMatches = liveVerdicts.map(verdictToMatch);
+
+  const resolvedHistory = archivedVerdicts.map((v) => ({
+    id: v.item_id,
+    title: v.title,
+    resolvedAt: v.evaluated_at,
+    resolution: "resolved" as const,
+    originalStatus: "under_review" as const,
   }));
 
   return {
     product,
     status,
     activeMatches,
-    resolvedHistory: [],
+    resolvedHistory,
     lastScannedAt: verdicts[0]?.evaluated_at ?? new Date().toISOString(),
     ingredients: detail.ingredients,
   };

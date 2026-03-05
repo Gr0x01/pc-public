@@ -11,6 +11,7 @@ import type {
   ProductMatch,
 } from "@/types/database";
 import type { ItemType, RelevanceLevel } from "@/types/enums";
+import type { LifecycleState } from "@/lib/utils/lifecycle";
 
 // ---------------------------------------------------------------------------
 // Extended types for the feed and detail view (superset of DB types)
@@ -31,6 +32,7 @@ export interface FeedItemEnriched {
   impact_summary: string | null;
   action_items: string[] | null;
   deadline: string | null;
+  lifecycle_state: LifecycleState;
   // From product_matches (for current user)
   matched_products: Array<{ id: string; name: string }>;
 }
@@ -84,6 +86,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
       "Confirm per-batch testing with your contract manufacturer",
     ],
     deadline: null,
+    lifecycle_state: "active",
     matched_products: [{ id: "prod-001", name: "Marine Collagen Powder" }],
   },
   {
@@ -106,6 +109,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
       "Confirm finished product testing for milk allergens with your contract manufacturer",
     ],
     deadline: null,
+    lifecycle_state: "active",
     matched_products: [{ id: "prod-001", name: "Marine Collagen Powder" }],
   },
   {
@@ -128,6 +132,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
       "Consult formulation team on reformulation feasibility before comment period closes",
     ],
     deadline: "2026-06-15",
+    lifecycle_state: "urgent",
     matched_products: [{ id: "prod-002", name: "BHA Eye Cream SPF 15" }],
   },
   {
@@ -150,6 +155,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
       "Document all testing protocols in your SOP with effective date notation",
     ],
     deadline: "2026-08-15",
+    lifecycle_state: "active",
     matched_products: [{ id: "prod-001", name: "Marine Collagen Powder" }],
   },
   {
@@ -168,6 +174,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     impact_summary: null,
     action_items: null,
     deadline: null,
+    lifecycle_state: "active",
     matched_products: [],
   },
   {
@@ -185,6 +192,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     impact_summary: null,
     action_items: null,
     deadline: null,
+    lifecycle_state: "archived",
     matched_products: [],
   },
   {
@@ -206,6 +214,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
       "Request updated heavy metal testing certificates from your turmeric extract supplier",
     ],
     deadline: null,
+    lifecycle_state: "archived",
     matched_products: [{ id: "prod-004", name: "Turmeric Joint Formula" }],
   },
   {
@@ -223,6 +232,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     impact_summary: null,
     action_items: null,
     deadline: null,
+    lifecycle_state: "archived",
     matched_products: [],
   },
   {
@@ -245,6 +255,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
       "Submit comments by April 28, 2026 if you want to influence the final rule",
     ],
     deadline: "2026-04-28",
+    lifecycle_state: "urgent",
     matched_products: [
       { id: "prod-001", name: "Marine Collagen Powder" },
       { id: "prod-003", name: "Biotin Complex 5000mcg" },
@@ -271,6 +282,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
       "Review safety substantiation documentation for BHA Eye Cream against updated MoCRA guidance",
     ],
     deadline: null,
+    lifecycle_state: "archived",
     matched_products: [{ id: "prod-002", name: "BHA Eye Cream SPF 15" }],
   },
 ];
