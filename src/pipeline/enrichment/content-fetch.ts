@@ -2,13 +2,16 @@
  * Fetch full page content for thin RSS items before enrichment.
  *
  * RSS descriptions are 100-500 chars — not enough for accurate LLM classification.
- * This fetches the full FDA page and extracts article text so enrichment has
+ * This fetches the full source page and extracts article text so enrichment has
  * real content to work with.
+ *
+ * No host allowlist — every URL in regulatory_items.source_url came from our own
+ * fetchers, so they're already trusted. Adding an allowlist just creates a silent
+ * failure when we onboard a new source.
  */
 
 import { extractMainContent } from "../fetchers/utils";
 
-const ALLOWED_HOSTS = /^https?:\/\/(www\.fda\.gov|www\.federalregister\.gov)\//;
 const FETCH_TIMEOUT_MS = 10_000;
 
 export interface ContentFetchResult {
@@ -23,9 +26,6 @@ export interface ContentFetchResult {
 export async function fetchSourceContent(
   sourceUrl: string
 ): Promise<ContentFetchResult> {
-  if (!ALLOWED_HOSTS.test(sourceUrl)) {
-    return { content: null, error: `Not an allowed source: ${sourceUrl.slice(0, 80)}` };
-  }
 
   try {
     const controller = new AbortController();

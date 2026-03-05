@@ -15,3 +15,10 @@ const anthropic = createAnthropic({ apiKey });
  * DO NOT change this model without explicit authorization.
  */
 export const claudeSonnet = anthropic("claude-sonnet-4-6");
+
+/**
+ * claudeHaiku — fast, cheap tasks: vision fallback, simple classification.
+ * Cost: ~$1/1M input, ~$5/1M output
+ * DO NOT change this model without explicit authorization.
+ */
+export const claudeHaiku = anthropic("claude-haiku-4-5-20251001");

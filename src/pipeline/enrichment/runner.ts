@@ -136,8 +136,8 @@ export async function runEnrichment(
     async function processItem(item: RegulatoryItem, index: number) {
       const label = `[${counters.processed + counters.errors + 1}] ${item.item_type} — ${item.title.slice(0, 60)}`;
 
-      // a. Fetch full page content if source_url points to an allowed host
-      if (item.source_url && /^https?:\/\/(www\.fda\.gov|www\.federalregister\.gov)\//.test(item.source_url)) {
+      // a. Fetch full page content if source_url exists and current content is thin
+      if (item.source_url) {
         const { content, error: fetchErr } = await fetchSourceContent(item.source_url);
         if (content && content.length > (item.raw_content?.length ?? 0)) {
           await supabase

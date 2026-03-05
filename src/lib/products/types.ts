@@ -111,11 +111,21 @@ export interface ProductDetail {
   images: { id: string; storage_path: string; sort_order: number }[];
 }
 
+export interface ParsedIngredient {
+  name: string;
+  amount?: string;
+  unit?: string;
+  substanceId?: string | null;
+  normalizedName?: string | null;
+  matchStatus?: "matched" | "ambiguous" | "unmatched";
+  confidence?: number | null;
+}
+
 export interface ParsedLabel {
   imageUrls: string[];
   imagePaths: string[];
   isLabelScan: boolean;
-  ingredients: { name: string; amount?: string; unit?: string }[];
+  ingredients: ParsedIngredient[];
   productName: string | null;
   brand: string | null;
 }

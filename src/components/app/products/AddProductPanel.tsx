@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import type { DSLDSearchResult, DSLDProductDetail, ParsedLabel } from "@/lib/products/types";
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { DSLDSearchResult, DSLDProductDetail, ParsedLabel, ParsedIngredient } from "@/lib/products/types";
 import DSLDAutocomplete from "./DSLDAutocomplete";
 import LabelUpload from "./LabelUpload";
 import Spinner from "@/components/ui/Spinner";
@@ -35,7 +35,7 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
 
   // Vision / manual parsed data
   const [parsedLabel, setParsedLabel] = useState<ParsedLabel | null>(null);
-  const [editableIngredients, setEditableIngredients] = useState<{ name: string; amount?: string; unit?: string }[]>([]);
+  const [editableIngredients, setEditableIngredients] = useState<ParsedIngredient[]>([]);
   const [editableName, setEditableName] = useState("");
   const [editableBrand, setEditableBrand] = useState("");
 
@@ -113,6 +113,20 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
   // Remove ingredient from editable list
   const handleRemoveIngredient = useCallback((index: number) => {
     setEditableIngredients((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  // Add ingredient from substance autocomplete
+  const handleAddSubstance = useCallback((substance: { substanceId: string; name: string; canonicalName: string }) => {
+    setEditableIngredients((prev) => [
+      ...prev,
+      {
+        name: substance.canonicalName,
+        substanceId: substance.substanceId,
+        normalizedName: substance.canonicalName,
+        matchStatus: "matched" as const,
+        confidence: 1.0,
+      },
+    ]);
   }, []);
 
   // Submit (DSLD, label_scan, or manual)
@@ -300,28 +314,64 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
           </div>
 
           {/* Ingredient list */}
-          {editableIngredients.length > 0 && (
+          {editableIngredients.length > 0 && (<>
             <div className="border border-border rounded-lg overflow-hidden mb-4">
-              <div className="px-4 py-2.5 bg-slate-50 border-b border-border">
+              <div className="px-4 py-2.5 bg-slate-50 border-b border-border flex items-center justify-between">
                 <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Ingredients ({editableIngredients.length})
                 </p>
+                {parsedLabel?.isLabelScan && (() => {
+                  const matched = editableIngredients.filter((i) => i.matchStatus === "matched").length;
+                  const ambiguous = editableIngredients.filter((i) => i.matchStatus === "ambiguous").length;
+                  const unmatched = editableIngredients.filter((i) => i.matchStatus === "unmatched").length;
+                  const monitored = matched + ambiguous;
+                  return (
+                    <span className="text-[10px] text-text-secondary">
+                      {monitored > 0 && <span className="text-clear">{monitored} monitored</span>}
+                      {unmatched > 0 && <span className="text-text-secondary ml-2">{unmatched} not trackable</span>}
+                    </span>
+                  );
+                })()}
               </div>
               <div className="divide-y divide-border max-h-64 overflow-y-auto">
                 {editableIngredients.map((ing, i) => (
                   <div key={i} className="flex items-center justify-between px-4 py-2 text-sm group">
-                    <div className="flex items-baseline gap-2 min-w-0">
-                      <span className="text-text-body truncate">{ing.name}</span>
-                      {ing.amount && (
-                        <span className="text-xs text-text-secondary shrink-0 font-mono">
-                          {ing.amount} {ing.unit}
-                        </span>
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {ing.matchStatus && (
+                        <span
+                          className={`h-2 w-2 rounded-full shrink-0 ${
+                            ing.matchStatus === "matched" ? "bg-clear" :
+                            ing.matchStatus === "ambiguous" ? "bg-amber" :
+                            "bg-slate-300"
+                          }`}
+                        />
                       )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline gap-2">
+                          <span className={`truncate ${ing.matchStatus === "unmatched" ? "text-text-secondary" : "text-text-body"}`}>
+                            {ing.name}
+                          </span>
+                          {ing.amount && (
+                            <span className="text-xs text-text-secondary shrink-0 font-mono">
+                              {ing.amount} {ing.unit}
+                            </span>
+                          )}
+                        </div>
+                        {ing.matchStatus === "matched" && ing.normalizedName && ing.normalizedName.toLowerCase() !== ing.name.toLowerCase() && (
+                          <p className="text-[10px] text-clear truncate">Monitoring as {ing.normalizedName}</p>
+                        )}
+                        {ing.matchStatus === "ambiguous" && ing.normalizedName && (
+                          <p className="text-[10px] text-amber truncate">Possible: {ing.normalizedName}</p>
+                        )}
+                        {ing.matchStatus === "unmatched" && (
+                          <p className="text-[10px] text-text-secondary">Not in FDA substance database — won&apos;t generate alerts</p>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => handleRemoveIngredient(i)}
                       disabled={step === "submitting"}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-red-500 transition-all disabled:opacity-0"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-red-500 transition-all disabled:opacity-0 shrink-0 ml-2"
                       title="Remove ingredient"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -332,11 +382,18 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
                 ))}
               </div>
             </div>
-          )}
+            {/* Add ingredient autocomplete — outside the overflow-hidden card */}
+            <div className="mt-2">
+              <SubstanceAutocomplete
+                onSelect={handleAddSubstance}
+                disabled={step === "submitting"}
+              />
+            </div>
+          </>)}
 
           {parsedLabel?.isLabelScan && (
             <p className="text-[11px] text-text-secondary mb-4">
-              Extracted via label scan. Review and remove any incorrect ingredients before saving.
+              Green ingredients will be monitored for FDA regulatory activity. Gray ingredients are too generic to track. Add specific substances you know are in the product.
             </p>
           )}
 
@@ -445,6 +502,108 @@ function PreviewIngredients({ detail }: { detail: DSLDProductDetail }) {
         </div>
       ) : (
         <p className="text-sm text-text-secondary">No ingredient data available</p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Substance Autocomplete — typeahead against GSRS substance_names
+// ---------------------------------------------------------------------------
+
+interface SubstanceResult {
+  substanceId: string;
+  name: string;
+  canonicalName: string;
+}
+
+function SubstanceAutocomplete({
+  onSelect,
+  disabled,
+}: {
+  onSelect: (substance: SubstanceResult) => void;
+  disabled?: boolean;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SubstanceResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleChange = useCallback((value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (value.trim().length < 2) {
+      setResults([]);
+      setOpen(false);
+      return;
+    }
+
+    setLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/products/search-substances?q=${encodeURIComponent(value.trim())}`);
+        const { data } = await res.json();
+        setResults(data ?? []);
+        setOpen((data ?? []).length > 0);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 200);
+  }, []);
+
+  const handleSelect = useCallback((substance: SubstanceResult) => {
+    onSelect(substance);
+    setQuery("");
+    setResults([]);
+    setOpen(false);
+  }, [onSelect]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={() => { if (results.length > 0) setOpen(true); }}
+        placeholder="Type to search FDA substances..."
+        disabled={disabled}
+        className="w-full px-2.5 py-1.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber/50 placeholder:text-text-secondary/60 disabled:opacity-60"
+      />
+      {loading && query.length >= 2 && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+          <Spinner />
+        </div>
+      )}
+      {open && results.length > 0 && (
+        <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {results.map((r) => (
+            <button
+              key={r.substanceId}
+              onClick={() => handleSelect(r)}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-amber/5 transition-colors border-b border-border last:border-0"
+            >
+              <span className="text-text-body">{r.canonicalName}</span>
+              {r.name.toLowerCase() !== r.canonicalName.toLowerCase() && (
+                <span className="text-[11px] text-text-secondary ml-2">({r.name})</span>
+              )}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

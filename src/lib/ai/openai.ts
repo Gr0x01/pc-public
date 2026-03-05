@@ -29,4 +29,10 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   return embedding;
 }
 
+/**
+ * gpt4oMini — vision + lightweight tasks: label scanning, simple classification.
+ * Cost: ~$0.15/1M input, ~$0.60/1M output
+ */
+export const gpt4oMini = openai("gpt-4o-mini");
+
 export { embeddingModel };

@@ -46,15 +46,20 @@ export interface VisionResult {
 
 const SYSTEM_PROMPT = `You are an expert at reading product labels. Extract the INGREDIENTS LIST from one or more product label images.
 
-IMPORTANT: Look for the section labeled "Ingredients:" — a comma-separated list of what the product is made from (e.g. "Whey Protein Isolate, Natural Flavors, Salt, Sucralose").
+IMPORTANT: Look for the section labeled "Ingredients:" — a comma-separated list of what the product is made from.
 
-DO NOT extract from the "Nutrition Facts" or "Supplement Facts" panel. That panel lists nutrients like Protein, Sodium, Total Fat, Cholesterol — those are NOT ingredients.
+DO NOT extract from the "Nutrition Facts" panel. Nutrients like Protein, Sodium, Total Fat, Cholesterol are NOT ingredients.
 
-For supplement facts panels specifically, extract from the nutrient rows (e.g. Vitamin C 500mg, Biotin 5000mcg) since those ARE the active ingredients.
+For "Supplement Facts" panels, extract the nutrient rows (e.g. Vitamin C 500mg, Biotin 5000mcg) — those ARE the active ingredients.
+
+CRITICAL — We use this list to match against FDA regulatory actions. Every item you return must be an individual substance that the FDA would regulate or reference (e.g. a chemical, food additive, vitamin, mineral, plant extract).
+
+When ingredients contain parenthetical sub-ingredients, return only the individual substances from within — not the branded group name. Flatten recursively if nested.
 
 Rules:
-- List every ingredient from the "Ingredients:" text, in order
+- Return a flat list of individual substances, in the order they appear on the label
 - For supplement facts nutrients, include the amount and unit
+- Deduplicate: if the same substance appears in multiple sub-groups, list it only once
 - If you can read the product name or brand, include them
 - Combine information across all images — they may show different sides of the same product
 - Do not guess or infer ingredients that aren't visible

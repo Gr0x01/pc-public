@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { extractIngredientsFromImages } from "@/lib/products/vision";
+import { resolveSubstance } from "@/lib/products/queries";
 import { randomUUID } from "crypto";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -9,7 +10,7 @@ const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const LABEL_IMAGES_BUCKET = "label-images";
 const SIGNED_URL_EXPIRY = 3600; // 1 hour (for client preview only)
 
-export const maxDuration = 30; // seconds — vision fallback chain can be slow
+export const maxDuration = 60; // seconds — vision + substance resolution
 
 // ---------------------------------------------------------------------------
 // POST /api/products/parse-label — upload images + extract ingredients via vision
@@ -110,7 +111,27 @@ export async function POST(request: Request) {
     );
   }
 
-  // 5. Vision succeeded — upload all to Supabase Storage
+  // 5. Resolve substances — hot check against GSRS before user confirms
+  const BATCH_SIZE = 25;
+  const rawIngredients = visionResult.data.ingredients;
+  const resolutions: Awaited<ReturnType<typeof resolveSubstance>>[] = [];
+  for (let i = 0; i < rawIngredients.length; i += BATCH_SIZE) {
+    const batch = rawIngredients.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(batch.map((ing) => resolveSubstance(ing.name)));
+    resolutions.push(...results);
+  }
+
+  const ingredients = rawIngredients.map((ing, i) => ({
+    name: ing.name,
+    amount: ing.amount,
+    unit: ing.unit,
+    substanceId: resolutions[i].substance_id,
+    normalizedName: resolutions[i].normalized_name,
+    matchStatus: resolutions[i].normalization_status,
+    confidence: resolutions[i].normalization_confidence,
+  }));
+
+  // 6. Upload all to Supabase Storage
   const imagePaths: string[] = [];
   const imageUrls: string[] = [];
 
@@ -147,7 +168,7 @@ export async function POST(request: Request) {
       imageUrls,
       imagePaths,
       isLabelScan: true,
-      ingredients: visionResult.data.ingredients,
+      ingredients,
       productName: visionResult.data.product_name ?? null,
       brand: visionResult.data.brand ?? null,
     },
