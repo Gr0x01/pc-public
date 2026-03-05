@@ -1,10 +1,13 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
+
 interface AllClearCardProps {
   lastScannedAt: string;
 }
 
 export default function AllClearCard({ lastScannedAt }: AllClearCardProps) {
+  const shouldReduceMotion = useReducedMotion();
   const scanDate = new Date(lastScannedAt);
   const formatted = scanDate.toLocaleDateString("en-US", {
     month: "long",
@@ -18,7 +21,12 @@ export default function AllClearCard({ lastScannedAt }: AllClearCardProps) {
   });
 
   return (
-    <div className="border border-border rounded bg-white p-8 text-center mb-8">
+    <motion.div
+      initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
+      className="border border-border rounded bg-white p-8 text-center mb-8"
+    >
       {/* Green checkmark */}
       <div className="w-10 h-10 rounded-full bg-clear/10 flex items-center justify-center mx-auto mb-4">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-clear">
@@ -44,6 +52,6 @@ export default function AllClearCard({ lastScannedAt }: AllClearCardProps) {
           Sources checked: Federal Register, Warning Letters, Recalls, Safety Alerts
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }

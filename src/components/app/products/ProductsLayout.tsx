@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { ProductSidebarItem, ProductDetailData } from "@/lib/mock/products-data";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import type { ProductDetail } from "@/lib/products/types";
@@ -120,6 +121,7 @@ export default function ProductsLayout({
   const [highlightedSubstanceIds, setHighlightedSubstanceIds] = useState<Set<string>>(new Set());
   const [isEditing, setIsEditing] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   // C2 fix: track intended selection to prevent stale fetch from overwriting
   const intendedIdRef = useRef<string | null>(selectedId);
@@ -278,25 +280,56 @@ export default function ProductsLayout({
 
       {/* Center panel */}
       <div className="flex-1 min-w-0 overflow-y-auto lg:mt-0 mt-12">
-        {mode === "add" ? (
-          <AddProductPanel
-            onCancel={handleCancelAdd}
-            onProductAdded={handleProductAdded}
-          />
-        ) : loadingDetail ? (
-          <DetailSkeleton />
-        ) : currentDetail ? (
-          <IntelligencePanel
-            detail={currentDetail}
-            onHighlight={handleHighlight}
-            onClearHighlight={handleClearHighlight}
-            isWideLayout={false}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-text-secondary">Select a product to view.</p>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {mode === "add" ? (
+            <motion.div
+              key="add"
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <AddProductPanel
+                onCancel={handleCancelAdd}
+                onProductAdded={handleProductAdded}
+              />
+            </motion.div>
+          ) : loadingDetail ? (
+            <motion.div
+              key="skeleton"
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <DetailSkeleton />
+            </motion.div>
+          ) : currentDetail ? (
+            <motion.div
+              key={`detail-${currentDetail.product.id}`}
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <IntelligencePanel
+                detail={currentDetail}
+                onHighlight={handleHighlight}
+                onClearHighlight={handleClearHighlight}
+                isWideLayout={false}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center justify-center h-full"
+            >
+              <p className="text-sm text-text-secondary">Select a product to view.</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Product context panel (right, >=1440px only) — hidden during add mode */}

@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
 import type { ResolvedHistoryItem } from "@/lib/mock/products-data";
 
 const STATUS_BORDER_COLORS: Record<string, string> = {
@@ -10,6 +11,7 @@ const STATUS_BORDER_COLORS: Record<string, string> = {
 
 export default function HistoryPreview({ items }: { items: ResolvedHistoryItem[] }) {
   const shown = items.slice(0, 3);
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <section>
@@ -27,7 +29,12 @@ export default function HistoryPreview({ items }: { items: ResolvedHistoryItem[]
         )}
       </div>
 
-      <div className="space-y-1.5">
+      <motion.div
+        className="space-y-1.5"
+        variants={shouldReduceMotion ? undefined : { hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
+        initial="hidden"
+        animate="show"
+      >
         {shown.map((item) => {
           const date = new Date(item.resolvedAt);
           const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -36,9 +43,12 @@ export default function HistoryPreview({ items }: { items: ResolvedHistoryItem[]
             item.resolution === "resolved" ? "Resolved" : `Not Applicable${item.reason ? `: ${item.reason}` : ""}`;
 
           return (
-            <div
+            <motion.div
               key={item.id}
-              className={`border border-border ${borderColor} border-l-2 rounded bg-white px-3 py-2.5 hover:bg-surface-muted transition-colors cursor-pointer`}
+              variants={shouldReduceMotion ? undefined : { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } } }}
+              whileHover={shouldReduceMotion ? undefined : { y: -1, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className={`border border-border ${borderColor} border-l-2 rounded bg-white px-3 py-2.5 cursor-pointer`}
             >
               <div className="flex items-start gap-3">
                 <span className="font-mono text-[11px] text-text-secondary shrink-0 w-12">
@@ -53,10 +63,10 @@ export default function HistoryPreview({ items }: { items: ResolvedHistoryItem[]
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </section>
   );
 }

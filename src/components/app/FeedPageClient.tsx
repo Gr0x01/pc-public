@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback, Suspense } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import FeedFilters from "./FeedFilters";
@@ -35,6 +36,23 @@ function formatDateLabel(dateStr: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Motion variants
+// ---------------------------------------------------------------------------
+
+const staggerContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.04 } },
+};
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+};
+
+const noMotion = { hidden: {}, show: {} };
+const noMotionItem = { hidden: {}, show: {} };
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -48,6 +66,7 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
   const [isScrolled, setIsScrolled] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
   const sidebarOpen = selectedId !== null;
@@ -140,7 +159,12 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
           <div className="mt-4">
             {items.length === 0 ? (
               isMyProductsFilter ? (
-                <div className="border border-clear/20 bg-clear-muted rounded-lg p-8 text-center mt-6">
+                <motion.div
+                  initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
+                  className="border border-clear/20 bg-clear-muted rounded-lg p-8 text-center mt-6"
+                >
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-clear/10 mb-3">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                       <path d="M6 10l3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-clear" />
@@ -150,7 +174,7 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
                   <p className="text-text-secondary text-xs mt-1">
                     No active regulatory items match your monitored products.
                   </p>
-                </div>
+                </motion.div>
               ) : (
                 <div className="border border-border rounded-lg p-8 text-center mt-6">
                   <p className="text-text-secondary text-sm">No items match your filters.</p>
@@ -173,16 +197,22 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
                       </span>
                       <span className="flex-1 h-px bg-border" />
                     </div>
-                    <div className="space-y-1.5 pb-2">
+                    <motion.div
+                      className="space-y-1.5 pb-2"
+                      variants={shouldReduceMotion ? noMotion : staggerContainer}
+                      initial="hidden"
+                      animate="show"
+                    >
                       {groupItems.map((item) => (
-                        <FeedItemCard
-                          key={item.id}
-                          item={item}
-                          isSelected={item.id === selectedId}
-                          onSelect={handleSelect}
-                        />
+                        <motion.div key={item.id} variants={shouldReduceMotion ? noMotionItem : staggerItem}>
+                          <FeedItemCard
+                            item={item}
+                            isSelected={item.id === selectedId}
+                            onSelect={handleSelect}
+                          />
+                        </motion.div>
                       ))}
-                    </div>
+                    </motion.div>
                   </div>
                 ))}
               </div>
@@ -192,20 +222,31 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
       </div>
 
       {/* Sidebar */}
-      <div className="relative flex-shrink-0 overflow-hidden" style={{ width: sidebarOpen ? 480 : 0, transition: "width 200ms ease-out" }}>
-        <div
-          className={`absolute inset-y-0 right-0 w-[480px] border-l border-border bg-white transition-transform duration-200 ease-out ${
-            sidebarOpen ? "translate-x-0" : "translate-x-full"
-          }`}
-        >
-          <div className="h-full overflow-y-auto">
-            <FeedDetailPanel
-              item={selectedItem}
-              onClose={() => setSelectedId(null)}
-            />
-          </div>
-        </div>
-      </div>
+      <AnimatePresence mode="wait">
+        {sidebarOpen && selectedItem && (
+          <motion.div
+            key={selectedItem.id}
+            initial={shouldReduceMotion ? { opacity: 1 } : { width: 0, opacity: 0 }}
+            animate={{ width: 480, opacity: 1 }}
+            exit={shouldReduceMotion ? { opacity: 0 } : { width: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="relative flex-shrink-0 overflow-hidden border-l border-border bg-white"
+          >
+            <div className="w-[480px] h-full overflow-y-auto">
+              <motion.div
+                initial={shouldReduceMotion ? false : { opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut", delay: 0.05 }}
+              >
+                <FeedDetailPanel
+                  item={selectedItem}
+                  onClose={() => setSelectedId(null)}
+                />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

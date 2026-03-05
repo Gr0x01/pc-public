@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { ProductDetailData, ProductMatchWithItem } from "@/lib/mock/products-data";
 import { StatusDot, STATUS_LABELS, STATUS_TEXT_COLORS } from "./ProductsLayout";
 import MatchCard from "./MatchCard";
@@ -21,6 +22,7 @@ export default function IntelligencePanel({
   onClearHighlight,
 }: IntelligencePanelProps) {
   const { product, status, activeMatches, lastScannedAt } = detail;
+  const shouldReduceMotion = useReducedMotion();
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(
     activeMatches[0]?.match.id ?? null
   );
@@ -38,7 +40,13 @@ export default function IntelligencePanel({
   }
 
   return (
-    <div className="h-full">
+    <motion.div
+      className="h-full"
+      initial={shouldReduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      key={product.id}
+    >
       <div className="max-w-3xl mx-auto px-6 lg:px-8 py-6">
         {/* Product header */}
         <div className="mb-6">
@@ -74,16 +82,25 @@ export default function IntelligencePanel({
             <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
               Active Regulatory Items ({activeMatches.length})
             </h2>
-            <div className="space-y-3">
+            <motion.div
+              className="space-y-3"
+              variants={shouldReduceMotion ? undefined : { hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
+              initial="hidden"
+              animate="show"
+            >
               {activeMatches.map((m) => (
-                <MatchCard
+                <motion.div
                   key={m.match.id}
-                  matchWithItem={m}
-                  isExpanded={expandedMatchId === m.match.id}
-                  onToggle={() => handleExpand(m.match.id, m.substanceIds)}
-                />
+                  variants={shouldReduceMotion ? undefined : { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } } }}
+                >
+                  <MatchCard
+                    matchWithItem={m}
+                    isExpanded={expandedMatchId === m.match.id}
+                    onToggle={() => handleExpand(m.match.id, m.substanceIds)}
+                  />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </section>
         ) : (
           <AllClearCard lastScannedAt={lastScannedAt} />
@@ -99,7 +116,7 @@ export default function IntelligencePanel({
           <HistoryPreview items={detail.resolvedHistory} />
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

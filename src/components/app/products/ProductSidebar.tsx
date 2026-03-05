@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { ProductSidebarItem } from "@/lib/mock/products-data";
 import { StatusDot, STATUS_TEXT_COLORS, type ProductStatusType } from "./ProductsLayout";
 
@@ -154,6 +155,7 @@ function SidebarProductRow({
   isSelected: boolean;
   onSelect: (id: string) => void;
 }) {
+  const shouldReduceMotion = useReducedMotion();
   const statusColor = STATUS_TEXT_COLORS[item.status];
 
   const countLabel =
@@ -164,9 +166,11 @@ function SidebarProductRow({
         : `${item.activeMatchCount} active`;
 
   return (
-    <button
+    <motion.button
       onClick={() => onSelect(item.id)}
-      className={`w-full text-left px-3 py-2.5 rounded-lg flex items-start gap-3 transition-all duration-150 ${
+      whileHover={shouldReduceMotion || isSelected ? undefined : { x: 2 }}
+      transition={{ duration: 0.12, ease: "easeOut" }}
+      className={`w-full text-left px-3 py-2.5 rounded-lg flex items-start gap-3 ${
         isSelected
           ? "bg-white shadow-sm ring-1 ring-slate-200/50"
           : "hover:bg-white/60"
@@ -186,6 +190,6 @@ function SidebarProductRow({
           {countLabel && <>{item.brand && " · "}<span className={statusColor}>{countLabel}</span></>}
         </p>
       </div>
-    </button>
+    </motion.button>
   );
 }

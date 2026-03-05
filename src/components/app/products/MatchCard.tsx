@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { ProductMatchWithItem } from "@/lib/mock/products-data";
 import type { LifecycleState } from "@/lib/utils/lifecycle";
 import { StatusDot, type ProductStatusType } from "./ProductsLayout";
@@ -33,12 +34,13 @@ export default function MatchCard({ matchWithItem, isExpanded, onToggle }: Match
   const { match, item } = matchWithItem;
   const matchStatus = LIFECYCLE_TO_STATUS[item.lifecycle_state];
   const typeLabel = ACTION_TYPE_LABELS[item.item_type] ?? item.item_type;
+  const shouldReduceMotion = useReducedMotion();
 
   return (
-    <div
-      className={`border border-border rounded bg-white transition-shadow duration-150 ${
-        isExpanded ? "shadow-sm" : "hover:shadow-sm hover:-translate-y-px"
-      }`}
+    <motion.div
+      whileHover={shouldReduceMotion || isExpanded ? undefined : { y: -2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className={`border border-border rounded bg-white ${isExpanded ? "shadow-sm" : ""}`}
     >
       {/* Header — always visible, clickable */}
       <button
@@ -76,7 +78,16 @@ export default function MatchCard({ matchWithItem, isExpanded, onToggle }: Match
       </button>
 
       {/* Expanded body */}
+      <AnimatePresence initial={false}>
       {isExpanded && (
+        <motion.div
+          key="expanded"
+          initial={shouldReduceMotion ? false : { height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={shouldReduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="overflow-hidden"
+        >
         <div className="px-4 pb-4 space-y-4">
           {/* Meta row */}
           <div className="flex items-center gap-2 text-[11px] font-mono text-text-secondary">
@@ -158,7 +169,9 @@ export default function MatchCard({ matchWithItem, isExpanded, onToggle }: Match
             </a>
           </div>
         </div>
+        </motion.div>
       )}
-    </div>
+      </AnimatePresence>
+    </motion.div>
   );
 }

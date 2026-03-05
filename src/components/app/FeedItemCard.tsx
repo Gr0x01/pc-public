@@ -1,3 +1,6 @@
+"use client";
+
+import { motion, useReducedMotion } from "framer-motion";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import { formatDateShort } from "@/lib/utils/format";
 import ItemTypeTag from "./ItemTypeTag";
@@ -13,14 +16,17 @@ export default function FeedItemCard({ item, isSelected, onSelect }: FeedItemCar
   const hasEnrichment = item.summary !== null;
   const ls = item.lifecycle_state;
   const isReduced = ls === "grace" || ls === "archived";
+  const shouldReduceMotion = useReducedMotion();
 
   return (
-    <button
+    <motion.button
       onClick={() => onSelect(item.id)}
-      className={`group w-full text-left rounded bg-white p-3 transition-all duration-150 ease-out border ${
+      whileHover={shouldReduceMotion || isSelected ? undefined : { y: -2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className={`group w-full text-left rounded bg-white p-3 border ${
         isSelected
           ? "border-border-strong border-l-amber border-l-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-          : "border-border hover:border-border-strong hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
+          : "border-border"
       } ${isReduced ? "opacity-60" : ""}`}
     >
       {/* Top row: type tag + date */}
@@ -64,6 +70,6 @@ export default function FeedItemCard({ item, isSelected, onSelect }: FeedItemCar
           {item.impact_summary}
         </p>
       )}
-    </button>
+    </motion.button>
   );
 }
