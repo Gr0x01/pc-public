@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { ProductSidebarItem, ProductDetailData } from "@/lib/mock/products-data";
+import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import type { ProductDetail } from "@/lib/products/types";
+import type { ProductVerdictItem } from "@/lib/products/queries";
 import type { SubscriberProduct } from "@/types/database";
 import ProductSidebar from "./ProductSidebar";
 import IntelligencePanel from "./IntelligencePanel";
@@ -14,11 +16,13 @@ interface ProductsLayoutProps {
   maxProducts: number;
 }
 
-/** Map API ProductDetail → the ProductDetailData shape used by Intelligence/Context panels */
-function toDetailData(detail: ProductDetail): ProductDetailData {
+const URGENT_TYPES = new Set(["recall", "safety_alert", "warning_letter"]);
+
+/** Map API ProductDetail + verdicts → the ProductDetailData shape used by Intelligence/Context panels */
+function toDetailData(detail: ProductDetail, verdicts: ProductVerdictItem[]): ProductDetailData {
   const product: SubscriberProduct = {
     id: detail.id,
-    user_id: "", // Not needed client-side; API doesn't expose it
+    user_id: "",
     name: detail.name,
     brand: detail.brand,
     product_type: detail.product_type as SubscriberProduct["product_type"],
@@ -33,12 +37,55 @@ function toDetailData(detail: ProductDetail): ProductDetailData {
     updated_at: detail.updated_at,
   };
 
+  // Derive status from verdicts
+  let status: "action_required" | "under_review" | "watch" | "all_clear" = "all_clear";
+  if (verdicts.length > 0) {
+    const hasUrgent = verdicts.some((v) => URGENT_TYPES.has(v.item_type));
+    status = hasUrgent ? "action_required" : "under_review";
+  }
+
+  // Map verdicts → activeMatches shape expected by IntelligencePanel
+  const activeMatches = verdicts.map((v) => ({
+    match: {
+      id: v.item_id,
+      product_id: detail.id,
+      regulatory_item_id: v.item_id,
+      match_type: "direct_substance" as const,
+      match_method: "verdict",
+      confidence: 1,
+      matched_substances: null,
+      matched_tags: null,
+      impact_summary: v.reasoning,
+      action_items: v.action_items,
+      is_dismissed: false,
+      reviewed_at: null,
+      created_at: v.evaluated_at,
+      updated_at: v.evaluated_at,
+    },
+    item: {
+      id: v.item_id,
+      title: v.title,
+      item_type: v.item_type as FeedItemEnriched["item_type"],
+      published_date: v.published_date,
+      source_url: v.source_url,
+      issuing_office: v.issuing_office,
+      summary: v.summary,
+      urgency_score: URGENT_TYPES.has(v.item_type) ? 80 : 50,
+      relevance: "high" as const,
+      impact_summary: v.reasoning,
+      action_items: v.action_items,
+      deadline: v.deadline,
+      matched_products: [],
+    },
+    substanceIds: [],
+  }));
+
   return {
     product,
-    status: "all_clear",
-    activeMatches: [],
+    status,
+    activeMatches,
     resolvedHistory: [],
-    lastScannedAt: new Date().toISOString(),
+    lastScannedAt: verdicts[0]?.evaluated_at ?? new Date().toISOString(),
     ingredients: detail.ingredients,
   };
 }
@@ -81,8 +128,8 @@ export default function ProductsLayout({
     try {
       const res = await fetch(`/api/products/${id}`);
       if (!res.ok) throw new Error("Failed to fetch product detail");
-      const { data } = (await res.json()) as { data: ProductDetail };
-      const detail = toDetailData(data);
+      const { data, verdicts } = (await res.json()) as { data: ProductDetail; verdicts: ProductVerdictItem[] };
+      const detail = toDetailData(data, verdicts ?? []);
       detailCache.current.set(id, detail);
       // C2 fix: only apply if user hasn't navigated away during fetch
       if (intendedIdRef.current === id) {

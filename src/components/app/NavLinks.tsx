@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/app/products", label: "Products", matchPrefixes: ["/app/products"] },
   { href: "/app/feed", label: "Feed", matchPrefixes: ["/app/feed", "/app/items"] },
-  { href: "/app/search", label: "Search", matchPrefixes: ["/app/search"] },
 ] as const;
 
 export default function NavLinks() {

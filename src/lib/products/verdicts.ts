@@ -53,26 +53,29 @@ const VerdictOutputSchema = z.object({
 // Prompt
 // ---------------------------------------------------------------------------
 
-const VERDICT_SYSTEM_PROMPT = `You are a regulatory document analyst. You receive an FDA regulatory action and a list of subscriber products. For each product, decide: does this action ACTUALLY affect this specific product?
+const VERDICT_SYSTEM_PROMPT = `You are a regulatory compliance analyst. Given an FDA regulatory action and subscriber products, determine: does the product owner need to take action because of this?
 
-## RULES
+## RELEVANT — flag these
 
-1. A product is affected ONLY if:
-   - The action targets a substance that is IN the product (ingredient match), OR
-   - The action targets the product's category directly (e.g., "all dairy facilities must register" affects a dairy product), OR
-   - The action creates a supply chain risk for the product's ingredients
+- Industry-wide rules, bans, or regulations that apply to the product's category or an ingredient it contains (e.g., "FDA bans Red No. 3" affects any product with Red No. 3)
+- Systemic contamination affecting an ingredient supply broadly across multiple suppliers
+- New labeling, testing, or registration requirements for the product's category
+- Genuine gray areas where the product COULD be affected — when in doubt, flag it
 
-2. A product is NOT affected when:
-   - The only overlap is a common substance (salt, water, sugar, citric acid) that is incidental to both the action and the product
-   - The action is about a specific company/facility and the product is from a different company
-   - The action is about a different product type even if they share an ingredient
-   - The overlap is purely coincidental (e.g., both mention "milk" but the action is about mislabeled milk at one factory, not a milk safety issue)
+## NOT RELEVANT — these are obvious noise, filter them out
 
-3. When in doubt, say NOT relevant. False alarms erode trust.
+- Recalls of a specific company's product. Read the title: if it names a brand, UPC, lot number, or package description, it is that company's problem — not every product sharing an ingredient.
+- Facility-specific warning letters or GMP violations at another company
+- Allergen mislabeling at another company — their labeling failure does not affect your product
+- Coincidental ingredient overlap. Both products contain cinnamon, sugar, whey, etc., but the action is about one company's specific product — not the ingredient supply.
 
-4. Keep reasoning to ONE sentence explaining why or why not.
+## KEY TEST
 
-Return a verdict for EVERY product in the list.`;
+"Is this about a systemic risk to an ingredient or product category? Or is it about one specific company's failure?"
+
+If it names a specific company, product, UPC, lot number, or facility — and the subscriber's product is from a different company — it is NOT relevant. This is not a gray area.
+
+Keep reasoning to ONE sentence. Return a verdict for EVERY product.`;
 
 function buildVerdictPrompt(
   item: EnrichmentData,

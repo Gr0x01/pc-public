@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { countActiveProducts, getFeedItems } from "@/lib/products/queries";
-import { MOCK_FEED_ITEMS } from "@/lib/mock/app-data";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import type { ItemType } from "@/types/enums";
 import FeedPageClient from "@/components/app/FeedPageClient";
@@ -10,7 +9,7 @@ import AutoCheckout from "@/components/app/AutoCheckout";
 
 // TODO: remove dev bypass before launch
 const isDev = process.env.NODE_ENV === "development";
-const USE_MOCK = true;
+const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
 
 const VALID_TYPES = new Set<string>([
   "warning_letter", "recall", "rule", "proposed_rule", "notice",
@@ -64,32 +63,28 @@ interface FeedPageProps {
 
 export default async function FeedPage({ searchParams }: FeedPageProps) {
   let productCount = 0;
-  let userId: string | null = null;
+  let userId: string;
 
-  if (!isDev) {
+  if (isDev) {
+    userId = DEV_USER_ID;
+  } else {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) redirect("/login");
     userId = user.id;
-    productCount = await countActiveProducts(user.id).catch(() => 0);
   }
+
+  productCount = await countActiveProducts(userId).catch(() => 0);
 
   const params = await searchParams;
   const type = params.type ?? null;
   const range = params.range ?? null;
   const myProducts = params.myProducts === "true";
 
-  let items: FeedItemEnriched[];
-  if (USE_MOCK) {
-    items = filterItems(MOCK_FEED_ITEMS, type, range, myProducts);
-  } else if (userId) {
-    const feedItems = await getFeedItems(userId, { limit: 100 });
-    items = filterItems(feedItems, type, range, myProducts);
-  } else {
-    items = [];
-  }
+  const feedItems = await getFeedItems(userId, { limit: 100 });
+  const items = filterItems(feedItems, type, range, myProducts);
 
   return (
     <>

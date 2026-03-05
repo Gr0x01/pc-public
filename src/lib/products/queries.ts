@@ -9,7 +9,7 @@ import type {
   ProductIngredientRow,
 } from "./types";
 import type { NormalizationStatus, ItemType } from "@/types/enums";
-import type { FeedItemEnriched } from "@/lib/mock/app-data";
+import type { FeedItemEnriched, ItemDetailData } from "@/lib/mock/app-data";
 
 // ---------------------------------------------------------------------------
 // DSLD Search
@@ -407,13 +407,7 @@ export async function getFeedItems(
   }
 
   return items.map((item) => {
-    const enrichment = (item.item_enrichments as unknown as Array<{
-      summary: string | null;
-      regulatory_action_type: string | null;
-      deadline: string | null;
-      raw_response: Record<string, unknown> | null;
-    }> | null)?.[0] ?? null;
-
+    const enrichment = parseEnrichment(item.item_enrichments);
     const raw = enrichment?.raw_response;
     const actionItems = (raw?.action_items as string[] | undefined) ?? null;
 
@@ -433,4 +427,243 @@ export async function getFeedItems(
       matched_products: verdictMap.get(item.id) ?? [],
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+interface ParsedEnrichment {
+  id: string;
+  summary: string | null;
+  regulatory_action_type: string | null;
+  deadline: string | null;
+  raw_response: Record<string, unknown> | null;
+  confidence: number | null;
+  enrichment_model: string | null;
+  enrichment_version: number;
+  verification_status: string | null;
+  key_regulations: string[] | null;
+  key_entities: string[] | null;
+}
+
+function parseEnrichment(raw: unknown): ParsedEnrichment | null {
+  if (!raw) return null;
+  // Supabase returns nested relations as array; handle single object too
+  const e = Array.isArray(raw) ? raw[0] : raw;
+  if (!e || typeof e !== "object") return null;
+  return {
+    id: (e.id as string) ?? "",
+    summary: (e.summary as string) ?? null,
+    regulatory_action_type: (e.regulatory_action_type as string) ?? null,
+    deadline: (e.deadline as string) ?? null,
+    raw_response: (e.raw_response as Record<string, unknown>) ?? null,
+    confidence: (e.confidence as number) ?? null,
+    enrichment_model: (e.enrichment_model as string) ?? null,
+    enrichment_version: (e.enrichment_version as number) ?? 1,
+    verification_status: (e.verification_status as string) ?? null,
+    key_regulations: (e.key_regulations as string[]) ?? null,
+    key_entities: (e.key_entities as string[]) ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Item detail: single regulatory item with full enrichment + verdicts
+// ---------------------------------------------------------------------------
+
+export async function getItemDetail(
+  itemId: string,
+  userId: string
+): Promise<ItemDetailData | null> {
+  const { data: item, error } = await adminClient
+    .from("regulatory_items")
+    .select(`
+      id, title, item_type, published_date, source_url, issuing_office,
+      action_text, cfr_references, jurisdiction, jurisdiction_state,
+      effective_date, comment_deadline, docket_number, fr_citation,
+      processing_status,
+      enforcement_company_name, enforcement_company_address,
+      enforcement_products, enforcement_violation_types,
+      enforcement_cited_regulations, enforcement_fei_number,
+      enforcement_marcs_cms_number, enforcement_recall_classification,
+      enforcement_recall_status, enforcement_distribution_pattern,
+      enforcement_product_quantity,
+      created_at, updated_at,
+      item_enrichments(
+        id, summary, key_regulations, key_entities, enrichment_model,
+        enrichment_version, confidence, verification_status, raw_response,
+        regulatory_action_type, deadline, created_at
+      )
+    `)
+    .eq("id", itemId)
+    .maybeSingle();
+
+  if (error || !item) return null;
+
+  // Substances
+  const { data: substances } = await adminClient
+    .from("regulatory_item_substances")
+    .select("raw_substance_name")
+    .eq("regulatory_item_id", itemId);
+
+  // Verdicts for this user
+  const { data: verdicts } = await adminClient
+    .from("product_match_verdicts")
+    .select("product_id, relevant, subscriber_products(id, name)")
+    .eq("item_id", itemId)
+    .eq("user_id", userId)
+    .eq("relevant", true);
+
+  const matchedProducts = (verdicts ?? [])
+    .map((v) => {
+      const p = v.subscriber_products as unknown as { id: string; name: string } | null;
+      return p ? { id: p.id, name: p.name } : null;
+    })
+    .filter((p): p is { id: string; name: string } => p !== null);
+
+  const enrichmentRaw = parseEnrichment(item.item_enrichments);
+  const raw = enrichmentRaw?.raw_response;
+  const actionItems = Array.isArray(raw?.action_items) ? (raw!.action_items as string[]) : null;
+
+  const enrichment = enrichmentRaw
+    ? {
+        id: enrichmentRaw.id,
+        item_id: itemId,
+        summary: enrichmentRaw.summary ?? "",
+        key_regulations: enrichmentRaw.key_regulations,
+        key_entities: enrichmentRaw.key_entities,
+        enrichment_model: enrichmentRaw.enrichment_model ?? "unknown",
+        enrichment_version: enrichmentRaw.enrichment_version,
+        confidence: enrichmentRaw.confidence,
+        verification_status: (enrichmentRaw.verification_status ?? "unverified") as "unverified" | "verified" | "rejected",
+        raw_response: enrichmentRaw.raw_response,
+        regulatory_action_type: enrichmentRaw.regulatory_action_type,
+        deadline: enrichmentRaw.deadline,
+        created_at: item.created_at,
+      }
+    : null;
+
+  return {
+    item: item as unknown as ItemDetailData["item"],
+    enrichment,
+    relevance: matchedProducts.length > 0 ? "high" : null,
+    action_items: actionItems,
+    substances: (substances ?? []).map((s) => ({ raw_substance_name: s.raw_substance_name })),
+    matched_products: matchedProducts,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Product verdicts: regulatory items with relevant verdicts for a product
+// ---------------------------------------------------------------------------
+
+export interface ProductVerdictItem {
+  id: string; // verdict composite key: item_id
+  item_id: string;
+  reasoning: string;
+  evaluated_at: string;
+  title: string;
+  item_type: string;
+  published_date: string;
+  source_url: string | null;
+  issuing_office: string | null;
+  summary: string | null;
+  action_items: string[] | null;
+  deadline: string | null;
+  regulatory_action_type: string | null;
+}
+
+export async function getProductVerdicts(
+  productId: string,
+  userId: string
+): Promise<ProductVerdictItem[]> {
+  const { data: verdicts, error } = await adminClient
+    .from("product_match_verdicts")
+    .select(`
+      item_id, reasoning, evaluated_at,
+      regulatory_items(
+        id, title, item_type, published_date, source_url, issuing_office,
+        item_enrichments(summary, regulatory_action_type, deadline, raw_response)
+      )
+    `)
+    .eq("product_id", productId)
+    .eq("user_id", userId)
+    .eq("relevant", true)
+    .order("evaluated_at", { ascending: false });
+
+  if (error || !verdicts) {
+    console.error("[products] getProductVerdicts error:", error);
+    return [];
+  }
+
+  return verdicts
+    .map((v) => {
+      const item = v.regulatory_items as unknown as {
+        id: string;
+        title: string;
+        item_type: string;
+        published_date: string;
+        source_url: string | null;
+        issuing_office: string | null;
+        item_enrichments: Array<{
+          summary: string | null;
+          regulatory_action_type: string | null;
+          deadline: string | null;
+          raw_response: Record<string, unknown> | null;
+        }> | null;
+      } | null;
+      if (!item) return null;
+
+      const enrichment = item.item_enrichments?.[0] ?? null;
+      const raw = enrichment?.raw_response;
+      const actionItems = Array.isArray(raw?.action_items) ? (raw!.action_items as string[]) : null;
+
+      return {
+        id: v.item_id,
+        item_id: v.item_id,
+        reasoning: v.reasoning,
+        evaluated_at: v.evaluated_at,
+        title: item.title,
+        item_type: item.item_type,
+        published_date: item.published_date,
+        source_url: item.source_url,
+        issuing_office: item.issuing_office,
+        summary: enrichment?.summary ?? null,
+        action_items: actionItems,
+        deadline: enrichment?.deadline ?? null,
+        regulatory_action_type: enrichment?.regulatory_action_type ?? null,
+      };
+    })
+    .filter((v): v is ProductVerdictItem => v !== null);
+}
+
+/**
+ * Get verdict counts per product for deriving sidebar status.
+ */
+export async function getProductVerdictCounts(
+  userId: string
+): Promise<Map<string, { total: number; urgent: number }>> {
+  const { data, error } = await adminClient
+    .from("product_match_verdicts")
+    .select(`
+      product_id,
+      regulatory_items!inner(item_type)
+    `)
+    .eq("user_id", userId)
+    .eq("relevant", true);
+
+  if (error || !data) return new Map();
+
+  const URGENT_TYPES = new Set(["recall", "safety_alert", "warning_letter"]);
+  const counts = new Map<string, { total: number; urgent: number }>();
+
+  for (const row of data) {
+    const itemType = (row.regulatory_items as unknown as { item_type: string })?.item_type;
+    const entry = counts.get(row.product_id) ?? { total: 0, urgent: 0 };
+    entry.total++;
+    if (URGENT_TYPES.has(itemType)) entry.urgent++;
+    counts.set(row.product_id, entry);
+  }
+
+  return counts;
 }

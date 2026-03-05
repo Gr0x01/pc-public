@@ -1,24 +1,14 @@
 import Link from "next/link";
-import { MOCK_ITEM_DETAIL, MOCK_FEED_ITEMS } from "@/lib/mock/app-data";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getItemDetail } from "@/lib/products/queries";
 import type { ItemDetailData } from "@/lib/mock/app-data";
 import { formatDate } from "@/lib/utils/format";
 import ItemTypeTag from "@/components/app/ItemTypeTag";
 
-const USE_MOCK = true;
-
-function urgencyLabel(score: number | null | undefined): string | null {
-  if (score == null) return null;
-  if (score >= 80) return "Urgent";
-  if (score >= 60) return "Watch";
-  return null;
-}
-
-function urgencyColor(score: number | null | undefined): string {
-  if (score == null) return "";
-  if (score >= 80) return "bg-urgent/15 text-urgent border-urgent/30";
-  if (score >= 60) return "bg-amber/15 text-amber border-amber/30";
-  return "bg-slate-500/10 text-slate-600 border-slate-500/20";
-}
+// TODO: remove dev bypass before launch
+const isDev = process.env.NODE_ENV === "development";
+const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
 
 function relevanceLabel(rel: string | null): string | null {
   if (!rel) return null;
@@ -37,86 +27,17 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
   const backHref = from === "products" ? "/app/products" : "/app/feed";
   const backLabel = from === "products" ? "Products" : "Feed";
 
-  let detail: ItemDetailData | null = null;
-  // urgency_score comes from FeedItemEnriched directly; ItemEnrichment uses confidence
-  let urgencyScore: number | null = null;
-
-  if (USE_MOCK) {
-    const feedItem = MOCK_FEED_ITEMS.find((i) => i.id === id);
-    if (feedItem) {
-      urgencyScore = feedItem.urgency_score;
-      detail = {
-        item: {
-          id: feedItem.id,
-          source_id: "mock",
-          source_ref: feedItem.id,
-          title: feedItem.title,
-          item_type: feedItem.item_type,
-          published_date: feedItem.published_date,
-          source_url: feedItem.source_url,
-          issuing_office: feedItem.issuing_office,
-          action_text: feedItem.summary,
-          cfr_references: null,
-          raw_content: null,
-          jurisdiction: "federal",
-          jurisdiction_state: null,
-          effective_date: null,
-          comment_deadline: null,
-          docket_number: null,
-          fr_citation: null,
-          page_views: null,
-          significant: null,
-          processing_status: "ok",
-          processing_error: null,
-          enforcement_company_name: null,
-          enforcement_company_address: null,
-          enforcement_products: null,
-          enforcement_violation_types: null,
-          enforcement_cited_regulations: null,
-          enforcement_fei_number: null,
-          enforcement_marcs_cms_number: null,
-          enforcement_recipient_name: null,
-          enforcement_recipient_title: null,
-          enforcement_response_received: null,
-          enforcement_closeout: null,
-          enforcement_recall_classification: null,
-          enforcement_recall_status: null,
-          enforcement_voluntary_mandated: null,
-          enforcement_distribution_pattern: null,
-          enforcement_product_quantity: null,
-          created_at: feedItem.published_date,
-          updated_at: feedItem.published_date,
-        },
-        enrichment: feedItem.summary
-          ? {
-              id: `enr-${feedItem.id}`,
-              item_id: feedItem.id,
-              summary: feedItem.summary,
-              key_regulations: null,
-              key_entities: null,
-              enrichment_model: "mock",
-              enrichment_version: 1,
-              confidence: feedItem.urgency_score ? feedItem.urgency_score / 100 : null,
-              verification_status: "unverified",
-              raw_response: null,
-              regulatory_action_type: null,
-              deadline: feedItem.deadline ?? null,
-              created_at: feedItem.published_date,
-            }
-          : null,
-        relevance: feedItem.relevance ?? null,
-        action_items: feedItem.action_items ?? null,
-        substances: [],
-        matched_products: feedItem.matched_products,
-      };
-    } else {
-      // Fallback for IDs not in MOCK_FEED_ITEMS
-      detail = MOCK_ITEM_DETAIL;
-      urgencyScore = detail.enrichment?.confidence
-        ? Math.round(detail.enrichment.confidence * 100)
-        : null;
-    }
+  let userId: string;
+  if (isDev) {
+    userId = DEV_USER_ID;
+  } else {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+    userId = user.id;
   }
+
+  const detail: ItemDetailData | null = await getItemDetail(id, userId);
 
   if (!detail) {
     return (
@@ -150,13 +71,6 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3">
           <ItemTypeTag type={item.item_type} />
-          {urgencyLabel(urgencyScore) && (
-            <span
-              className={`inline-block rounded px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wide leading-relaxed ${urgencyColor(urgencyScore)}`}
-            >
-              {urgencyLabel(urgencyScore)}
-            </span>
-          )}
           {relevance && (
             <span className="inline-block rounded px-2 py-0.5 border bg-slate-500/10 text-slate-600 border-slate-500/25 font-mono text-[10px] uppercase tracking-wide leading-relaxed">
               {relevanceLabel(relevance)}

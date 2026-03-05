@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { getProductById } from "@/lib/products/queries";
+import { getProductById, getProductVerdicts } from "@/lib/products/queries";
 import { UpdateProductSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -49,7 +49,9 @@ export async function GET(
     );
   }
 
-  return Response.json({ data });
+  const verdicts = await getProductVerdicts(id, userId);
+
+  return Response.json({ data, verdicts });
 }
 
 // ---------------------------------------------------------------------------
