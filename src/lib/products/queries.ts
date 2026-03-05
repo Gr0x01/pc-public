@@ -594,6 +594,8 @@ export interface ProductVerdictItem {
   deadline: string | null;
   regulatory_action_type: string | null;
   lifecycle_state: LifecycleState;
+  substance_ids: string[];
+  has_cross_reference: boolean;
 }
 
 export async function getProductVerdicts(
@@ -606,7 +608,9 @@ export async function getProductVerdicts(
       item_id, reasoning, evaluated_at, resolution, resolved_at,
       regulatory_items(
         id, title, item_type, published_date, source_url, issuing_office,
-        item_enrichments(summary, regulatory_action_type, deadline, raw_response)
+        item_enrichments(summary, regulatory_action_type, deadline, raw_response),
+        regulatory_item_substances(substance_id),
+        item_enrichment_tags(signal_source)
       )
     `)
     .eq("product_id", productId)
@@ -634,6 +638,8 @@ export async function getProductVerdicts(
           deadline: string | null;
           raw_response: Record<string, unknown> | null;
         }> | null;
+        regulatory_item_substances: Array<{ substance_id: string }> | null;
+        item_enrichment_tags: Array<{ signal_source: string | null }> | null;
       } | null;
       if (!item) return null;
 
@@ -663,6 +669,10 @@ export async function getProductVerdicts(
         deadline,
         regulatory_action_type: enrichment?.regulatory_action_type ?? null,
         lifecycle_state,
+        substance_ids: (item.regulatory_item_substances ?? []).map((s) => s.substance_id),
+        has_cross_reference: (item.item_enrichment_tags ?? []).some(
+          (t) => t.signal_source === "cross_reference"
+        ),
       };
     })
     .filter((v): v is ProductVerdictItem => v !== null);
@@ -685,4 +695,48 @@ export async function getProductVerdictCounts(
     counts.set(row.product_id, { total: row.total, urgent: row.urgent, watching: row.watching });
   }
   return counts;
+}
+
+// ---------------------------------------------------------------------------
+// Ingredient Use Codes (from GSRS substance_codes)
+// ---------------------------------------------------------------------------
+
+const RELEVANT_CODE_SYSTEMS = [
+  "CFR", "DSLD", "JECFA", "CODEX", "RXCUI", "DRUG BANK", "DAILYMED", "EPA PESTICIDE",
+];
+
+const CODE_SYSTEM_LABELS: Record<string, string> = {
+  CFR: "CFR",
+  DSLD: "Supplement (DSLD)",
+  JECFA: "Food Additive (JECFA)",
+  CODEX: "Codex Alimentarius",
+  RXCUI: "Pharmaceutical (RxNorm)",
+  "DRUG BANK": "Drug (DrugBank)",
+  DAILYMED: "Drug Label (DailyMed)",
+  "EPA PESTICIDE": "Pesticide (EPA)",
+};
+
+export async function getIngredientUseCodes(
+  substanceIds: string[]
+): Promise<Map<string, string[]>> {
+  if (substanceIds.length === 0) return new Map();
+
+  const { data, error } = await adminClient
+    .from("substance_codes")
+    .select("substance_id, code_system")
+    .in("substance_id", substanceIds)
+    .in("code_system", RELEVANT_CODE_SYSTEMS);
+
+  if (error || !data) return new Map();
+
+  const result = new Map<string, string[]>();
+  for (const row of data) {
+    const label = CODE_SYSTEM_LABELS[row.code_system] ?? row.code_system;
+    const existing = result.get(row.substance_id) ?? [];
+    if (!existing.includes(label)) {
+      existing.push(label);
+      result.set(row.substance_id, existing);
+    }
+  }
+  return result;
 }

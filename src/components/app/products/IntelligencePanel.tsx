@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { ProductDetailData } from "@/lib/mock/products-data";
 import type { VerdictResolution } from "@/lib/products/queries";
 import { StatusDot, STATUS_LABELS, STATUS_TEXT_COLORS } from "./ProductsLayout";
+import { formatDateShort } from "@/lib/utils/format";
 import MatchCard from "./MatchCard";
 import AllClearCard from "./AllClearCard";
 import ProductContextInline from "./ProductContextInline";
@@ -16,6 +17,7 @@ interface IntelligencePanelProps {
   onClearHighlight: () => void;
   onResolveVerdict: (itemId: string, productId: string, resolution: VerdictResolution) => void;
   isWideLayout: boolean;
+  initialExpandedItemId?: string;
 }
 
 export default function IntelligencePanel({
@@ -23,12 +25,16 @@ export default function IntelligencePanel({
   onHighlight,
   onClearHighlight,
   onResolveVerdict,
+  initialExpandedItemId,
 }: IntelligencePanelProps) {
   const { product, status, activeMatches, lastScannedAt } = detail;
   const shouldReduceMotion = useReducedMotion();
-  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(
-    activeMatches[0]?.match.id ?? null
-  );
+
+  // Prefer URL-provided item if it matches an active match, else first match
+  const defaultExpanded = initialExpandedItemId && activeMatches.some((m) => m.match.id === initialExpandedItemId)
+    ? initialExpandedItemId
+    : activeMatches[0]?.match.id ?? null;
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(defaultExpanded);
 
   const scannedAgo = getTimeAgo(lastScannedAt);
 
@@ -78,6 +84,49 @@ export default function IntelligencePanel({
             </span>
           </div>
         </div>
+
+        {/* Status summary banner — only when there are active items */}
+        {activeMatches.length > 0 && (() => {
+          const totalActions = activeMatches.reduce(
+            (sum, m) => sum + (m.item.action_items?.length ?? 0), 0
+          );
+          const deadlines = activeMatches
+            .map((m) => m.item.deadline)
+            .filter((d): d is string => d !== null)
+            .sort();
+          const nearestDeadline = deadlines[0] ?? null;
+          return (
+            <div className="flex items-center gap-4 flex-wrap mb-5 px-3 py-2.5 rounded bg-surface-muted border border-border">
+              <span className="font-mono text-xs text-text-body">
+                <span className="font-semibold">{activeMatches.length}</span> active item{activeMatches.length !== 1 ? "s" : ""}
+              </span>
+              {totalActions > 0 && (
+                <>
+                  <span className="text-border-strong text-[10px]">·</span>
+                  <span className="font-mono text-xs text-text-body">
+                    <span className="font-semibold">{totalActions}</span> action item{totalActions !== 1 ? "s" : ""}
+                  </span>
+                </>
+              )}
+              {nearestDeadline && (
+                <>
+                  <span className="text-border-strong text-[10px]">·</span>
+                  <span className="font-mono text-xs text-amber font-medium">
+                    Next deadline: {formatDateShort(nearestDeadline)}
+                  </span>
+                </>
+              )}
+              {detail.ingredients && detail.ingredients.length > 0 && (
+                <>
+                  <span className="text-border-strong text-[10px]">·</span>
+                  <span className="font-mono text-xs text-text-secondary">
+                    {detail.ingredients.length} ingredient{detail.ingredients.length !== 1 ? "s" : ""} monitored
+                  </span>
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Active matches OR all-clear */}
         {activeMatches.length > 0 ? (

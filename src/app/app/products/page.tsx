@@ -16,7 +16,16 @@ function deriveStatus(counts: { total: number; urgent: number; watching: number 
   return "under_review";
 }
 
-export default async function ProductsPage() {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+interface ProductsPageProps {
+  searchParams: Promise<{ product?: string; item?: string }>;
+}
+
+export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  const sp = await searchParams;
+  const initialProductId = sp.product && UUID_RE.test(sp.product) ? sp.product : undefined;
+  const initialItemId = sp.item && UUID_RE.test(sp.item) ? sp.item : undefined;
   let userId: string;
   if (isDev) {
     userId = DEV_USER_ID;
@@ -50,6 +59,8 @@ export default async function ProductsPage() {
     <ProductsLayout
       sidebarItems={sidebarItems}
       maxProducts={maxProducts}
+      initialProductId={initialProductId}
+      initialItemId={initialItemId}
     />
   );
 }

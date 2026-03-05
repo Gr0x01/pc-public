@@ -24,6 +24,7 @@ export interface ProductMatchWithItem {
   item: FeedItemEnriched;
   substanceIds: string[]; // substance IDs from the match for ingredient highlighting
   resolution?: VerdictResolution;
+  hasCrossReference?: boolean;
 }
 
 export interface ProductSidebarItem {

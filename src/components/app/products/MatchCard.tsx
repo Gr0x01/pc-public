@@ -97,9 +97,16 @@ export default function MatchCard({ matchWithItem, isExpanded, onToggle, onResol
             </div>
           )}
         </div>
-        <span className="shrink-0 font-mono text-[10px] text-text-secondary bg-surface-muted border border-border rounded px-2 py-0.5 uppercase tracking-wide">
-          {typeLabel}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {matchWithItem.hasCrossReference && (
+            <span className="font-mono text-[10px] font-medium text-amber bg-amber/10 border border-amber/25 rounded px-2 py-0.5 uppercase tracking-wide">
+              Cross-sector
+            </span>
+          )}
+          <span className="font-mono text-[10px] text-text-secondary bg-surface-muted border border-border rounded px-2 py-0.5 uppercase tracking-wide">
+            {typeLabel}
+          </span>
+        </div>
       </button>
 
       {/* Expanded body */}

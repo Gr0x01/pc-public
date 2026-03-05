@@ -16,6 +16,8 @@ import AddProductPanel from "./AddProductPanel";
 interface ProductsLayoutProps {
   sidebarItems: ProductSidebarItem[];
   maxProducts: number;
+  initialProductId?: string;
+  initialItemId?: string;
 }
 
 /** Map API ProductDetail + verdicts → the ProductDetailData shape used by Intelligence/Context panels */
@@ -58,6 +60,12 @@ function toDetailData(detail: ProductDetail, verdicts: ProductVerdictItem[]): Pr
   }
 
   function verdictToMatch(v: ProductVerdictItem) {
+    // Compute intersection: verdict's substance_ids ∩ product ingredient substance_ids
+    const productSubstanceIds = new Set(
+      (detail.ingredients ?? []).map((ing) => ing.substance_id).filter(Boolean)
+    );
+    const matchedSubstanceIds = v.substance_ids.filter((sid) => productSubstanceIds.has(sid));
+
     return {
       match: {
         id: v.item_id,
@@ -91,8 +99,9 @@ function toDetailData(detail: ProductDetail, verdicts: ProductVerdictItem[]): Pr
         lifecycle_state: v.lifecycle_state,
         matched_products: [],
       },
-      substanceIds: [],
+      substanceIds: matchedSubstanceIds,
       resolution: v.resolution,
+      hasCrossReference: v.has_cross_reference,
     };
   }
 
@@ -120,11 +129,16 @@ function toDetailData(detail: ProductDetail, verdicts: ProductVerdictItem[]): Pr
 export default function ProductsLayout({
   sidebarItems: initialItems,
   maxProducts,
+  initialProductId,
+  initialItemId,
 }: ProductsLayoutProps) {
   const [sidebarItems, setSidebarItems] = useState(initialItems);
-  const [selectedId, setSelectedId] = useState<string | null>(
-    initialItems[0]?.id ?? null
-  );
+  // Prefer URL product param if it matches a sidebar item, else first item
+  const startProductId = initialProductId && initialItems.some((i) => i.id === initialProductId)
+    ? initialProductId
+    : initialItems[0]?.id ?? null;
+  const [selectedId, setSelectedId] = useState<string | null>(startProductId);
+  const [useCodes, setUseCodes] = useState<Record<string, string[]>>({});
   const [mode, setMode] = useState<"view" | "add">(initialItems.length === 0 ? "add" : "view");
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [currentDetail, setCurrentDetail] = useState<ProductDetailData | null>(null);
@@ -156,12 +170,17 @@ export default function ProductsLayout({
     try {
       const res = await fetch(`/api/products/${id}`);
       if (!res.ok) throw new Error("Failed to fetch product detail");
-      const { data, verdicts } = (await res.json()) as { data: ProductDetail; verdicts: ProductVerdictItem[] };
+      const { data, verdicts, use_codes } = (await res.json()) as {
+        data: ProductDetail;
+        verdicts: ProductVerdictItem[];
+        use_codes?: Record<string, string[]>;
+      };
       const detail = toDetailData(data, verdicts ?? []);
       detailCache.current.set(id, detail);
       // C2 fix: only apply if user hasn't navigated away during fetch
       if (intendedIdRef.current === id) {
         setCurrentDetail(detail);
+        if (use_codes) setUseCodes(use_codes);
       }
     } catch (err) {
       console.error("[ProductsLayout] fetch detail error:", err);
@@ -281,8 +300,63 @@ export default function ProductsLayout({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // URL sync: replaceState on selection change (no pushState → back button unaffected)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (selectedId) {
+      url.searchParams.set("product", selectedId);
+    } else {
+      url.searchParams.delete("product");
+    }
+    url.searchParams.delete("item"); // clear item param on product change
+    window.history.replaceState(null, "", url.toString());
+  }, [selectedId]);
+
+  // Portfolio summary counts
+  const statusCounts = sidebarItems.reduce(
+    (acc, item) => {
+      if (item.status === "action_required" || item.status === "under_review") acc.attention++;
+      else if (item.status === "watch") acc.watching++;
+      else acc.clear++;
+      return acc;
+    },
+    { attention: 0, watching: 0, clear: 0 }
+  );
+
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
+      {/* Portfolio summary header */}
+      <div className="hidden lg:flex items-center justify-center gap-6 border-b border-border px-6 py-2 bg-white shrink-0">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">
+          Portfolio
+        </span>
+        <span className="font-mono text-xs text-text-body">
+          <span className="font-semibold">{sidebarItems.length}</span>
+          <span className="text-text-secondary">/{maxProducts} products</span>
+        </span>
+        {statusCounts.attention > 0 && (
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-urgent" />
+            <span className="font-mono text-xs text-urgent font-medium">{statusCounts.attention}</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">need attention</span>
+          </span>
+        )}
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-watch" />
+          <span className={`font-mono text-xs font-medium ${statusCounts.watching > 0 ? "text-watch" : "text-text-secondary"}`}>{statusCounts.watching}</span>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">watching</span>
+        </span>
+        {statusCounts.clear > 0 && (
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-clear" />
+            <span className="font-mono text-xs text-clear font-medium">{statusCounts.clear}</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">all clear</span>
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Mobile product selector bar */}
       <div className="lg:hidden fixed top-14 left-0 right-0 z-30 bg-white border-b border-border px-4 py-2.5">
         <button
@@ -370,6 +444,7 @@ export default function ProductsLayout({
                 onClearHighlight={handleClearHighlight}
                 onResolveVerdict={handleResolveVerdict}
                 isWideLayout={false}
+                initialExpandedItemId={initialItemId}
               />
             </motion.div>
           ) : (
@@ -394,6 +469,7 @@ export default function ProductsLayout({
             <ProductContextPanel
               detail={currentDetail}
               highlightedSubstanceIds={highlightedSubstanceIds}
+              useCodes={useCodes}
               isEditing={isEditing}
               onStartEdit={() => setIsEditing(true)}
               onStopEdit={() => setIsEditing(false)}
@@ -401,6 +477,7 @@ export default function ProductsLayout({
           ) : null}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { getProductById, getProductVerdicts } from "@/lib/products/queries";
+import { getProductById, getProductVerdicts, getIngredientUseCodes } from "@/lib/products/queries";
 import { UpdateProductSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -51,7 +51,14 @@ export async function GET(
 
   const verdicts = await getProductVerdicts(id, userId);
 
-  return Response.json({ data, verdicts });
+  // Fetch use context codes for ingredients with resolved substances
+  const substanceIds = (data.ingredients ?? [])
+    .map((ing) => ing.substance_id)
+    .filter((sid): sid is string => sid !== null);
+  const useCodesMap = await getIngredientUseCodes(substanceIds);
+  const use_codes = Object.fromEntries(useCodesMap);
+
+  return Response.json({ data, verdicts, use_codes });
 }
 
 // ---------------------------------------------------------------------------

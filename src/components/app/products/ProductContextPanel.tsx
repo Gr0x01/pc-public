@@ -16,6 +16,7 @@ const TYPE_LABELS: Record<string, string> = {
 interface ProductContextPanelProps {
   detail: ProductDetailData;
   highlightedSubstanceIds: Set<string>;
+  useCodes?: Record<string, string[]>;
   isEditing: boolean;
   onStartEdit: () => void;
   onStopEdit: () => void;
@@ -24,14 +25,16 @@ interface ProductContextPanelProps {
 export default function ProductContextPanel({
   detail,
   highlightedSubstanceIds,
+  useCodes = {},
   isEditing,
   onStartEdit,
   onStopEdit,
 }: ProductContextPanelProps) {
   const { product } = detail;
-  // Prefer structured ingredients from API, fallback to raw text parsing
-  const ingredients = detail.ingredients
-    ? detail.ingredients.map((ing) => ing.name)
+  // Use structured ingredient rows when available for substance_id matching
+  const ingredientRows = detail.ingredients ?? [];
+  const ingredients = ingredientRows.length > 0
+    ? ingredientRows.map((ing) => ing.name)
     : parseIngredients(product.raw_ingredients_text);
 
   return (
@@ -61,9 +64,12 @@ export default function ProductContextPanel({
           </h3>
           <div className="space-y-0">
             {ingredients.map((ingredient, i) => {
-              // In a real implementation, we'd match ingredient to substance_id.
-              // For the mock, we highlight based on position heuristic.
-              const isHighlighted = highlightedSubstanceIds.size > 0 && i === 0;
+              const row = ingredientRows[i];
+              const substanceId = row?.substance_id ?? null;
+              const isHighlighted = substanceId
+                ? highlightedSubstanceIds.has(substanceId)
+                : false;
+              const codes = substanceId ? useCodes[substanceId] : undefined;
               return (
                 <div
                   key={i}
@@ -76,13 +82,27 @@ export default function ProductContextPanel({
                       isHighlighted ? "bg-amber" : "bg-slate-300"
                     }`}
                   />
-                  <span
-                    className={`font-mono text-[13px] leading-snug ${
-                      isHighlighted ? "text-slate-900" : "text-text-body"
-                    }`}
-                  >
-                    {ingredient}
-                  </span>
+                  <div className="min-w-0">
+                    <span
+                      className={`font-mono text-[13px] leading-snug ${
+                        isHighlighted ? "text-slate-900" : "text-text-body"
+                      }`}
+                    >
+                      {ingredient}
+                    </span>
+                    {codes && codes.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {codes.map((code) => (
+                          <span
+                            key={code}
+                            className="font-mono text-[9px] text-text-secondary bg-surface-muted border border-border rounded px-1.5 py-0.5 uppercase tracking-wide"
+                          >
+                            {code}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
