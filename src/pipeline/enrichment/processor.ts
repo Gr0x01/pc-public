@@ -345,12 +345,13 @@ export async function enrichItem(
     }
 
     // 14b. Add cross-reference product categories from Step 1c (deduplicated + validated)
+    // Only regulatory_target and adulterant roles can expand (enforced in inferCrossCategories too)
     if (crossRefResult) {
       const existingTagKeys = new Set(
         tagInserts.map((t) => `${t.tag_dimension}::${t.tag_value}`)
       );
-      for (const ref of crossRefResult.cross_references) {
-        for (const pc of ref.new_product_categories) {
+      for (const analysis of crossRefResult.substance_analyses) {
+        for (const pc of analysis.new_product_categories) {
           if (pc.trim() && validCategorySlugs.has(pc.trim())) {
             const key = `product_type::${pc.trim()}`;
             if (!existingTagKeys.has(key)) {
