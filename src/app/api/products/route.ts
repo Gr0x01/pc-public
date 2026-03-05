@@ -9,6 +9,7 @@ import {
   ingestParsedIngredients,
 } from "@/lib/products/queries";
 import { CreateProductSchema } from "@/lib/products/types";
+import { evaluateProductHistory } from "@/lib/products/verdicts";
 
 // ---------------------------------------------------------------------------
 // GET /api/products — list user's products
@@ -196,6 +197,13 @@ export async function POST(request: Request) {
     ingredientCount = await ingestDSLDIngredients(product.id, parseInt(external_id, 10));
   } else if (parsed_ingredients && parsed_ingredients.length > 0) {
     ingredientCount = await ingestParsedIngredients(product.id, parsed_ingredients);
+  }
+
+  // 8. Evaluate historical regulatory items against this product (non-blocking)
+  if (ingredientCount > 0) {
+    evaluateProductHistory(product.id, userId).catch((err) =>
+      console.error("[products] verdict evaluation error:", err)
+    );
   }
 
   const ingredientsFailed =

@@ -15,7 +15,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { enrichItem, loadCategoryIdMap } from "./processor";
 import { generateItemEmbeddings } from "./embeddings";
 import { fetchSourceContent } from "./content-fetch";
-import { sleep, logPipelineRun } from "../fetchers/utils";
+import { logPipelineRun } from "../fetchers/utils";
+import { evaluateItemForAllUsers } from "../../lib/products/verdicts";
 import type { RegulatoryItem } from "../../types/database";
 
 // ---------------------------------------------------------------------------
@@ -45,6 +46,7 @@ export interface EnrichmentRunResult {
   embedded: number;
   contentFetched: number;
   crossReferenced: number;
+  verdicts: number;
   errors: number;
   skipped: number;
   durationMs: number;
@@ -90,7 +92,7 @@ export async function runEnrichment(
     `Loaded ${Object.keys(categoryIdMap.topics).length} topics`
   );
 
-  const counters = { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, errors: 0, skipped: 0 };
+  const counters = { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, verdicts: 0, errors: 0, skipped: 0 };
   const PAGE_SIZE = 1000; // Supabase max
   const limit_ = pLimit(concurrency);
   let totalQueued = 0;
@@ -173,10 +175,23 @@ export async function runEnrichment(
       try {
         await generateItemEmbeddings(item, supabase, openaiApiKey);
         counters.embedded++;
-        console.log(`${label} done`);
       } catch (embErr) {
         const msg = embErr instanceof Error ? embErr.message : String(embErr);
         console.log(`${label} enriched (embedding failed: ${msg})`);
+      }
+
+      // d. Evaluate verdicts against all users' products
+      try {
+        const verdictCount = await evaluateItemForAllUsers(item.id);
+        counters.verdicts += verdictCount;
+        if (verdictCount > 0) {
+          console.log(`${label} done (${verdictCount} verdicts)`);
+        } else {
+          console.log(`${label} done`);
+        }
+      } catch (verdictErr) {
+        const msg = verdictErr instanceof Error ? verdictErr.message : String(verdictErr);
+        console.log(`${label} enriched (verdict eval failed: ${msg})`);
       }
 
       counters.processed++;

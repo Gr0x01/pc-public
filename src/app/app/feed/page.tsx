@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { countActiveProducts } from "@/lib/products/queries";
+import { countActiveProducts, getFeedItems } from "@/lib/products/queries";
 import { MOCK_FEED_ITEMS } from "@/lib/mock/app-data";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import type { ItemType } from "@/types/enums";
@@ -64,6 +64,7 @@ interface FeedPageProps {
 
 export default async function FeedPage({ searchParams }: FeedPageProps) {
   let productCount = 0;
+  let userId: string | null = null;
 
   if (!isDev) {
     const supabase = await createClient();
@@ -71,6 +72,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) redirect("/login");
+    userId = user.id;
     productCount = await countActiveProducts(user.id).catch(() => 0);
   }
 
@@ -79,9 +81,15 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   const range = params.range ?? null;
   const myProducts = params.myProducts === "true";
 
-  const items: FeedItemEnriched[] = USE_MOCK
-    ? filterItems(MOCK_FEED_ITEMS, type, range, myProducts)
-    : [];
+  let items: FeedItemEnriched[];
+  if (USE_MOCK) {
+    items = filterItems(MOCK_FEED_ITEMS, type, range, myProducts);
+  } else if (userId) {
+    const feedItems = await getFeedItems(userId, { limit: 100 });
+    items = filterItems(feedItems, type, range, myProducts);
+  } else {
+    items = [];
+  }
 
   return (
     <>

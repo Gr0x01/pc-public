@@ -146,6 +146,10 @@ export async function enrichItem(
       await supabase.from("regulatory_item_substances").delete().eq("regulatory_item_id", item.id);
       await supabase.from("item_enrichment_tags").delete().eq("item_id", item.id);
       await supabase.from("item_categories").delete().eq("item_id", item.id);
+      // Clear stale verdicts — re-enrichment changes the enrichment data,
+      // so old verdicts based on previous analysis are invalid.
+      // The runner will re-evaluate after enrichment completes.
+      await supabase.from("product_match_verdicts").delete().eq("item_id", item.id);
     }
 
     // ── 1. Build prompt + select model ──────────────────────────────────────

@@ -8,7 +8,8 @@ import type {
   ProductDetail,
   ProductIngredientRow,
 } from "./types";
-import type { NormalizationStatus } from "@/types/enums";
+import type { NormalizationStatus, ItemType } from "@/types/enums";
+import type { FeedItemEnriched } from "@/lib/mock/app-data";
 
 // ---------------------------------------------------------------------------
 // DSLD Search
@@ -353,4 +354,83 @@ export async function ingestParsedIngredients(
   }
 
   return rows.length;
+}
+
+// ---------------------------------------------------------------------------
+// Feed: regulatory items with verdict data for a user
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch recent regulatory items for the feed, enriched with verdict data.
+ * Items the user's products match get `matched_products` populated.
+ * Returns most recent items first, up to `limit`.
+ */
+export async function getFeedItems(
+  userId: string,
+  options: { limit?: number; offset?: number } = {}
+): Promise<FeedItemEnriched[]> {
+  const { limit = 50, offset = 0 } = options;
+
+  // Fetch recent enriched items
+  const { data: items, error } = await adminClient
+    .from("regulatory_items")
+    .select(`
+      id, title, item_type, published_date, source_url, issuing_office,
+      item_enrichments(summary, regulatory_action_type, deadline, raw_response)
+    `)
+    .not("item_enrichments", "is", null)
+    .order("published_date", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error || !items) {
+    console.error("[feed] query error:", error);
+    return [];
+  }
+
+  // Fetch verdicts for this user for these items
+  const itemIds = items.map((i) => i.id);
+  const { data: verdicts } = await adminClient
+    .from("product_match_verdicts")
+    .select("item_id, product_id, relevant, reasoning, subscriber_products(id, name)")
+    .eq("user_id", userId)
+    .eq("relevant", true)
+    .in("item_id", itemIds);
+
+  // Group verdicts by item_id
+  const verdictMap = new Map<string, Array<{ id: string; name: string }>>();
+  for (const v of verdicts ?? []) {
+    const product = v.subscriber_products as unknown as { id: string; name: string } | null;
+    if (!product) continue;
+    const list = verdictMap.get(v.item_id) ?? [];
+    list.push({ id: product.id, name: product.name });
+    verdictMap.set(v.item_id, list);
+  }
+
+  return items.map((item) => {
+    const enrichment = (item.item_enrichments as unknown as Array<{
+      summary: string | null;
+      regulatory_action_type: string | null;
+      deadline: string | null;
+      raw_response: Record<string, unknown> | null;
+    }> | null)?.[0] ?? null;
+
+    const raw = enrichment?.raw_response;
+    const actionItems = (raw?.action_items as string[] | undefined) ?? null;
+
+    return {
+      id: item.id,
+      title: item.title,
+      item_type: item.item_type as ItemType,
+      published_date: item.published_date,
+      source_url: item.source_url,
+      issuing_office: item.issuing_office,
+      summary: enrichment?.summary ?? null,
+      urgency_score: null,
+      relevance: verdictMap.has(item.id) ? "high" as const : null,
+      impact_summary: null,
+      action_items: actionItems,
+      deadline: enrichment?.deadline ?? null,
+      matched_products: verdictMap.get(item.id) ?? [],
+    };
+  });
 }
