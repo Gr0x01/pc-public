@@ -575,11 +575,15 @@ export async function getItemDetail(
 // Product verdicts: regulatory items with relevant verdicts for a product
 // ---------------------------------------------------------------------------
 
+export type VerdictResolution = "resolved" | "not_applicable" | "watching" | null;
+
 export interface ProductVerdictItem {
   id: string; // verdict composite key: item_id
   item_id: string;
   reasoning: string;
   evaluated_at: string;
+  resolution: VerdictResolution;
+  resolved_at: string | null;
   title: string;
   item_type: string;
   published_date: string;
@@ -599,7 +603,7 @@ export async function getProductVerdicts(
   const { data: verdicts, error } = await adminClient
     .from("product_match_verdicts")
     .select(`
-      item_id, reasoning, evaluated_at,
+      item_id, reasoning, evaluated_at, resolution, resolved_at,
       regulatory_items(
         id, title, item_type, published_date, source_url, issuing_office,
         item_enrichments(summary, regulatory_action_type, deadline, raw_response)
@@ -647,6 +651,8 @@ export async function getProductVerdicts(
         item_id: v.item_id,
         reasoning: v.reasoning,
         evaluated_at: v.evaluated_at,
+        resolution: (v.resolution as VerdictResolution) ?? null,
+        resolved_at: v.resolved_at ?? null,
         title: item.title,
         item_type: item.item_type,
         published_date: item.published_date,
@@ -667,16 +673,16 @@ export async function getProductVerdicts(
  */
 export async function getProductVerdictCounts(
   userId: string
-): Promise<Map<string, { total: number; urgent: number }>> {
+): Promise<Map<string, { total: number; urgent: number; watching: number }>> {
   const { data, error } = await adminClient.rpc("get_live_verdict_counts", {
     p_user_id: userId,
   });
 
   if (error || !data) return new Map();
 
-  const counts = new Map<string, { total: number; urgent: number }>();
-  for (const row of data as Array<{ product_id: string; total: number; urgent: number }>) {
-    counts.set(row.product_id, { total: row.total, urgent: row.urgent });
+  const counts = new Map<string, { total: number; urgent: number; watching: number }>();
+  for (const row of data as Array<{ product_id: string; total: number; urgent: number; watching: number }>) {
+    counts.set(row.product_id, { total: row.total, urgent: row.urgent, watching: row.watching });
   }
   return counts;
 }

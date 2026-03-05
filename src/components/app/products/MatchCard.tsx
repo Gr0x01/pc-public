@@ -1,15 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { ProductMatchWithItem } from "@/lib/mock/products-data";
+import type { VerdictResolution } from "@/lib/products/queries";
 import type { LifecycleState } from "@/lib/utils/lifecycle";
 import { StatusDot, type ProductStatusType } from "./ProductsLayout";
 import { formatDateShort } from "@/lib/utils/format";
 
 interface MatchCardProps {
   matchWithItem: ProductMatchWithItem;
+  productId: string;
   isExpanded: boolean;
   onToggle: () => void;
+  onResolve: (resolution: VerdictResolution) => void;
 }
 
 const LIFECYCLE_TO_STATUS: Record<LifecycleState, ProductStatusType> = {
@@ -30,11 +34,27 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
   press_release: "Press Release",
 };
 
-export default function MatchCard({ matchWithItem, isExpanded, onToggle }: MatchCardProps) {
-  const { match, item } = matchWithItem;
+const RESOLUTION_LABELS: Record<string, string> = {
+  watching: "Watching",
+  resolved: "Resolved",
+  not_applicable: "Not Applicable",
+};
+
+export default function MatchCard({ matchWithItem, isExpanded, onToggle, onResolve }: MatchCardProps) {
+  const { match, item, resolution } = matchWithItem;
   const matchStatus = LIFECYCLE_TO_STATUS[item.lifecycle_state];
   const typeLabel = ACTION_TYPE_LABELS[item.item_type] ?? item.item_type;
+  const isWatching = resolution === "watching";
   const shouldReduceMotion = useReducedMotion();
+  const [pending, setPending] = useState(false);
+
+  async function handleResolve(res: VerdictResolution) {
+    setPending(true);
+    // Toggle off if clicking the same resolution
+    const next = resolution === res ? null : res;
+    onResolve(next);
+    // pending will clear when parent refetches and remounts
+  }
 
   return (
     <motion.div
@@ -47,15 +67,20 @@ export default function MatchCard({ matchWithItem, isExpanded, onToggle }: Match
         onClick={onToggle}
         className="w-full text-left px-4 py-3 flex items-start gap-3"
       >
-        <StatusDot status={matchStatus} />
+        <StatusDot status={matchStatus} ring={isWatching} />
         <div className="flex-1 min-w-0">
-          <p className={`text-[14px] font-serif font-semibold text-text-primary leading-snug ${
-            isExpanded ? "line-clamp-2" : "line-clamp-1"
-          }`}>
+          <p className={`text-[14px] font-serif font-semibold leading-snug transition-colors duration-150 ${
+            isWatching ? "text-text-body" : "text-text-primary"
+          } ${isExpanded ? "line-clamp-2" : "line-clamp-1"}`}>
             {item.title}
           </p>
           {!isExpanded && (
             <div className="flex items-center gap-2 mt-1">
+              {resolution === "watching" && (
+                <span className="font-mono text-[10px] font-medium text-watch bg-watch/10 border border-watch/20 rounded px-1.5 py-0.5 uppercase tracking-wide">
+                  Watching
+                </span>
+              )}
               {item.deadline && (
                 <span className="font-mono text-[11px] font-medium text-amber">
                   Deadline: {formatDateShort(item.deadline)}
@@ -137,7 +162,7 @@ export default function MatchCard({ matchWithItem, isExpanded, onToggle }: Match
 
           {/* Source */}
           {item.source_url && (
-            <div className="pt-2 border-t border-border">
+            <div>
               <a
                 href={item.source_url}
                 target="_blank"
@@ -150,19 +175,40 @@ export default function MatchCard({ matchWithItem, isExpanded, onToggle }: Match
           )}
 
           {/* Resolution actions */}
-          <div className="flex items-center gap-3 pt-1">
-            <button className="text-[13px] font-medium text-text-secondary hover:text-text-primary border border-border rounded px-3 py-1.5 hover:bg-surface-muted transition-colors">
-              Mark Resolved
-            </button>
-            <button className="text-[13px] text-text-secondary hover:text-text-primary transition-colors">
-              Not Applicable
-            </button>
+          <div className="flex items-center gap-2 pt-3 border-t border-border flex-wrap">
+            <ResolutionButton
+              label="Resolve"
+              activeLabel="Resolved"
+              active={resolution === "resolved"}
+              activeColor="clear"
+              disabled={pending}
+              onClick={() => handleResolve("resolved")}
+              variant="outlined"
+            />
+            <ResolutionButton
+              label="Watch"
+              activeLabel="Watching"
+              active={resolution === "watching"}
+              activeColor="watch"
+              disabled={pending}
+              onClick={() => handleResolve("watching")}
+              variant="text"
+            />
+            <ResolutionButton
+              label="Not Applicable"
+              activeLabel="Not Applicable"
+              active={resolution === "not_applicable"}
+              activeColor="clear"
+              disabled={pending}
+              onClick={() => handleResolve("not_applicable")}
+              variant="text"
+            />
             <span className="flex-1" />
             <a
-              href={`/app/items/${item.id}`}
+              href={`/app/items/${item.id}?from=products`}
               className="text-[13px] text-amber hover:underline flex items-center gap-1"
             >
-              View Full Report
+              Full Report
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path d="M4.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -173,5 +219,65 @@ export default function MatchCard({ matchWithItem, isExpanded, onToggle }: Match
       )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Resolution button
+// ---------------------------------------------------------------------------
+
+const ACTIVE_COLORS = {
+  clear: "text-clear bg-clear/10 border-clear/30",
+  watch: "text-watch bg-watch/10 border-watch/30",
+};
+
+function ResolutionButton({
+  label,
+  activeLabel,
+  active,
+  activeColor,
+  disabled,
+  onClick,
+  variant,
+}: {
+  label: string;
+  activeLabel: string;
+  active: boolean;
+  activeColor: keyof typeof ACTIVE_COLORS;
+  disabled: boolean;
+  onClick: () => void;
+  variant: "outlined" | "text";
+}) {
+  const base = "text-[12px] font-medium transition-colors disabled:opacity-50";
+  const activeClass = ACTIVE_COLORS[activeColor];
+
+  if (variant === "outlined") {
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`${base} border rounded px-3 py-1.5 ${
+          active
+            ? activeClass
+            : "text-text-secondary border-border hover:text-text-primary hover:bg-surface-muted"
+        }`}
+      >
+        {active ? activeLabel : label}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${base} px-2 py-1.5 rounded ${
+        active
+          ? activeClass + " border"
+          : "text-text-secondary hover:text-text-primary"
+      }`}
+    >
+      {active ? activeLabel : label}
+    </button>
   );
 }

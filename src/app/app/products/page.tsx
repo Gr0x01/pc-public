@@ -9,8 +9,9 @@ import ProductsLayout from "@/components/app/products/ProductsLayout";
 const isDev = process.env.NODE_ENV === "development";
 const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
 
-function deriveStatus(counts: { total: number; urgent: number } | undefined): ProductStatus {
+function deriveStatus(counts: { total: number; urgent: number; watching: number } | undefined): ProductStatus {
   if (!counts || counts.total === 0) return "all_clear";
+  if (counts.total === counts.watching) return "watch";
   if (counts.urgent > 0) return "action_required";
   return "under_review";
 }

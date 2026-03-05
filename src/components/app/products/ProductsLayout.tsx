@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { ProductSidebarItem, ProductDetailData } from "@/lib/mock/products-data";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import type { ProductDetail } from "@/lib/products/types";
-import type { ProductVerdictItem } from "@/lib/products/queries";
+import type { ProductVerdictItem, VerdictResolution } from "@/lib/products/queries";
 import type { SubscriberProduct } from "@/types/database";
 import { isLiveState } from "@/lib/utils/lifecycle";
 import ProductSidebar from "./ProductSidebar";
@@ -37,14 +37,24 @@ function toDetailData(detail: ProductDetail, verdicts: ProductVerdictItem[]): Pr
     updated_at: detail.updated_at,
   };
 
-  const liveVerdicts = verdicts.filter((v) => isLiveState(v.lifecycle_state));
-  const archivedVerdicts = verdicts.filter((v) => !isLiveState(v.lifecycle_state));
+  // User-resolved/not_applicable → history, regardless of lifecycle
+  // Watching + unresolved → active if lifecycle is live, history if archived
+  const activeVerdicts = verdicts.filter(
+    (v) => !v.resolution || v.resolution === "watching"
+  ).filter((v) => isLiveState(v.lifecycle_state));
 
-  // Derive status from live verdicts only
+  const historyVerdicts = verdicts.filter(
+    (v) => v.resolution === "resolved" || v.resolution === "not_applicable" || !isLiveState(v.lifecycle_state)
+  );
+
+  // Derive status from active verdicts only
   let status: "action_required" | "under_review" | "watch" | "all_clear" = "all_clear";
-  if (liveVerdicts.length > 0) {
-    const hasUrgent = liveVerdicts.some((v) => v.lifecycle_state === "urgent");
-    status = hasUrgent ? "action_required" : "under_review";
+  if (activeVerdicts.length > 0) {
+    const hasUrgent = activeVerdicts.some((v) => v.lifecycle_state === "urgent" && v.resolution !== "watching");
+    const allWatching = activeVerdicts.every((v) => v.resolution === "watching");
+    if (allWatching) status = "watch";
+    else if (hasUrgent) status = "action_required";
+    else status = "under_review";
   }
 
   function verdictToMatch(v: ProductVerdictItem) {
@@ -82,16 +92,18 @@ function toDetailData(detail: ProductDetail, verdicts: ProductVerdictItem[]): Pr
         matched_products: [],
       },
       substanceIds: [],
+      resolution: v.resolution,
     };
   }
 
-  const activeMatches = liveVerdicts.map(verdictToMatch);
+  const activeMatches = activeVerdicts.map(verdictToMatch);
 
-  const resolvedHistory = archivedVerdicts.map((v) => ({
+  const resolvedHistory = historyVerdicts.map((v) => ({
     id: v.item_id,
     title: v.title,
-    resolvedAt: v.evaluated_at,
-    resolution: "resolved" as const,
+    item_type: v.item_type,
+    resolvedAt: v.resolved_at ?? v.evaluated_at,
+    resolution: (v.resolution === "not_applicable" ? "not_applicable" : "resolved") as "resolved" | "not_applicable",
     originalStatus: "under_review" as const,
   }));
 
@@ -220,6 +232,46 @@ export default function ProductsLayout({
     setHighlightedSubstanceIds(new Set());
   }, []);
 
+  const handleResolveVerdict = useCallback(
+    async (itemId: string, productId: string, resolution: VerdictResolution) => {
+      try {
+        const res = await fetch("/api/products/verdicts", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ item_id: itemId, product_id: productId, resolution }),
+        });
+        if (!res.ok) return;
+
+        // Invalidate cache and refetch current product detail
+        detailCache.current.delete(productId);
+        if (selectedId === productId) {
+          // Fetch fresh detail, then sync sidebar status from it
+          const detailRes = await fetch(`/api/products/${productId}`);
+          if (detailRes.ok) {
+            const { data, verdicts: v } = (await detailRes.json()) as { data: ProductDetail; verdicts: ProductVerdictItem[] };
+            const detail = toDetailData(data, v ?? []);
+            detailCache.current.set(productId, detail);
+            if (intendedIdRef.current === productId) {
+              setCurrentDetail(detail);
+              setLoadingDetail(false);
+              // Sync sidebar status + count
+              setSidebarItems((prev) =>
+                prev.map((item) =>
+                  item.id === productId
+                    ? { ...item, status: detail.status, activeMatchCount: detail.activeMatches.length }
+                    : item
+                )
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[ProductsLayout] resolve verdict error:", err);
+      }
+    },
+    [selectedId]
+  );
+
   // W2 fix: auto-fetch first product in useEffect, not during render
   const hasAutoFetched = useRef(false);
   useEffect(() => {
@@ -316,6 +368,7 @@ export default function ProductsLayout({
                 detail={currentDetail}
                 onHighlight={handleHighlight}
                 onClearHighlight={handleClearHighlight}
+                onResolveVerdict={handleResolveVerdict}
                 isWideLayout={false}
               />
             </motion.div>
@@ -365,8 +418,18 @@ const STATUS_DOT_COLORS: Record<ProductStatusType, string> = {
   all_clear: "bg-clear",
 };
 
-export function StatusDot({ status, size = "sm" }: { status: ProductStatusType; size?: "sm" | "md" }) {
+const STATUS_RING_COLORS: Record<ProductStatusType, string> = {
+  action_required: "border-urgent",
+  under_review: "border-amber",
+  watch: "border-watch",
+  all_clear: "border-clear",
+};
+
+export function StatusDot({ status, size = "sm", ring = false }: { status: ProductStatusType; size?: "sm" | "md"; ring?: boolean }) {
   const sizeClass = size === "md" ? "h-2.5 w-2.5" : "h-2 w-2";
+  if (ring) {
+    return <span className={`${sizeClass} rounded-full shrink-0 bg-transparent border-2 ${STATUS_RING_COLORS[status]}`} />;
+  }
   return <span className={`${sizeClass} rounded-full shrink-0 ${STATUS_DOT_COLORS[status]}`} />;
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { ResolvedHistoryItem } from "@/lib/mock/products-data";
 
@@ -10,7 +11,8 @@ const STATUS_BORDER_COLORS: Record<string, string> = {
 };
 
 export default function HistoryPreview({ items }: { items: ResolvedHistoryItem[] }) {
-  const shown = items.slice(0, 3);
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? items : items.slice(0, 3);
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -20,9 +22,18 @@ export default function HistoryPreview({ items }: { items: ResolvedHistoryItem[]
           History ({items.length} resolved item{items.length !== 1 ? "s" : ""})
         </h2>
         {items.length > 3 && (
-          <button className="text-[12px] text-amber hover:underline flex items-center gap-1">
-            View all
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <button
+            onClick={() => setShowAll((prev) => !prev)}
+            className="text-[12px] text-amber hover:underline flex items-center gap-1"
+          >
+            {showAll ? "Show less" : "View all"}
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              className={`transition-transform ${showAll ? "rotate-90" : ""}`}
+            >
               <path d="M4.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
@@ -30,6 +41,7 @@ export default function HistoryPreview({ items }: { items: ResolvedHistoryItem[]
       </div>
 
       <motion.div
+        key={showAll ? "all" : "preview"}
         className="space-y-1.5"
         variants={shouldReduceMotion ? undefined : { hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
         initial="hidden"
@@ -43,12 +55,13 @@ export default function HistoryPreview({ items }: { items: ResolvedHistoryItem[]
             item.resolution === "resolved" ? "Resolved" : `Not Applicable${item.reason ? `: ${item.reason}` : ""}`;
 
           return (
-            <motion.div
+            <motion.a
               key={item.id}
+              href={`/app/items/${item.id}?from=products`}
               variants={shouldReduceMotion ? undefined : { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } } }}
               whileHover={shouldReduceMotion ? undefined : { y: -1, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className={`border border-border ${borderColor} border-l-2 rounded bg-white px-3 py-2.5 cursor-pointer`}
+              className={`block border border-border ${borderColor} border-l-2 rounded bg-white px-3 py-2.5`}
             >
               <div className="flex items-start gap-3">
                 <span className="font-mono text-[11px] text-text-secondary shrink-0 w-12">
@@ -63,7 +76,7 @@ export default function HistoryPreview({ items }: { items: ResolvedHistoryItem[]
                   </p>
                 </div>
               </div>
-            </motion.div>
+            </motion.a>
           );
         })}
       </motion.div>

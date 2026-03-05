@@ -11,6 +11,7 @@ import {
 } from "./app-data";
 import type { SubscriberProduct, ProductMatch } from "@/types/database";
 import type { ProductIngredientRow } from "@/lib/products/types";
+import type { VerdictResolution } from "@/lib/products/queries";
 
 // ---------------------------------------------------------------------------
 // Types for the Products view
@@ -22,6 +23,7 @@ export interface ProductMatchWithItem {
   match: ProductMatch;
   item: FeedItemEnriched;
   substanceIds: string[]; // substance IDs from the match for ingredient highlighting
+  resolution?: VerdictResolution;
 }
 
 export interface ProductSidebarItem {
@@ -47,6 +49,7 @@ export interface ProductDetailData {
 export interface ResolvedHistoryItem {
   id: string;
   title: string;
+  item_type?: string;
   resolvedAt: string;
   resolution: "resolved" | "not_applicable";
   reason?: string;

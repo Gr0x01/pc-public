@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import type { ProductDetailData, ProductMatchWithItem } from "@/lib/mock/products-data";
+import type { ProductDetailData } from "@/lib/mock/products-data";
+import type { VerdictResolution } from "@/lib/products/queries";
 import { StatusDot, STATUS_LABELS, STATUS_TEXT_COLORS } from "./ProductsLayout";
 import MatchCard from "./MatchCard";
 import AllClearCard from "./AllClearCard";
@@ -13,6 +14,7 @@ interface IntelligencePanelProps {
   detail: ProductDetailData;
   onHighlight: (substanceIds: string[]) => void;
   onClearHighlight: () => void;
+  onResolveVerdict: (itemId: string, productId: string, resolution: VerdictResolution) => void;
   isWideLayout: boolean;
 }
 
@@ -20,6 +22,7 @@ export default function IntelligencePanel({
   detail,
   onHighlight,
   onClearHighlight,
+  onResolveVerdict,
 }: IntelligencePanelProps) {
   const { product, status, activeMatches, lastScannedAt } = detail;
   const shouldReduceMotion = useReducedMotion();
@@ -95,8 +98,10 @@ export default function IntelligencePanel({
                 >
                   <MatchCard
                     matchWithItem={m}
+                    productId={product.id}
                     isExpanded={expandedMatchId === m.match.id}
                     onToggle={() => handleExpand(m.match.id, m.substanceIds)}
+                    onResolve={(resolution) => onResolveVerdict(m.item.id, product.id, resolution)}
                   />
                 </motion.div>
               ))}
@@ -113,7 +118,7 @@ export default function IntelligencePanel({
 
         {/* History preview */}
         {detail.resolvedHistory.length > 0 && (
-          <HistoryPreview items={detail.resolvedHistory} />
+          <HistoryPreview key={product.id} items={detail.resolvedHistory} />
         )}
       </div>
     </motion.div>
