@@ -53,8 +53,6 @@ export type IngredientGroup =
 /** "segment" is legacy — 3 rows remain as parent groupings for topics. Do not create new segment categories. */
 export type CategoryType = "segment" | "topic" | "product_class" | "regulatory_program";
 
-export type TrendDirection = "rising" | "stable" | "declining";
-
 export type CampaignType =
   | "weekly_free"
   | "weekly_paid"
@@ -83,11 +81,3 @@ export type MatchStatus = "resolved" | "pending" | "unresolved";
 export type ExtractionMethod = "structured_field" | "llm_extraction" | "manual";
 
 export type NormalizationStatus = "matched" | "pending" | "ambiguous" | "unmatched";
-
-export type RelationType =
-  | "supersedes"
-  | "amends"
-  | "references"
-  | "responds_to"
-  | "related_enforcement"
-  | "follow_up";

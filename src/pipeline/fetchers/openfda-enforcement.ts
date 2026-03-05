@@ -225,29 +225,26 @@ export async function fetchOpenFDAEnforcement(
             continue;
           }
 
-          // Insert enforcement_details for the new item
-          const detailRow = {
-            item_id: inserted.id,
-            company_name: record.recalling_firm,
-            recall_classification:
-              (record.classification as "Class I" | "Class II" | "Class III" | undefined) ??
-              null,
-            recall_status: mapRecallStatus(record.status),
-            voluntary_mandated: record.voluntary_mandated ?? null,
-            distribution_pattern: record.distribution_pattern ?? null,
-            product_quantity: record.product_quantity ?? null,
-            products: [record.product_description],
-          };
+          // Update enforcement fields on the regulatory_item
+          const { error: enfError } = await supabase
+            .from("regulatory_items")
+            .update({
+              enforcement_company_name: record.recalling_firm,
+              enforcement_recall_classification:
+                (record.classification as "Class I" | "Class II" | "Class III" | undefined) ??
+                null,
+              enforcement_recall_status: mapRecallStatus(record.status),
+              enforcement_voluntary_mandated: record.voluntary_mandated ?? null,
+              enforcement_distribution_pattern: record.distribution_pattern ?? null,
+              enforcement_product_quantity: record.product_quantity ?? null,
+              enforcement_products: [record.product_description],
+            })
+            .eq("id", inserted.id);
 
-          const { error: detailError } = await supabase
-            .from("enforcement_details")
-            .insert(detailRow);
-
-          if (detailError) {
-            // regulatory_item was created, enforcement_details failed — record is incomplete
+          if (enfError) {
             console.error(
-              `[openFDA] enforcement_details insert error for ${sourceRef}:`,
-              detailError.message
+              `[openFDA] enforcement fields update error for ${sourceRef}:`,
+              enfError.message
             );
             windowErrors++;
           } else {

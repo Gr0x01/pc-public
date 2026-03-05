@@ -377,26 +377,24 @@ export async function fetchWarningLetters(
 
       pageHadNewRecord = true;
 
-      // Insert enforcement_details row
-      const detailRow = {
-        item_id: inserted.id,
-        company_name: companyName,
-        company_address: companyAddress ?? null,
-        marcs_cms_number: marcsNumber ?? null,
-        recipient_name: recipientName ?? null,
-        recipient_title: recipientTitle ?? null,
-        response_received: parseYesNo(responseLetterRaw),
-        closeout: parseYesNo(closeoutLetterRaw),
-      };
+      // Update enforcement fields on the regulatory_item
+      const { error: enfError } = await supabase
+        .from("regulatory_items")
+        .update({
+          enforcement_company_name: companyName,
+          enforcement_company_address: companyAddress ?? null,
+          enforcement_marcs_cms_number: marcsNumber ?? null,
+          enforcement_recipient_name: recipientName ?? null,
+          enforcement_recipient_title: recipientTitle ?? null,
+          enforcement_response_received: parseYesNo(responseLetterRaw),
+          enforcement_closeout: parseYesNo(closeoutLetterRaw),
+        })
+        .eq("id", inserted.id);
 
-      const { error: detailError } = await supabase
-        .from("enforcement_details")
-        .insert(detailRow);
-
-      if (detailError) {
+      if (enfError) {
         console.error(
-          `[WL] enforcement_details insert error for ${sourceRef}:`,
-          detailError.message
+          `[WL] enforcement fields update error for ${sourceRef}:`,
+          enfError.message
         );
         batchErrors++;
         errors++;

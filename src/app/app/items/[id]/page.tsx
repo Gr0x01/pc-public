@@ -68,6 +68,22 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
           significant: null,
           processing_status: "ok",
           processing_error: null,
+          enforcement_company_name: null,
+          enforcement_company_address: null,
+          enforcement_products: null,
+          enforcement_violation_types: null,
+          enforcement_cited_regulations: null,
+          enforcement_fei_number: null,
+          enforcement_marcs_cms_number: null,
+          enforcement_recipient_name: null,
+          enforcement_recipient_title: null,
+          enforcement_response_received: null,
+          enforcement_closeout: null,
+          enforcement_recall_classification: null,
+          enforcement_recall_status: null,
+          enforcement_voluntary_mandated: null,
+          enforcement_distribution_pattern: null,
+          enforcement_product_quantity: null,
           created_at: feedItem.published_date,
           updated_at: feedItem.published_date,
         },
@@ -91,7 +107,6 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
         relevance: feedItem.relevance ?? null,
         action_items: feedItem.action_items ?? null,
         substances: [],
-        enforcement: null,
         matched_products: feedItem.matched_products,
       };
     } else {
@@ -119,7 +134,7 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
     );
   }
 
-  const { item, enrichment, relevance, action_items, substances, enforcement, matched_products } = detail;
+  const { item, enrichment, relevance, action_items, substances, matched_products } = detail;
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
@@ -262,32 +277,30 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
       )}
 
       {/* 7. Enforcement details */}
-      {enforcement && (
+      {item.enforcement_company_name && (
         <section className="mb-6">
           <h2 className="font-mono text-[10px] uppercase tracking-wider text-text-secondary mb-3">
             Enforcement Details
           </h2>
           <div className="border border-border bg-surface-muted rounded p-4 space-y-3 text-sm">
-            {enforcement.company_name && (
-              <div>
-                <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
-                  Company
-                </span>
-                <p className="text-text-body mt-0.5">{enforcement.company_name}</p>
-                {enforcement.company_address && (
-                  <p className="font-mono text-xs text-text-secondary mt-0.5">
-                    {enforcement.company_address}
-                  </p>
-                )}
-              </div>
-            )}
-            {enforcement.products && enforcement.products.length > 0 && (
+            <div>
+              <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
+                Company
+              </span>
+              <p className="text-text-body mt-0.5">{item.enforcement_company_name}</p>
+              {item.enforcement_company_address && (
+                <p className="font-mono text-xs text-text-secondary mt-0.5">
+                  {item.enforcement_company_address}
+                </p>
+              )}
+            </div>
+            {item.enforcement_products && item.enforcement_products.length > 0 && (
               <div>
                 <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                   Products Cited
                 </span>
                 <ul className="mt-1 space-y-1">
-                  {enforcement.products.map((p, i) => (
+                  {(item.enforcement_products as string[]).map((p, i) => (
                     <li key={i} className="text-text-body text-sm">
                       {p}
                     </li>
@@ -295,13 +308,13 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
                 </ul>
               </div>
             )}
-            {enforcement.violation_types && enforcement.violation_types.length > 0 && (
+            {item.enforcement_violation_types && item.enforcement_violation_types.length > 0 && (
               <div>
                 <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                   Violations
                 </span>
                 <ul className="mt-1 space-y-1">
-                  {enforcement.violation_types.map((v, i) => (
+                  {item.enforcement_violation_types.map((v, i) => (
                     <li key={i} className="text-text-body text-sm">
                       {v}
                     </li>
@@ -309,33 +322,33 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
                 </ul>
               </div>
             )}
-            {enforcement.recall_classification && (
+            {item.enforcement_recall_classification && (
               <div>
                 <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                   Recall Classification
                 </span>
                 <p className="text-text-body mt-0.5">
-                  {enforcement.recall_classification}
+                  {item.enforcement_recall_classification}
                 </p>
               </div>
             )}
-            {enforcement.fei_number && (
+            {item.enforcement_fei_number && (
               <div className="flex gap-4">
                 <div>
                   <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                     FEI
                   </span>
                   <p className="font-mono text-xs text-text-secondary mt-0.5">
-                    {enforcement.fei_number}
+                    {item.enforcement_fei_number}
                   </p>
                 </div>
-                {enforcement.marcs_cms_number && (
+                {item.enforcement_marcs_cms_number && (
                   <div>
                     <span className="font-mono text-[10px] text-text-secondary uppercase tracking-wide">
                       MARCS-CMS
                     </span>
                     <p className="font-mono text-xs text-text-secondary mt-0.5">
-                      {enforcement.marcs_cms_number}
+                      {item.enforcement_marcs_cms_number}
                     </p>
                   </div>
                 )}

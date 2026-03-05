@@ -7,7 +7,6 @@
 import type {
   RegulatoryItem,
   ItemEnrichment,
-  EnforcementDetail,
   SubscriberProduct,
   ProductMatch,
 } from "@/types/database";
@@ -42,7 +41,6 @@ export interface ItemDetailData {
   relevance: RelevanceLevel | null;
   action_items: string[] | null;
   substances: Array<{ raw_substance_name: string }>;
-  enforcement: EnforcementDetail | null;
   matched_products: Array<{ id: string; name: string }>;
 }
 
@@ -307,6 +305,34 @@ export const MOCK_ITEM_DETAIL: ItemDetailData = {
     significant: true,
     processing_status: "ok",
     processing_error: null,
+    enforcement_company_name: "NovaBiotics LLC",
+    enforcement_company_address: "4521 Industrial Parkway, Tampa, FL 33634",
+    enforcement_products: [
+      "Marine Collagen Peptides Powder 300g",
+      "Collagen Beauty Blend Capsules",
+      "NovaBiotics Marine Collagen + Vitamin C",
+    ],
+    enforcement_violation_types: [
+      "Failure to establish specifications for identity testing",
+      "Failure to conduct identity testing on incoming raw materials",
+      "Reliance on supplier COAs without independent verification",
+    ],
+    enforcement_cited_regulations: [
+      "21 CFR 111.75(a)(1)(ii)",
+      "21 CFR 111.70(b)",
+      "21 CFR 111.70(e)",
+    ],
+    enforcement_fei_number: "3014821",
+    enforcement_marcs_cms_number: "681247",
+    enforcement_recipient_name: "David Chen",
+    enforcement_recipient_title: "CEO",
+    enforcement_response_received: false,
+    enforcement_closeout: false,
+    enforcement_recall_classification: null,
+    enforcement_recall_status: null,
+    enforcement_voluntary_mandated: null,
+    enforcement_distribution_pattern: null,
+    enforcement_product_quantity: null,
     created_at: "2026-02-28T10:00:00Z",
     updated_at: "2026-02-28T14:30:00Z",
   },
@@ -342,39 +368,6 @@ export const MOCK_ITEM_DETAIL: ItemDetailData = {
     { raw_substance_name: "Hydrolyzed Collagen (marine-sourced)" },
     { raw_substance_name: "Fish Collagen Peptides" },
   ],
-  enforcement: {
-    id: "enf-001",
-    item_id: "fi-001",
-    company_name: "NovaBiotics LLC",
-    company_address: "4521 Industrial Parkway, Tampa, FL 33634",
-    products: [
-      "Marine Collagen Peptides Powder 300g",
-      "Collagen Beauty Blend Capsules",
-      "NovaBiotics Marine Collagen + Vitamin C",
-    ],
-    violation_types: [
-      "Failure to establish specifications for identity testing",
-      "Failure to conduct identity testing on incoming raw materials",
-      "Reliance on supplier COAs without independent verification",
-    ],
-    cited_regulations: [
-      "21 CFR 111.75(a)(1)(ii)",
-      "21 CFR 111.70(b)",
-      "21 CFR 111.70(e)",
-    ],
-    fei_number: "3014821",
-    marcs_cms_number: "681247",
-    recipient_name: "David Chen",
-    recipient_title: "CEO",
-    response_received: false,
-    closeout: false,
-    recall_classification: null,
-    recall_status: null,
-    voluntary_mandated: null,
-    distribution_pattern: null,
-    product_quantity: null,
-    created_at: "2026-02-28T14:30:00Z",
-  },
   matched_products: [{ id: "prod-001", name: "Marine Collagen Powder" }],
 };
 
@@ -393,7 +386,6 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     data_source: "dsld",
     external_id: "dsld-182456",
     upc_barcode: "850012345678",
-    label_image_url: null,
     raw_ingredients_text:
       "Hydrolyzed Marine Collagen (fish), Hyaluronic Acid, Vitamin C (Ascorbic Acid), Biotin",
     product_metadata: null,
@@ -411,7 +403,6 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     data_source: "manual",
     external_id: null,
     upc_barcode: "850098765432",
-    label_image_url: null,
     raw_ingredients_text:
       "Water, Butylated Hydroxyanisole (BHA), Octinoxate, Titanium Dioxide, Retinol, Niacinamide",
     product_metadata: null,
@@ -429,7 +420,6 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     data_source: "dsld",
     external_id: "dsld-192034",
     upc_barcode: "850012345999",
-    label_image_url: null,
     raw_ingredients_text:
       "Biotin (D-Biotin), Vitamin B6 (Pyridoxine HCl), Zinc (Zinc Citrate), Selenium (Sodium Selenite)",
     product_metadata: null,
@@ -447,7 +437,6 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     data_source: "dsld",
     external_id: "dsld-178901",
     upc_barcode: "850012345111",
-    label_image_url: null,
     raw_ingredients_text:
       "Turmeric Extract (Curcuma longa), BioPerine (Black Pepper Extract), Boswellia Serrata Extract, Ginger Root Extract",
     product_metadata: null,
@@ -465,7 +454,6 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     data_source: "dsld",
     external_id: "dsld-201445",
     upc_barcode: "850012345222",
-    label_image_url: null,
     raw_ingredients_text:
       "Lactobacillus acidophilus, Bifidobacterium lactis, Lactobacillus rhamnosus, Prebiotic Fiber (FOS)",
     product_metadata: null,

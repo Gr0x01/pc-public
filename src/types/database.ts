@@ -16,12 +16,9 @@ import type {
   NormalizationStatus,
   PipelineStatus,
   ProcessingStatus,
-  RelationType,
-
   SourceType,
   SubstanceClass,
   SubscriptionTier,
-  TrendDirection,
   VerificationStatus,
 } from "./enums";
 
@@ -76,6 +73,23 @@ export interface RegulatoryItem {
   significant: boolean | null;
   processing_status: ProcessingStatus;
   processing_error: string | null;
+  // Enforcement fields (populated for recalls + warning letters)
+  enforcement_company_name: string | null;
+  enforcement_company_address: string | null;
+  enforcement_products: string[] | null;
+  enforcement_violation_types: string[] | null;
+  enforcement_cited_regulations: string[] | null;
+  enforcement_fei_number: string | null;
+  enforcement_marcs_cms_number: string | null;
+  enforcement_recipient_name: string | null;
+  enforcement_recipient_title: string | null;
+  enforcement_response_received: boolean | null;
+  enforcement_closeout: boolean | null;
+  enforcement_recall_classification: "Class I" | "Class II" | "Class III" | null;
+  enforcement_recall_status: "Ongoing" | "Completed" | "Terminated" | null;
+  enforcement_voluntary_mandated: string | null;
+  enforcement_distribution_pattern: string | null;
+  enforcement_product_quantity: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -231,53 +245,6 @@ export interface ItemChunk {
 }
 
 // --------------------------------------------------------------------------
-// Layer 6: Intelligence
-// --------------------------------------------------------------------------
-
-export interface ItemRelation {
-  id: string;
-  source_item_id: string;
-  target_item_id: string;
-  relation_type: RelationType;
-  created_at: string;
-}
-
-export interface EnforcementDetail {
-  id: string;
-  item_id: string;
-  company_name: string | null;
-  company_address: string | null;
-  products: string[] | null; // JSONB in DB — array of product name strings
-  violation_types: string[] | null;
-  cited_regulations: string[] | null;
-  fei_number: string | null;
-  marcs_cms_number: string | null;
-  recipient_name: string | null;
-  recipient_title: string | null;
-  response_received: boolean | null;
-  closeout: boolean | null;
-  recall_classification: "Class I" | "Class II" | "Class III" | null;
-  recall_status: "Ongoing" | "Completed" | "Terminated" | null;
-  voluntary_mandated: string | null;
-  distribution_pattern: string | null;
-  product_quantity: string | null;
-  created_at: string;
-}
-
-export interface TrendSignal {
-  id: string;
-  category_id: string;
-  period_start: string;
-  period_end: string;
-  item_count: number;
-  avg_relevance: number | null;
-  prev_period_count: number | null;
-  trend_direction: TrendDirection;
-  trend_summary: string | null;
-  computed_at: string;
-}
-
-// --------------------------------------------------------------------------
 // Layer 7: Users & Email
 // --------------------------------------------------------------------------
 
@@ -306,12 +273,6 @@ export interface EmailSubscriber {
   created_at: string;
 }
 
-export interface UserBookmark {
-  user_id: string;
-  item_id: string;
-  created_at: string;
-}
-
 export interface EmailCampaign {
   id: string;
   campaign_type: CampaignType;
@@ -324,13 +285,6 @@ export interface EmailCampaign {
   status: "draft" | "generating" | "sending" | "sent" | "failed";
   sent_at: string | null;
   created_at: string;
-}
-
-export interface EmailCampaignItem {
-  campaign_id: string;
-  item_id: string;
-  position: number;
-  content_level: "headline" | "summary" | "full_analysis";
 }
 
 export interface EmailSend {
@@ -358,10 +312,9 @@ export interface SubscriberProduct {
   brand: string | null;
   product_type: "supplement" | "food" | "cosmetic" | "drug" | "medical_device" | "biologic" | "tobacco" | "veterinary";
   product_category_id: string | null;
-  data_source: "dsld" | "fdc" | "manual" | "openfoodfacts";
+  data_source: "dsld" | "fdc" | "manual" | "openfoodfacts" | "label_scan";
   external_id: string | null;
   upc_barcode: string | null;
-  label_image_url: string | null;
   raw_ingredients_text: string | null;
   product_metadata: Record<string, unknown> | null;
   is_active: boolean;
