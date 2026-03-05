@@ -10,7 +10,7 @@ import type {
 } from "./types";
 import type { NormalizationStatus, ItemType } from "@/types/enums";
 import type { FeedItemEnriched, ItemDetailData } from "@/lib/mock/app-data";
-import { getLifecycleState, isLiveState, type LifecycleState } from "@/lib/utils/lifecycle";
+import { getLifecycleState, type LifecycleState } from "@/lib/utils/lifecycle";
 
 // ---------------------------------------------------------------------------
 // DSLD Search
@@ -368,12 +368,12 @@ export async function ingestParsedIngredients(
  */
 export async function getFeedItems(
   userId: string,
-  options: { limit?: number; offset?: number } = {}
+  options: { limit?: number; offset?: number; includeArchived?: boolean } = {}
 ): Promise<FeedItemEnriched[]> {
-  const { limit = 50, offset = 0 } = options;
+  const { limit = 50, offset = 0, includeArchived = false } = options;
 
   // Fetch recent enriched items
-  const { data: items, error } = await adminClient
+  let query = adminClient
     .from("regulatory_items")
     .select(`
       id, title, item_type, published_date, source_url, issuing_office,
@@ -382,6 +382,17 @@ export async function getFeedItems(
     .not("item_enrichments", "is", null)
     .order("published_date", { ascending: false })
     .range(offset, offset + limit - 1);
+
+  if (!includeArchived) {
+    // Coarse SQL floor: max no-deadline active window is 90d.
+    // Items with future deadlines have published_date within the window too
+    // in practice, so this catches 99%+ of archived items.
+    const floor = new Date();
+    floor.setDate(floor.getDate() - 120);
+    query = query.gte("published_date", floor.toISOString().slice(0, 10));
+  }
+
+  const { data: items, error } = await query;
 
   if (error || !items) {
     console.error("[feed] query error:", error);
@@ -657,39 +668,15 @@ export async function getProductVerdicts(
 export async function getProductVerdictCounts(
   userId: string
 ): Promise<Map<string, { total: number; urgent: number }>> {
-  const { data, error } = await adminClient
-    .from("product_match_verdicts")
-    .select(`
-      product_id,
-      regulatory_items!inner(item_type, published_date, item_enrichments(deadline))
-    `)
-    .eq("user_id", userId)
-    .eq("relevant", true);
+  const { data, error } = await adminClient.rpc("get_live_verdict_counts", {
+    p_user_id: userId,
+  });
 
   if (error || !data) return new Map();
 
   const counts = new Map<string, { total: number; urgent: number }>();
-
-  for (const row of data) {
-    const ri = row.regulatory_items as unknown as {
-      item_type: string;
-      published_date: string;
-      item_enrichments: Array<{ deadline: string | null }> | null;
-    };
-    const deadline = ri.item_enrichments?.[0]?.deadline ?? null;
-    const state = getLifecycleState({
-      item_type: ri.item_type,
-      published_date: ri.published_date,
-      deadline,
-    });
-
-    if (!isLiveState(state)) continue;
-
-    const entry = counts.get(row.product_id) ?? { total: 0, urgent: 0 };
-    entry.total++;
-    if (state === "urgent") entry.urgent++;
-    counts.set(row.product_id, entry);
+  for (const row of data as Array<{ product_id: string; total: number; urgent: number }>) {
+    counts.set(row.product_id, { total: row.total, urgent: row.urgent });
   }
-
   return counts;
 }
