@@ -4,6 +4,7 @@ import { searchDSLDProducts } from "@/lib/products/queries";
 import { DSLDSearchSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+// TODO: remove dev bypass before launch
 const isDev = process.env.NODE_ENV === "development";
 
 // ---------------------------------------------------------------------------

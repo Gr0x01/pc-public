@@ -16,6 +16,7 @@ export const maxDuration = 60; // seconds — vision + substance resolution
 // POST /api/products/parse-label — upload images + extract ingredients via vision
 // ---------------------------------------------------------------------------
 
+// TODO: remove dev bypass before launch
 const isDev = process.env.NODE_ENV === "development";
 const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
 

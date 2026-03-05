@@ -158,7 +158,7 @@ function SidebarProductRow({
 
   const countLabel =
     item.status === "all_clear"
-      ? "All Clear"
+      ? null
       : item.status === "watch"
         ? `${item.activeMatchCount} watching`
         : `${item.activeMatchCount} active`;
@@ -182,8 +182,8 @@ function SidebarProductRow({
           {item.name}
         </p>
         <p className="text-[11px] text-text-secondary mt-0.5 truncate">
-          {item.brand && <>{item.brand} · </>}
-          <span className={statusColor}>{countLabel}</span>
+          {item.brand && <>{item.brand}</>}
+          {countLabel && <>{item.brand && " · "}<span className={statusColor}>{countLabel}</span></>}
         </p>
       </div>
     </button>

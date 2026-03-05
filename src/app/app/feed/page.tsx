@@ -8,6 +8,7 @@ import type { ItemType } from "@/types/enums";
 import FeedPageClient from "@/components/app/FeedPageClient";
 import AutoCheckout from "@/components/app/AutoCheckout";
 
+// TODO: remove dev bypass before launch
 const isDev = process.env.NODE_ENV === "development";
 const USE_MOCK = true;
 

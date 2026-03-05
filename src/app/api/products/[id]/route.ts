@@ -6,6 +6,9 @@ import { UpdateProductSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// TODO: remove dev bypass before launch
+const isDev = process.env.NODE_ENV === "development";
+const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
 
 // ---------------------------------------------------------------------------
 // GET /api/products/[id]
@@ -15,13 +18,19 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json(
-      { error: { message: "Authentication required." } },
-      { status: 401 }
-    );
+  let userId: string;
+  if (isDev) {
+    userId = DEV_USER_ID;
+  } else {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return Response.json(
+        { error: { message: "Authentication required." } },
+        { status: 401 }
+      );
+    }
+    userId = user.id;
   }
 
   const { id } = await params;
@@ -32,7 +41,7 @@ export async function GET(
     );
   }
 
-  const data = await getProductById(id, user.id);
+  const data = await getProductById(id, userId);
   if (!data) {
     return Response.json(
       { error: { message: "Product not found." } },

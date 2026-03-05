@@ -5,6 +5,7 @@ import { getUserProducts, getMaxProducts } from "@/lib/products/queries";
 import type { ProductSidebarItem } from "@/lib/mock/products-data";
 import ProductsLayout from "@/components/app/products/ProductsLayout";
 
+// TODO: remove dev bypass before launch
 const isDev = process.env.NODE_ENV === "development";
 
 export default async function ProductsPage() {

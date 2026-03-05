@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateEmbedding } from "@/lib/ai/openai";
 import { claudeSonnet } from "@/lib/ai/anthropic";
 
+// TODO: remove dev bypass before launch
 const isDev = process.env.NODE_ENV === "development";
 
 // ---------------------------------------------------------------------------

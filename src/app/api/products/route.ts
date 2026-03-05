@@ -38,6 +38,7 @@ export async function GET() {
 // POST /api/products — create a new product
 // ---------------------------------------------------------------------------
 
+// TODO: remove dev bypass before launch
 const isDev = process.env.NODE_ENV === "development";
 const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
 
