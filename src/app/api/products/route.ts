@@ -11,6 +11,7 @@ import {
 import { CreateProductSchema } from "@/lib/products/types";
 import { evaluateProductHistory } from "@/lib/products/verdicts";
 import { invalidateUserMatches } from "@/lib/products/matches";
+import { classifyProduct } from "@/lib/products/classify";
 import { track } from "@/lib/analytics";
 import { isDev, DEV_USER_ID } from "@/lib/dev";
 import { compileWelcome } from "@/lib/email/compiler";
@@ -217,11 +218,26 @@ export async function POST(request: Request) {
     (data_source === "dsld" && ingredientCount === 0 && external_id) ||
     (parsed_ingredients && parsed_ingredients.length > 0 && ingredientCount === 0);
 
+  // Track time since signup for activation metrics
+  const { data: userData } = await adminClient
+    .from("users")
+    .select("created_at")
+    .eq("id", userId)
+    .single();
+
+  const signupToProductMs = userData?.created_at
+    ? Date.now() - new Date(userData.created_at).getTime()
+    : undefined;
+
   track(userId, "product_created", {
     product_id: product.id,
     product_type,
     data_source,
     ingredient_count: ingredientCount,
+    is_first_product: activeCountBefore === 0,
+    ...(activeCountBefore === 0 && signupToProductMs !== undefined
+      ? { time_to_first_product_hours: Math.round(signupToProductMs / 3_600_000 * 10) / 10 }
+      : {}),
   });
 
   // 9. Send monitoring-active confirmation on first product (non-blocking)

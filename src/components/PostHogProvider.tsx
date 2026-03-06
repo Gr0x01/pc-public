@@ -17,6 +17,7 @@ if (
       maskAllInputs: false,
       maskInputOptions: { password: true },
     },
+    person_profiles: "identified_only",
   });
 }
 

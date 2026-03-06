@@ -153,6 +153,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   track(userId, "subscription_activated", {
     plan: "monitor",
     has_trial: !!trialEndsAt,
+    revenue: 99,
+    currency: "usd",
   });
 
   console.log(`[stripe/webhook] User ${userId} upgraded to monitor`);
@@ -191,6 +193,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
     track(user.id, "subscription_downgraded", {
       reason: subscription.status,
+      revenue: 0,
+      currency: "usd",
     });
 
     console.log(`[stripe/webhook] User ${user.id} downgraded to free (status: ${subscription.status})`);
@@ -214,7 +218,10 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     })
     .eq("id", user.id);
 
-  track(user.id, "subscription_cancelled");
+  track(user.id, "subscription_cancelled", {
+    revenue: 0,
+    currency: "usd",
+  });
 
   console.log(`[stripe/webhook] User ${user.id} subscription deleted — reset to free`);
 }
