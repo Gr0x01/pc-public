@@ -144,13 +144,13 @@ export default function BriefingEmail({
             <Section>
               <Text style={sectionLabelStyle} className="text-secondary">ACROSS FDA THIS WEEK</Text>
               {data.other_items.map((item, i) => (
-                <Text key={i} style={otherItemStyle} className="text-body">
-                  • {item.title}
+                <Text key={i} style={otherItemTitleStyle} className="text-primary">
+                  {stripHtml(item.title)}
                   {item.source_url && (
                     <>
                       {" "}
-                      <Link href={item.source_url} style={otherLinkStyle}>
-                        [link]
+                      <Link href={item.source_url} style={sourceLinkStyle}>
+                        Source →
                       </Link>
                     </>
                   )}
@@ -379,7 +379,11 @@ function formatDate(dateStr: string): string {
 
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
-  return text.slice(0, max).trimEnd() + "...";
+  return text.slice(0, max).trimEnd() + "…";
+}
+
+function stripHtml(text: string): string {
+  return text.replace(/<[^>]*>/g, " ").replace(/\s{2,}/g, " ").trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -563,7 +567,11 @@ const sourceLinkStyle: React.CSSProperties = {
 const dividerStyle: React.CSSProperties = {
   borderTop: `1px solid ${COLORS.border}`,
   borderBottom: "none",
-  margin: "32px 40px",
+  marginTop: "32px",
+  marginBottom: "32px",
+  marginLeft: "40px",
+  marginRight: "40px",
+  width: "auto",
 };
 
 const clearListStyle: React.CSSProperties = {
@@ -606,19 +614,13 @@ const industryBodyStyle: React.CSSProperties = {
   margin: "0 0 4px",
 };
 
-const otherItemStyle: React.CSSProperties = {
+const otherItemTitleStyle: React.CSSProperties = {
   fontFamily: FONTS.sans,
   fontSize: "14px",
   color: COLORS.textBody,
-  lineHeight: "1.5",
+  lineHeight: "1.4",
   padding: "0 40px",
-  margin: "2px 0",
-};
-
-const otherLinkStyle: React.CSSProperties = {
-  color: COLORS.textSecondary,
-  textDecoration: "underline",
-  fontSize: "13px",
+  margin: "0 0 12px",
 };
 
 const shareSectionStyle: React.CSSProperties = {
