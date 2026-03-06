@@ -1,11 +1,12 @@
 import Link from "next/link";
 import NavLinks from "./NavLinks";
+
 interface AppNavProps {
-  email: string;
+  initials: string;
   signOut: () => Promise<void>;
 }
 
-export default function AppNav({ email, signOut }: AppNavProps) {
+export default function AppNav({ initials, signOut }: AppNavProps) {
   return (
     <header className="h-14 bg-[#07111F] border-b border-border-dark flex items-center px-4 shrink-0">
       {/* Logo */}
@@ -28,10 +29,16 @@ export default function AppNav({ email, signOut }: AppNavProps) {
       </div>
 
       {/* Right side */}
-      <div className="flex items-baseline gap-4 shrink-0">
-        <span className="font-mono text-xs text-slate-400 hidden sm:block leading-none">
-          {email}
-        </span>
+      <div className="flex items-center gap-4 shrink-0">
+        <Link
+          href="/app/settings"
+          className="h-8 w-8 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-colors duration-100"
+          title="Settings"
+        >
+          <span className="text-xs font-semibold text-slate-200 leading-none select-none">
+            {initials}
+          </span>
+        </Link>
         {/* Upgrade/Billing hidden during pilot program */}
         <form action={signOut}>
           <button
