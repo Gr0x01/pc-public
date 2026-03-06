@@ -16,17 +16,22 @@ import { SITE_URL } from "@/lib/email/constants";
 // ---------------------------------------------------------------------------
 // Weekly Email Send — triggered by cron (Vercel cron or external)
 // ---------------------------------------------------------------------------
-// GET /api/email/send-weekly?secret=<CRON_SECRET>
-// Sends both paid briefings + free newsletter in a single run.
+// Vercel cron: sends Authorization: Bearer <CRON_SECRET> header automatically
+// Manual:      GET /api/email/send-weekly?secret=<CRON_SECRET>
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-  // Verify cron secret to prevent unauthorized triggers
-  const secret = request.nextUrl.searchParams.get("secret");
   const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return Response.json({ error: "CRON_SECRET not configured" }, { status: 500 });
+  }
+
+  // Accept secret from either Authorization header (Vercel cron) or query param (manual)
+  const headerSecret = request.headers.get("authorization")?.replace("Bearer ", "");
+  const querySecret = request.nextUrl.searchParams.get("secret");
+  const secret = headerSecret || querySecret;
 
   const secretsMatch =
-    cronSecret &&
     secret &&
     cronSecret.length === secret.length &&
     timingSafeEqual(Buffer.from(cronSecret), Buffer.from(secret));
