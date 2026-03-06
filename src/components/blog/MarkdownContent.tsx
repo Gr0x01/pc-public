@@ -241,6 +241,35 @@ function CtaCard({ children }: { children: ReactNode }) {
   );
 }
 
+// ─── Chart Image Card ────────────────────────────────────
+// Wraps markdown images in a data card with caption from alt text.
+
+function ChartImage({
+  src,
+  alt,
+  ...props
+}: React.ImgHTMLAttributes<HTMLImageElement>) {
+  if (!src) return null;
+
+  return (
+    <figure className="my-8 mx-auto max-w-full sm:max-w-[540px] rounded border border-border bg-white p-5 shadow-sm">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt || ""}
+        className="w-full h-auto rounded-sm"
+        loading="lazy"
+        {...props}
+      />
+      {alt && (
+        <figcaption className="mt-3 text-center text-[13px] leading-snug text-text-secondary">
+          {alt}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
 // ─── Blockquote Router ──────────────────────────────────
 
 function CustomBlockquote({ children }: { children?: ReactNode }) {
@@ -266,9 +295,21 @@ function CustomBlockquote({ children }: { children?: ReactNode }) {
   }
 }
 
+// ─── Content Cleaning ────────────────────────────────────
+// Strip metadata blocks that skills prepend (Title, Slug, Category, etc.)
+
+function cleanContent(raw: string): string {
+  // Strip YAML-like front matter between --- delimiters containing **Key:** lines
+  let cleaned = raw.replace(/^---\n\*\*[\s\S]*?\n---\n+/, "");
+  // Strip **Key:** Value lines at the top of content (e.g. **Title:** ..., **Slug:** ...)
+  cleaned = cleaned.replace(/^(\*\*[A-Za-z ]+:\*\*.*\n)+\n*/m, "");
+  return cleaned;
+}
+
 // ─── Main Component ─────────────────────────────────────
 
 export function MarkdownContent({ content }: { content: string }) {
+  const cleaned = cleanContent(content);
   return (
     <div
       className={[
@@ -292,9 +333,10 @@ export function MarkdownContent({ content }: { content: string }) {
         remarkPlugins={[remarkGfm]}
         components={{
           blockquote: CustomBlockquote,
+          img: ChartImage,
         }}
       >
-        {content}
+        {cleaned}
       </ReactMarkdown>
     </div>
   );
