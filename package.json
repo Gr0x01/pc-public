@@ -20,7 +20,8 @@
     "pipeline:enrich-test": "npx tsx scripts/run-enrichment.ts --limit 5",
     "pipeline:content-fetch-test": "npx tsx scripts/test-content-fetch.ts",
     "pipeline:golden": "npx tsx scripts/run-golden-tests.ts",
-    "pipeline:golden-enrich": "npx tsx scripts/run-golden-tests.ts --enrich"
+    "pipeline:golden-enrich": "npx tsx scripts/run-golden-tests.ts --enrich",
+    "email:dev": "npx react-email dev -d emails -p 3001"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.53",
@@ -49,6 +50,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
+    "@react-email/preview-server": "^5.2.9",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
