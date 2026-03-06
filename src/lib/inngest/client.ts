@@ -7,6 +7,11 @@ type Events = {
       itemTypeFilter?: string;
     };
   };
+  "alerts/urgent.requested": {
+    data: {
+      itemId: string;
+    };
+  };
 };
 
 export const inngest = new Inngest({

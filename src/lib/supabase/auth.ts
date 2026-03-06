@@ -22,7 +22,7 @@ export const getAuthUser = cache(async () => {
 export const getDbUser = cache(async (userId: string) => {
   const { data } = await adminClient
     .from("users")
-    .select("onboarding_completed_at, access_level, max_products, stripe_subscription_id")
+    .select("first_name, last_name, company_name, role, fei_number, onboarding_completed_at, access_level, max_products, stripe_customer_id, stripe_subscription_id, email_opted_out, created_at")
     .eq("id", userId)
     .single();
   return data;

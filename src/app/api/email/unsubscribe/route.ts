@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // 1. Try free newsletter subscriber (email_subscribers table)
   const { data, error } = await adminClient
     .from("email_subscribers")
     .update({ status: "unsubscribed", unsubscribed_at: new Date().toISOString() })
@@ -24,30 +25,49 @@ export async function GET(request: NextRequest) {
     .select("id")
     .single();
 
-  if (error || !data) {
-    // Fallback: try by id for legacy links
-    const { data: fallback } = await adminClient
-      .from("email_subscribers")
-      .update({ status: "unsubscribed", unsubscribed_at: new Date().toISOString() })
-      .eq("id", token)
-      .select("id")
-      .single();
+  if (!error && data) {
+    console.log(`[unsubscribe] Newsletter unsubscribed via token: ${data.id}`);
+    return new Response(
+      unsubscribePage("You've been unsubscribed from Policy Canary Weekly. You can close this tab."),
+      { status: 200, headers: { "Content-Type": "text/html" } }
+    );
+  }
 
-    if (!fallback) {
+  // 2. Try paid user (users table — email_unsubscribe_token)
+  const { data: paidUser } = await adminClient
+    .from("users")
+    .select("id")
+    .eq("email_unsubscribe_token", token)
+    .single();
+
+  if (paidUser) {
+    // Set email_opted_out — stops emails without affecting subscription/access_level
+    const { error: updateErr } = await adminClient
+      .from("users")
+      .update({ email_opted_out: true })
+      .eq("id", paidUser.id);
+
+    if (updateErr) {
+      console.error(`[unsubscribe] Failed to opt out paid user ${paidUser.id}:`, updateErr);
       return new Response(
-        unsubscribePage("Invalid or expired unsubscribe link. Contact support@policycanary.io if you need help."),
-        { status: 400, headers: { "Content-Type": "text/html" } }
+        unsubscribePage("Something went wrong. Please try again or contact support@policycanary.io."),
+        { status: 500, headers: { "Content-Type": "text/html" } }
       );
     }
 
-    console.log(`[unsubscribe] Unsubscribed via legacy id: ${fallback.id}`);
-  } else {
-    console.log(`[unsubscribe] Unsubscribed via token: ${data.id}`);
+    console.log(`[unsubscribe] Paid user ${paidUser.id} opted out of product emails`);
+    return new Response(
+      unsubscribePage(
+        "You've been unsubscribed from product alerts and briefings. " +
+        "Your account and subscription remain active — you can re-enable notifications from your dashboard."
+      ),
+      { status: 200, headers: { "Content-Type": "text/html" } }
+    );
   }
 
   return new Response(
-    unsubscribePage("You've been unsubscribed from Policy Canary Weekly. You can close this tab."),
-    { status: 200, headers: { "Content-Type": "text/html" } }
+    unsubscribePage("Invalid or expired unsubscribe link. Contact support@policycanary.io if you need help."),
+    { status: 400, headers: { "Content-Type": "text/html" } }
   );
 }
 

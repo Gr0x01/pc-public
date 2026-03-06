@@ -1,4 +1,3 @@
-import "server-only";
 import { adminClient } from "@/lib/supabase/admin";
 import { getMatchesForUser, type ProductMatch } from "@/lib/products/matches";
 import { getLifecycleState, isLiveState } from "@/lib/utils/lifecycle";
@@ -67,6 +66,7 @@ export interface EmailSubscriber {
   first_name: string | null;
   company_name: string | null;
   access_level: string;
+  email_unsubscribe_token: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -76,8 +76,9 @@ export interface EmailSubscriber {
 export async function getActiveSubscribers(): Promise<EmailSubscriber[]> {
   const { data, error } = await adminClient
     .from("users")
-    .select("id, email, first_name, company_name, access_level")
-    .eq("access_level", "monitor");
+    .select("id, email, first_name, company_name, access_level, email_unsubscribe_token")
+    .eq("access_level", "monitor")
+    .eq("email_opted_out", false);
 
   if (error) {
     console.error("[email-queries] getActiveSubscribers error:", error);
@@ -90,6 +91,7 @@ export async function getActiveSubscribers(): Promise<EmailSubscriber[]> {
     first_name: u.first_name,
     company_name: u.company_name,
     access_level: u.access_level,
+    email_unsubscribe_token: u.email_unsubscribe_token,
   }));
 }
 

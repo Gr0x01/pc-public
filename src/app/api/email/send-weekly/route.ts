@@ -73,12 +73,12 @@ export async function GET(request: NextRequest) {
           recipient_count: 1,
         });
 
-        // Send (paid emails: manage subscription via Stripe portal)
-        const portalUrl = `${SITE_URL}/api/stripe/portal`;
+        // Send (paid emails: token-based one-click unsubscribe per RFC 8058)
+        const unsubUrl = `${SITE_URL}/api/email/unsubscribe?token=${sub.email_unsubscribe_token}`;
         const result = await sendEmail({
           to: sub.email, subject, html,
           headers: {
-            "List-Unsubscribe": `<${portalUrl}>`,
+            "List-Unsubscribe": `<${unsubUrl}>`,
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           },
         });

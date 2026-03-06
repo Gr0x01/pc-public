@@ -17,6 +17,8 @@ import { generateItemEmbeddings } from "./embeddings";
 import { fetchSourceContent } from "./content-fetch";
 import { logPipelineRun } from "../fetchers/utils";
 import { evaluateItemForAllUsers } from "../../lib/products/verdicts";
+import { inngest } from "../../lib/inngest/client";
+import { URGENT_ACTION_TYPES } from "../../lib/email/alerts";
 import type { RegulatoryItem } from "../../types/database";
 
 // ---------------------------------------------------------------------------
@@ -47,6 +49,7 @@ export interface EnrichmentRunResult {
   contentFetched: number;
   crossReferenced: number;
   verdicts: number;
+  alertsQueued: number;
   errors: number;
   skipped: number;
   durationMs: number;
@@ -92,7 +95,7 @@ export async function runEnrichment(
     `Loaded ${Object.keys(categoryIdMap.topics).length} topics`
   );
 
-  const counters = { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, verdicts: 0, errors: 0, skipped: 0 };
+  const counters = { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, verdicts: 0, alertsQueued: 0, errors: 0, skipped: 0 };
   const PAGE_SIZE = 1000; // Supabase max
   const limit_ = pLimit(concurrency);
   let totalQueued = 0;
@@ -192,6 +195,31 @@ export async function runEnrichment(
       } catch (verdictErr) {
         const msg = verdictErr instanceof Error ? verdictErr.message : String(verdictErr);
         console.log(`${label} enriched (verdict eval failed: ${msg})`);
+      }
+
+      // e. Queue urgent alerts only for recalls/bans/safety alerts
+      //    Check enrichment action type to avoid emitting no-op events
+      try {
+        const { data: enrichData } = await supabase
+          .from("item_enrichments")
+          .select("regulatory_action_type")
+          .eq("item_id", item.id)
+          .maybeSingle();
+
+        if (enrichData?.regulatory_action_type && URGENT_ACTION_TYPES.has(enrichData.regulatory_action_type)) {
+          // Inngest path (production) vs inline fallback (CLI)
+          if (process.env.INNGEST_EVENT_KEY || process.env.VERCEL) {
+            await inngest.send({ name: "alerts/urgent.requested", data: { itemId: item.id } });
+            counters.alertsQueued++;
+          } else {
+            const { sendUrgentAlerts } = await import("../../lib/email/alerts");
+            const alertCount = await sendUrgentAlerts(item.id);
+            counters.alertsQueued += alertCount;
+          }
+        }
+      } catch (alertErr) {
+        const alertMsg = alertErr instanceof Error ? alertErr.message : String(alertErr);
+        console.error(`${label} alert queue failed: ${alertMsg}`);
       }
 
       counters.processed++;
