@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
 import { adminClient } from "@/lib/supabase/admin";
+import { track } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Resend Webhook — delivery tracking, bounce/complaint management
@@ -74,37 +75,94 @@ async function handleEvent(event: ResendWebhookEvent): Promise<void> {
   const messageId = event.data.email_id;
   if (!messageId) return;
 
-  const statusMap: Record<string, string> = {
-    "email.delivered": "delivered",
-    "email.bounced": "bounced",
-    "email.complained": "complained",
-  };
+  const email = event.data.to?.[0];
 
-  const newStatus = statusMap[event.type];
-  if (!newStatus) return; // ignore events we don't track
-
-  // Update email_sends record by provider_message_id
-  const { error } = await adminClient
+  // Look up the send record to get subscriber context for PostHog
+  const { data: sendRecord } = await adminClient
     .from("email_sends")
-    .update({ status: newStatus })
-    .eq("provider_message_id", messageId);
+    .select("id, subscriber_id, campaign_id")
+    .eq("provider_message_id", messageId)
+    .single();
 
-  if (error) {
-    console.error(`[email/webhook] Failed to update send ${messageId}:`, error);
-  }
+  switch (event.type) {
+    case "email.delivered": {
+      if (sendRecord) {
+        await adminClient
+          .from("email_sends")
+          .update({ status: "delivered", delivered_at: event.created_at })
+          .eq("id", sendRecord.id);
+      }
+      trackEmailEvent("email_delivered", sendRecord, email, event);
+      break;
+    }
 
-  // Handle bounces — deactivate newsletter subscribers
-  if (newStatus === "bounced" || newStatus === "complained") {
-    const email = event.data.to?.[0];
-    if (email) {
-      await adminClient
-        .from("email_subscribers")
-        .update({ status: "unsubscribed" })
-        .eq("email", email);
+    case "email.opened": {
+      if (sendRecord) {
+        // Only set opened_at on first open
+        await adminClient
+          .from("email_sends")
+          .update({ status: "opened", opened_at: event.created_at })
+          .eq("id", sendRecord.id)
+          .is("opened_at", null);
+      }
+      trackEmailEvent("email_opened", sendRecord, email, event);
+      break;
+    }
 
-      console.warn(`[email/webhook] ${newStatus}: deactivated subscriber ${email}`);
+    case "email.clicked": {
+      if (sendRecord) {
+        // Only set clicked_at on first click
+        await adminClient
+          .from("email_sends")
+          .update({ status: "clicked", clicked_at: event.created_at })
+          .eq("id", sendRecord.id)
+          .is("clicked_at", null);
+      }
+      trackEmailEvent("email_clicked", sendRecord, email, event);
+      break;
+    }
+
+    case "email.bounced":
+    case "email.complained": {
+      const status = event.type === "email.bounced" ? "bounced" : "complained";
+      if (sendRecord) {
+        await adminClient
+          .from("email_sends")
+          .update({ status, bounce_type: status })
+          .eq("id", sendRecord.id);
+      }
+
+      // Deactivate newsletter subscriber
+      if (email) {
+        await adminClient
+          .from("email_subscribers")
+          .update({ status: "unsubscribed" })
+          .eq("email", email);
+        console.warn(`[email/webhook] ${status}: deactivated subscriber ${email}`);
+      }
+
+      trackEmailEvent(`email_${status}`, sendRecord, email, event);
+      break;
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// PostHog tracking helper
+// ---------------------------------------------------------------------------
+
+function trackEmailEvent(
+  eventName: string,
+  sendRecord: { subscriber_id: string; campaign_id: string } | null,
+  email: string | undefined,
+  event: ResendWebhookEvent
+) {
+  track(sendRecord?.subscriber_id ?? null, eventName, {
+    email_id: event.data.email_id,
+    subject: event.data.subject,
+    campaign_id: sendRecord?.campaign_id,
+    ...(email ? { recipient: email } : {}),
+  });
 }
 
 // ---------------------------------------------------------------------------
