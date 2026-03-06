@@ -7,7 +7,6 @@ import {
   Text,
   Link,
   Hr,
-  Img,
   Button,
   Preview,
 } from "@react-email/components";
@@ -65,28 +64,22 @@ export default function WeeklyNewsletter({
           {/* Canary top rule */}
           <Section style={topRuleStyle} className="top-rule" />
 
-          {/* Header — logo image for free newsletter */}
+          {/* Header */}
           <Section style={headerStyle}>
-            <Img
-              src={`${SITE_URL}/logo-wordmark.png`}
-              alt="Policy Canary"
-              width="140"
-              height="28"
-              style={logoStyle}
-            />
-            <Text style={dateStyle}>Policy Canary Weekly — {weekOf}</Text>
+            <Text style={wordmarkStyle} className="text-secondary">POLICY CANARY</Text>
+            <Text style={dateStyle} className="text-secondary">Policy Canary Weekly — {weekOf}</Text>
           </Section>
 
           {/* THIS WEEK AT FDA */}
           <Section style={contentStyle}>
-            <Text style={sectionLabelStyle}>THIS WEEK AT FDA</Text>
+            <Text style={sectionLabelStyle} className="text-secondary">THIS WEEK AT FDA</Text>
 
             {/* Lead story */}
             {lead_story && (
               <Section style={leadStoryStyle}>
-                <Text style={leadTitleStyle}>{lead_story.title}</Text>
-                <Text style={leadBodyStyle}>{lead_story.body}</Text>
-                <Text style={inlineDisclaimerStyle}>
+                <Text style={leadTitleStyle} className="text-primary">{lead_story.title}</Text>
+                <Text style={leadBodyStyle} className="text-body">{lead_story.body}</Text>
+                <Text style={inlineDisclaimerStyle} className="text-tertiary">
                   AI-assisted analysis. Verify with source documents.
                 </Text>
                 {lead_story.source_url && (
@@ -108,9 +101,9 @@ export default function WeeklyNewsletter({
               if (i === 0 && lead_story) return null; // lead story covers first item
               return (
                 <Section key={i} style={itemStyle}>
-                  <Text style={itemTitleStyle}>{item.title}</Text>
+                  <Text style={itemTitleStyle} className="text-primary">{item.title}</Text>
                   {item.summary && (
-                    <Text style={itemBodyStyle}>{truncate(item.summary, 200)}</Text>
+                    <Text style={itemBodyStyle} className="text-body">{truncate(item.summary, 200)}</Text>
                   )}
                   {item.source_url && (
                     <Text style={sourceStyle}>
@@ -129,9 +122,9 @@ export default function WeeklyNewsletter({
             <>
               <Hr style={dividerStyle} className="border-light" />
               <Section style={numberSectionStyle}>
-                <Text style={sectionLabelStyle}>THE NUMBER</Text>
-                <Text style={numberValueStyle}>{the_number.value}</Text>
-                <Text style={numberContextStyle}>{the_number.context}</Text>
+                <Text style={sectionLabelStyle} className="text-secondary">THE NUMBER</Text>
+                <Text style={numberValueStyle} className="text-primary">{the_number.value}</Text>
+                <Text style={numberContextStyle} className="text-body">{the_number.context}</Text>
                 {the_number.source_url && (
                   <Text style={sourceStyle}>
                     <Link href={the_number.source_url} style={sourceLinkStyle}>
@@ -149,7 +142,7 @@ export default function WeeklyNewsletter({
             <Text style={bridgeTitleStyle}>
               What this means for YOUR products
             </Text>
-            <Text style={bridgeBodyStyle}>
+            <Text style={bridgeBodyStyle} className="text-body">
               {data.bridge.products_with_action_items > 0
                 ? `This week, ${String(data.bridge.products_with_action_items)} of ${String(data.bridge.total_monitored_products)} monitored products received specific action items — with deadlines, matched ingredients, and source documents. That's what a Policy Canary briefing looks like: not a list of FDA headlines, but what they mean for your specific products.`
                 : `This week, all ${String(data.bridge.total_monitored_products)} monitored products received all-clear confirmations — each one checked against every regulatory action above. That's what a Policy Canary briefing looks like: verified quiet, not assumed quiet.`}
@@ -169,9 +162,9 @@ export default function WeeklyNewsletter({
             <>
               <Hr style={dividerStyle} className="border-light" />
               <Section style={contentStyle}>
-                <Text style={sectionLabelStyle}>IN BRIEF</Text>
+                <Text style={sectionLabelStyle} className="text-secondary">IN BRIEF</Text>
                 {data.items.slice(5, 12).map((item, i) => (
-                  <Text key={i} style={briefItemStyle}>
+                  <Text key={i} style={briefItemStyle} className="text-body">
                     • {item.title}
                     {item.source_url && (
                       <>
@@ -190,7 +183,7 @@ export default function WeeklyNewsletter({
           {/* Footer */}
           <Hr style={dividerStyle} className="border-light" />
           <Section style={footerStyle} className="footer">
-            <Text style={footerDisclaimerStyle}>
+            <Text style={footerDisclaimerStyle} className="text-tertiary">
               Policy Canary Weekly{"\n"}
               AI-generated from public FDA sources. Regulatory intelligence
               for your review, not legal advice. Verify with source documents
@@ -205,7 +198,7 @@ export default function WeeklyNewsletter({
                 Read more on our blog
               </Link>
             </Text>
-            <Text style={footerAddressStyle}>{PHYSICAL_ADDRESS}</Text>
+            <Text style={footerAddressStyle} className="text-tertiary">{PHYSICAL_ADDRESS}</Text>
           </Section>
         </Container>
       </Body>
@@ -253,8 +246,13 @@ const headerStyle: React.CSSProperties = {
   padding: "32px 40px 0",
 };
 
-const logoStyle: React.CSSProperties = {
-  display: "block",
+const wordmarkStyle: React.CSSProperties = {
+  fontFamily: FONTS.sans,
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "2px",
+  color: COLORS.textSecondary,
+  margin: 0,
 };
 
 const dateStyle: React.CSSProperties = {

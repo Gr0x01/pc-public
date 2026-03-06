@@ -76,7 +76,7 @@ export default function BriefingEmail({
             ) : (
               <>
                 <Text style={allClearHeadlineStyle}>All clear.</Text>
-                <Text style={allClearBodyStyle}>
+                <Text style={allClearBodyStyle} className="text-body">
                   We reviewed {data.total_items_reviewed} FDA actions this week against your{" "}
                   {productCount} monitored products. None affect your products.
                 </Text>
@@ -87,7 +87,7 @@ export default function BriefingEmail({
           {/* ZONE 1: YOUR PRODUCTS */}
           {hasProductItems && (
             <Section>
-              <Text style={sectionLabelStyle}>YOUR PRODUCTS</Text>
+              <Text style={sectionLabelStyle} className="text-secondary">YOUR PRODUCTS</Text>
               {groupByProduct(data.product_items, data.products).map(
                 (group, idx) => (
                   <Section key={group.product.id}>
@@ -105,9 +105,9 @@ export default function BriefingEmail({
           {/* All-clear product list (when no items) */}
           {!hasProductItems && (
             <Section style={clearListStyle}>
-              <Text style={clearListHeaderStyle}>Your monitored products:</Text>
+              <Text style={clearListHeaderStyle} className="text-secondary">Your monitored products:</Text>
               {data.products.map((p) => (
-                <Text key={p.id} style={clearProductStyle}>
+                <Text key={p.id} style={clearProductStyle} className="text-secondary">
                   {p.name} — clear
                 </Text>
               ))}
@@ -119,12 +119,12 @@ export default function BriefingEmail({
           {/* ZONE 2: YOUR INDUSTRY */}
           {data.industry_items.length > 0 && (
             <Section>
-              <Text style={sectionLabelStyle}>YOUR INDUSTRY</Text>
+              <Text style={sectionLabelStyle} className="text-secondary">YOUR INDUSTRY</Text>
               {data.industry_items.map((item) => (
                 <Section key={item.item_id} style={industryItemStyle}>
-                  <Text style={industryTitleStyle}>{item.title}</Text>
+                  <Text style={industryTitleStyle} className="text-primary">{item.title}</Text>
                   {item.summary && (
-                    <Text style={industryBodyStyle}>{truncate(item.summary, 200)}</Text>
+                    <Text style={industryBodyStyle} className="text-body">{truncate(item.summary, 200)}</Text>
                   )}
                   {item.source_url && (
                     <Text style={sourceStyle}>
@@ -142,9 +142,9 @@ export default function BriefingEmail({
           {/* ZONE 3: ACROSS FDA */}
           {data.other_items.length > 0 && (
             <Section>
-              <Text style={sectionLabelStyle}>ACROSS FDA THIS WEEK</Text>
+              <Text style={sectionLabelStyle} className="text-secondary">ACROSS FDA THIS WEEK</Text>
               {data.other_items.map((item, i) => (
-                <Text key={i} style={otherItemStyle}>
+                <Text key={i} style={otherItemStyle} className="text-body">
                   • {item.title}
                   {item.source_url && (
                     <>
@@ -186,7 +186,7 @@ export default function BriefingEmail({
                 Manage your subscription
               </Link>
             </Text>
-            <Text style={footerAddressStyle}>{PHYSICAL_ADDRESS}</Text>
+            <Text style={footerAddressStyle} className="text-tertiary">{PHYSICAL_ADDRESS}</Text>
           </Section>
         </Container>
       </Body>
@@ -207,7 +207,7 @@ function ProductSection({
 }) {
   return (
     <Section style={productSectionStyle}>
-      <Text style={productNameStyle}>{product.name}</Text>
+      <Text style={productNameStyle} className="text-primary">{product.name}</Text>
 
       {items.map((item) => (
         <Section key={item.item_id} style={itemBlockStyle}>
@@ -221,14 +221,14 @@ function ProductSection({
           </Section>
 
           {/* Summary */}
-          {item.summary && <Text style={itemBodyStyle}>{item.summary}</Text>}
+          {item.summary && <Text style={itemBodyStyle} className="text-body">{item.summary}</Text>}
 
           {/* Action items */}
           {item.action_items && item.action_items.length > 0 && (
             <Section style={actionBlockStyle} className="action-block">
-              <Text style={actionBlockHeaderStyle}>ITEMS TO CONSIDER</Text>
+              <Text style={actionBlockHeaderStyle} className="text-secondary">ITEMS TO CONSIDER</Text>
               {item.action_items.map((ai, idx) => (
-                <Text key={idx} style={actionItemStyle}>
+                <Text key={idx} style={actionItemStyle} className="text-body">
                   {idx + 1}. {ai}
                 </Text>
               ))}
@@ -256,7 +256,7 @@ function ProductSection({
       ))}
 
       {/* Single AI disclaimer per product section */}
-      <Text style={inlineDisclaimerStyle}>
+      <Text style={inlineDisclaimerStyle} className="text-tertiary">
         AI-generated analysis. Verify with source documents.
       </Text>
     </Section>

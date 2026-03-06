@@ -67,28 +67,28 @@ export default function AlertEmail({
 
           {/* Header */}
           <Section style={headerStyle}>
-            <Text style={wordmarkStyle}>POLICY CANARY</Text>
+            <Text style={wordmarkStyle} className="text-secondary">POLICY CANARY</Text>
             <Text style={alertLabelStyle}>Regulatory Alert</Text>
           </Section>
 
           {/* BLUF */}
           <Section style={blufStyle}>
-            <Text style={blufTextStyle}>
+            <Text style={blufTextStyle} className="text-primary">
               {actionLabel} affecting {product_name}
             </Text>
-            <Text style={confidenceBadgeStyle}>
+            <Text style={confidenceBadgeStyle} className="badge-info">
               {getConfidenceLabel(action_type)}
             </Text>
           </Section>
 
           {/* Content */}
           <Section style={contentStyle}>
-            <Text style={titleStyle}>{title}</Text>
-            <Text style={summaryStyle}>{summary}</Text>
+            <Text style={titleStyle} className="text-primary">{title}</Text>
+            <Text style={summaryStyle} className="text-body">{summary}</Text>
 
             {/* Matched substances */}
             {matched_substances.length > 0 && (
-              <Text style={substanceStyle}>
+              <Text style={substanceStyle} className="text-secondary">
                 Matched ingredients: {matched_substances.join(", ")}
               </Text>
             )}
@@ -103,7 +103,7 @@ export default function AlertEmail({
             )}
 
             {/* Inline disclaimer */}
-            <Text style={inlineDisclaimerStyle}>
+            <Text style={inlineDisclaimerStyle} className="text-tertiary">
               AI-generated analysis. Verify with source documents.
             </Text>
 
@@ -127,7 +127,7 @@ export default function AlertEmail({
           {/* Footer */}
           <Hr style={dividerStyle} className="border-light" />
           <Section style={footerStyle} className="footer">
-            <Text style={footerDisclaimerStyle}>
+            <Text style={footerDisclaimerStyle} className="text-tertiary">
               Policy Canary | Regulatory Alert{"\n"}
               AI-generated from public FDA sources. Regulatory intelligence
               for your review, not legal advice. Verify with source documents
@@ -142,7 +142,7 @@ export default function AlertEmail({
                 Manage your subscription
               </Link>
             </Text>
-            <Text style={footerAddressStyle}>{PHYSICAL_ADDRESS}</Text>
+            <Text style={footerAddressStyle} className="text-tertiary">{PHYSICAL_ADDRESS}</Text>
           </Section>
         </Container>
       </Body>
