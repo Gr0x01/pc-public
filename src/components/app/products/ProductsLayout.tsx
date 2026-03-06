@@ -138,7 +138,7 @@ export default function ProductsLayout({
     ? initialProductId
     : initialItems[0]?.id ?? null;
   const [selectedId, setSelectedId] = useState<string | null>(startProductId);
-  const [useCodes, setUseCodes] = useState<Record<string, string[]>>({});
+
   const [mode, setMode] = useState<"view" | "add" | "edit">(initialItems.length === 0 ? "add" : "view");
   const [editingProduct, setEditingProduct] = useState<ProductDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -180,7 +180,7 @@ export default function ProductsLayout({
       // C2 fix: only apply if user hasn't navigated away during fetch
       if (intendedIdRef.current === id) {
         setCurrentDetail(detail);
-        if (use_codes) setUseCodes(use_codes);
+
       }
     } catch (err) {
       console.error("[ProductsLayout] fetch detail error:", err);
@@ -555,7 +555,7 @@ export default function ProductsLayout({
             <ProductContextPanel
               detail={currentDetail}
               highlightedSubstanceIds={highlightedSubstanceIds}
-              useCodes={useCodes}
+
               onStartEdit={handleEditProduct}
             />
           ) : null}

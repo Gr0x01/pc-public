@@ -16,14 +16,12 @@ const TYPE_LABELS: Record<string, string> = {
 interface ProductContextPanelProps {
   detail: ProductDetailData;
   highlightedSubstanceIds: Set<string>;
-  useCodes?: Record<string, string[]>;
   onStartEdit: () => void;
 }
 
 export default function ProductContextPanel({
   detail,
   highlightedSubstanceIds,
-  useCodes = {},
   onStartEdit,
 }: ProductContextPanelProps) {
   const { product } = detail;
@@ -66,7 +64,6 @@ export default function ProductContextPanel({
               const isHighlighted = substanceId
                 ? highlightedSubstanceIds.has(substanceId)
                 : false;
-              const codes = substanceId ? useCodes[substanceId] : undefined;
               return (
                 <div
                   key={i}
@@ -79,27 +76,13 @@ export default function ProductContextPanel({
                       isHighlighted ? "bg-amber" : "bg-slate-300"
                     }`}
                   />
-                  <div className="min-w-0">
-                    <span
-                      className={`font-mono text-[13px] leading-snug ${
-                        isHighlighted ? "text-slate-900" : "text-text-body"
-                      }`}
-                    >
-                      {ingredient}
-                    </span>
-                    {codes && codes.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-0.5">
-                        {codes.map((code) => (
-                          <span
-                            key={code}
-                            className="font-mono text-[9px] text-text-secondary bg-surface-muted border border-border rounded px-1.5 py-0.5 uppercase tracking-wide"
-                          >
-                            {code}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <span
+                    className={`font-mono text-[13px] leading-snug ${
+                      isHighlighted ? "text-slate-900" : "text-text-body"
+                    }`}
+                  >
+                    {ingredient}
+                  </span>
                 </div>
               );
             })}
