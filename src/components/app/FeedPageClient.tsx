@@ -8,6 +8,7 @@ import type { FeedItemEnriched } from "@/lib/mock/app-data";
 import FeedFilters from "./FeedFilters";
 import FeedItemCard from "./FeedItemCard";
 import FeedDetailPanel from "./FeedDetailPanel";
+import { trackEvent } from "@/lib/analytics-client";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -172,7 +173,18 @@ export default function FeedPageClient({ initialItems, initialHasMore, productCo
   }, []);
 
   function handleSelect(id: string) {
-    setSelectedId((prev) => (prev === id ? null : id));
+    setSelectedId((prev) => {
+      if (prev === id) return null;
+      const item = items.find((i) => i.id === id);
+      if (item) {
+        trackEvent("feed_item_clicked", {
+          item_id: id,
+          item_type: item.item_type,
+          has_matched_products: item.matched_products.length > 0,
+        });
+      }
+      return id;
+    });
   }
 
   return (

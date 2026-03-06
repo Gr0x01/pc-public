@@ -52,6 +52,57 @@ export interface LLMTrackingResult<T> {
   duration_ms: number;
 }
 
+// ---------------------------------------------------------------------------
+// Identify user with rich properties + company group
+// ---------------------------------------------------------------------------
+
+export function identifyUser(
+  userId: string,
+  properties: {
+    email?: string;
+    company_name?: string | null;
+    access_level?: string;
+    product_count?: number;
+    max_products?: number;
+    onboarding_completed?: boolean;
+    has_subscription?: boolean;
+  }
+) {
+  const client = getClient();
+  if (!client) return;
+
+  // Set person properties
+  const personProps: Record<string, unknown> = {};
+  if (properties.email) personProps.email = properties.email;
+  if (properties.company_name) personProps.company_name = properties.company_name;
+  if (properties.access_level !== undefined) personProps.access_level = properties.access_level;
+  if (properties.product_count !== undefined) personProps.product_count = properties.product_count;
+  if (properties.max_products !== undefined) personProps.max_products = properties.max_products;
+  if (properties.onboarding_completed !== undefined) personProps.onboarding_completed = properties.onboarding_completed;
+  if (properties.has_subscription !== undefined) personProps.has_subscription = properties.has_subscription;
+
+  client.identify({ distinctId: userId, properties: personProps });
+
+  // Group by company (if available)
+  if (properties.company_name) {
+    client.groupIdentify({
+      groupType: "company",
+      groupKey: properties.company_name,
+      properties: { name: properties.company_name },
+    });
+    // Associate user with company group
+    client.capture({
+      distinctId: userId,
+      event: "$groupidentify",
+      properties: { $group_type: "company", $group_key: properties.company_name },
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Track an LLM call with timing and token usage
+// ---------------------------------------------------------------------------
+
 export async function trackLLM<T>(
   userId: string | null,
   operation: string,

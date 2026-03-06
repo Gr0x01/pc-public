@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCallback, useState, useRef, useEffect } from "react";
+import { trackEvent } from "@/lib/analytics-client";
 
 const TYPE_FILTERS = [
   { value: "", label: "All Types" },
@@ -52,6 +53,7 @@ export default function FeedFilters() {
       } else {
         params.delete(key);
       }
+      trackEvent("feed_filter_changed", { filter: key, value: value || "all" });
       router.push(`/app/feed?${params.toString()}`);
     },
     [searchParams, router]
@@ -65,6 +67,7 @@ export default function FeedFilters() {
       } else {
         params.set(key, "true");
       }
+      trackEvent("feed_filter_changed", { filter: key, value: !isActive });
       router.push(`/app/feed?${params.toString()}`);
     },
     [searchParams, router]

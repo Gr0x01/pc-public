@@ -5,6 +5,7 @@ import { getItemDetail } from "@/lib/products/queries";
 import type { ItemDetailData } from "@/lib/mock/app-data";
 import { formatDate } from "@/lib/utils/format";
 import ItemTypeTag from "@/components/app/ItemTypeTag";
+import TrackItemView from "@/components/app/TrackItemView";
 
 import { isDev, DEV_USER_ID } from "@/lib/dev";
 
@@ -56,6 +57,11 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
+      <TrackItemView
+        itemId={item.id}
+        itemType={item.item_type}
+        hasMatchedProducts={matched_products.length > 0}
+      />
       {/* Breadcrumb */}
       <Link
         href={backHref}
