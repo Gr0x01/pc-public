@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { adminClient } from "@/lib/supabase/admin";
+import { getAuthUser, getDbUser } from "@/lib/supabase/auth";
 import AppNav from "@/components/app/AppNav";
 
 import { isDev } from "@/lib/dev";
@@ -13,25 +13,16 @@ export default async function MainAppLayout({
   let email = "dev@localhost";
 
   if (!isDev) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       redirect("/login");
     }
     email = user.email!;
 
-    const { data: dbUser } = await adminClient
-      .from("users")
-      .select("onboarding_completed_at")
-      .eq("id", user.id)
-      .single();
+    const dbUser = await getDbUser(user.id);
 
-    if (dbUser) {
-      if (!dbUser.onboarding_completed_at) {
-        redirect("/app/onboarding");
-      }
+    if (dbUser && !dbUser.onboarding_completed_at) {
+      redirect("/app/onboarding");
     }
   }
 

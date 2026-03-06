@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/auth";
 import { getItemDetail } from "@/lib/products/queries";
 import type { ItemDetailData } from "@/lib/mock/app-data";
 import { formatDate } from "@/lib/utils/format";
@@ -29,8 +29,7 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
   if (isDev) {
     userId = DEV_USER_ID;
   } else {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) redirect("/login");
     userId = user.id;
   }

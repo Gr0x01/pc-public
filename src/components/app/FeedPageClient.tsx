@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import type { FeedItemEnriched } from "@/lib/mock/app-data";
@@ -56,17 +57,87 @@ const noMotionItem = { hidden: {}, show: {} };
 // Component
 // ---------------------------------------------------------------------------
 
+const PAGE_SIZE = 25;
+
 interface FeedPageClientProps {
-  items: FeedItemEnriched[];
+  initialItems: FeedItemEnriched[];
+  initialHasMore: boolean;
   productCount: number;
 }
 
-export default function FeedPageClient({ items, productCount }: FeedPageClientProps) {
+export default function FeedPageClient({ initialItems, initialHasMore, productCount }: FeedPageClientProps) {
+  const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
+
+  // Accumulated items from server + API pages
+  const [items, setItems] = useState(initialItems);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [loading, setLoading] = useState(false);
+  const loadingRef = useRef(false);
+  const offsetRef = useRef(initialItems.length);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const filterQsRef = useRef("");
+
+  // Reset when server re-renders with new filters (initialItems identity changes)
+  useEffect(() => {
+    setItems(initialItems);
+    setHasMore(initialHasMore);
+    offsetRef.current = initialItems.length;
+  }, [initialItems, initialHasMore]);
+
+  // Build query string from current filters for API calls
+  const filterQs = useMemo(() => {
+    const params = new URLSearchParams();
+    const type = searchParams.get("type");
+    const range = searchParams.get("range");
+    const myProducts = searchParams.get("myProducts");
+    const showArchived = searchParams.get("showArchived");
+    if (type) params.set("type", type);
+    if (range) params.set("range", range);
+    if (myProducts === "true") params.set("myProducts", "true");
+    if (showArchived === "true") params.set("showArchived", "true");
+    return params.toString();
+  }, [searchParams]);
+
+  // Keep ref in sync so observer closure always has latest value
+  filterQsRef.current = filterQs;
+
+  const myProducts = searchParams.get("myProducts") === "true";
+
+  // Lazy load: IntersectionObserver on sentinel div.
+  // Mutable values via refs so the observer stays stable.
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      async ([entry]) => {
+        if (!entry.isIntersecting || loadingRef.current) return;
+        loadingRef.current = true;
+        setLoading(true);
+        try {
+          const qs = filterQsRef.current ? `${filterQsRef.current}&` : "";
+          const res = await fetch(`/api/feed?${qs}offset=${offsetRef.current}&limit=${PAGE_SIZE}`);
+          if (res.ok) {
+            const data = await res.json();
+            setItems((prev) => [...prev, ...data.items]);
+            setHasMore(data.hasMore);
+            offsetRef.current += data.items.length;
+          }
+        } finally {
+          loadingRef.current = false;
+          setLoading(false);
+        }
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore]);
 
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
   const sidebarOpen = selectedId !== null;
@@ -86,7 +157,6 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
     update();
     const ro = new ResizeObserver(update);
     ro.observe(node);
-    // Cleanup isn't critical — the element lives for the page lifetime
   }, []);
 
   // Detect scroll to show border/shadow on sticky header
@@ -104,11 +174,6 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
   function handleSelect(id: string) {
     setSelectedId((prev) => (prev === id ? null : id));
   }
-
-  // Check if "My Products" filter is active (for all-clear state)
-  const isMyProductsFilter =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("myProducts") === "true";
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
@@ -157,8 +222,8 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
 
           {/* Feed content */}
           <div className="mt-4">
-            {items.length === 0 ? (
-              isMyProductsFilter ? (
+            {items.length === 0 && !loading ? (
+              myProducts ? (
                 <motion.div
                   initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -197,14 +262,14 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
                       </span>
                       <span className="flex-1 h-px bg-border" />
                     </div>
-                    <motion.div
-                      className="space-y-1.5 pb-2"
-                      variants={shouldReduceMotion ? noMotion : staggerContainer}
-                      initial="hidden"
-                      animate="show"
-                    >
+                    <div className="space-y-1.5 pb-2">
                       {groupItems.map((item) => (
-                        <motion.div key={item.id} variants={shouldReduceMotion ? noMotionItem : staggerItem}>
+                        <motion.div
+                          key={item.id}
+                          initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                        >
                           <FeedItemCard
                             item={item}
                             isSelected={item.id === selectedId}
@@ -212,9 +277,17 @@ export default function FeedPageClient({ items, productCount }: FeedPageClientPr
                           />
                         </motion.div>
                       ))}
-                    </motion.div>
+                    </div>
                   </div>
                 ))}
+                {/* Lazy load sentinel */}
+                {hasMore && (
+                  <div ref={loadMoreRef} className="py-4 text-center">
+                    {loading && (
+                      <span className="text-xs text-text-secondary font-mono">Loading...</span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

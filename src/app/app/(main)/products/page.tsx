@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/auth";
 import { getUserProducts, getMaxProducts, getProductVerdictCounts } from "@/lib/products/queries";
 import type { ProductSidebarItem } from "@/lib/mock/products-data";
 import type { ProductStatus } from "@/lib/mock/products-data";
@@ -28,8 +28,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   if (isDev) {
     userId = DEV_USER_ID;
   } else {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) redirect("/login");
     userId = user.id;
   }

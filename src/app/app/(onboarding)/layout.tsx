@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { adminClient } from "@/lib/supabase/admin";
+import { getAuthUser, getDbUser } from "@/lib/supabase/auth";
 
 import { isDev } from "@/lib/dev";
 
@@ -12,20 +12,13 @@ export default async function OnboardingLayout({
   let signOutAction: (() => Promise<void>) | undefined;
 
   if (!isDev) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       redirect("/login");
     }
 
     // If already onboarded, send them to the app
-    const { data: dbUser } = await adminClient
-      .from("users")
-      .select("onboarding_completed_at")
-      .eq("id", user.id)
-      .single();
+    const dbUser = await getDbUser(user.id);
 
     if (dbUser?.onboarding_completed_at) {
       redirect("/app/feed");

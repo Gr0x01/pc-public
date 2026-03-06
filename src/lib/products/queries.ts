@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { adminClient } from "@/lib/supabase/admin";
 import type {
   DSLDSearchResult,
@@ -10,7 +11,7 @@ import type {
 } from "./types";
 import type { NormalizationStatus, ItemType } from "@/types/enums";
 import type { FeedItemEnriched, ItemDetailData } from "@/lib/mock/app-data";
-import { getLifecycleState, type LifecycleState } from "@/lib/utils/lifecycle";
+import { getLifecycleState, isLiveState, type LifecycleState } from "@/lib/utils/lifecycle";
 
 // ---------------------------------------------------------------------------
 // DSLD Search
@@ -79,7 +80,7 @@ export async function getDSLDProduct(
 // User Products
 // ---------------------------------------------------------------------------
 
-export async function getUserProducts(userId: string): Promise<ProductSummary[]> {
+export const getUserProducts = cache(async function getUserProducts(userId: string): Promise<ProductSummary[]> {
   const { data, error } = await adminClient
     .from("subscriber_products")
     .select("id, name, brand, product_type, data_source, external_id, is_active, created_at")
@@ -112,9 +113,9 @@ export async function getUserProducts(userId: string): Promise<ProductSummary[]>
     ...p,
     ingredient_count: countMap.get(p.id) ?? 0,
   })) as ProductSummary[];
-}
+});
 
-export async function getProductById(
+export const getProductById = cache(async function getProductById(
   productId: string,
   userId: string
 ): Promise<ProductDetail | null> {
@@ -152,9 +153,9 @@ export async function getProductById(
     ingredients: (ingredientsRes.data ?? []) as ProductIngredientRow[],
     images: (imagesRes.data ?? []) as { id: string; storage_path: string; sort_order: number }[],
   } as ProductDetail;
-}
+});
 
-export async function countActiveProducts(userId: string): Promise<number> {
+export const countActiveProducts = cache(async function countActiveProducts(userId: string): Promise<number> {
   const { count, error } = await adminClient
     .from("subscriber_products")
     .select("id", { count: "exact", head: true })
@@ -167,9 +168,9 @@ export async function countActiveProducts(userId: string): Promise<number> {
   }
 
   return count ?? 0;
-}
+});
 
-export async function getMaxProducts(userId: string): Promise<number> {
+export const getMaxProducts = cache(async function getMaxProducts(userId: string): Promise<number> {
   const { data, error } = await adminClient
     .from("users")
     .select("max_products")
@@ -182,7 +183,7 @@ export async function getMaxProducts(userId: string): Promise<number> {
   }
   if (!data) return 1; // genuinely missing user row
   return data.max_products;
-}
+});
 
 export async function checkDuplicateProduct(
   userId: string,
@@ -361,18 +362,52 @@ export async function ingestParsedIngredients(
 // Feed: regulatory items with verdict data for a user
 // ---------------------------------------------------------------------------
 
+export interface FeedFilters {
+  type?: string | null;
+  range?: string | null;
+  myProducts?: boolean;
+  showArchived?: boolean;
+}
+
+export interface FeedPage {
+  items: FeedItemEnriched[];
+  hasMore: boolean;
+}
+
+const TYPE_GROUPS: Record<string, string[]> = {
+  rule: ["rule", "proposed_rule"],
+  notice: ["notice", "guidance", "draft_guidance"],
+};
+
+const RANGE_DAYS: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
+
 /**
- * Fetch recent regulatory items for the feed, enriched with verdict data.
- * Items the user's products match get `matched_products` populated.
- * Returns most recent items first, up to `limit`.
+ * Fetch a page of regulatory feed items with DB-level filtering.
+ * Filters are applied in the SQL query so pagination is correct.
  */
 export async function getFeedItems(
   userId: string,
-  options: { limit?: number; offset?: number; includeArchived?: boolean } = {}
-): Promise<FeedItemEnriched[]> {
-  const { limit = 50, offset = 0, includeArchived = false } = options;
+  options: { limit?: number; offset?: number; filters?: FeedFilters } = {}
+): Promise<FeedPage> {
+  const { limit = 25, offset = 0, filters = {} } = options;
+  const { type, range, myProducts, showArchived } = filters;
 
-  // Fetch recent enriched items
+  // When myProducts is on, pre-fetch item IDs that have relevant verdicts
+  let myProductItemIds: string[] | null = null;
+  if (myProducts) {
+    const { data: verdictRows } = await adminClient
+      .from("product_match_verdicts")
+      .select("item_id")
+      .eq("user_id", userId)
+      .eq("relevant", true);
+
+    myProductItemIds = [...new Set((verdictRows ?? []).map((r) => r.item_id))];
+    if (myProductItemIds.length === 0) {
+      return { items: [], hasMore: false };
+    }
+  }
+
+  // Build query
   let query = adminClient
     .from("regulatory_items")
     .select(`
@@ -381,48 +416,71 @@ export async function getFeedItems(
     `)
     .not("item_enrichments", "is", null)
     .order("published_date", { ascending: false })
-    .range(offset, offset + limit - 1);
+    .range(offset, offset + limit); // fetch limit+1 to detect hasMore
 
-  if (!includeArchived) {
-    // Coarse SQL floor: max no-deadline active window is 90d.
-    // Items with future deadlines have published_date within the window too
-    // in practice, so this catches 99%+ of archived items.
+  // Date floor — 120d unless showing archived
+  if (!showArchived) {
     const floor = new Date();
     floor.setDate(floor.getDate() - 120);
     query = query.gte("published_date", floor.toISOString().slice(0, 10));
   }
 
-  const { data: items, error } = await query;
+  // Type filter
+  if (type) {
+    const types = TYPE_GROUPS[type] ?? [type];
+    query = types.length === 1
+      ? query.eq("item_type", types[0])
+      : query.in("item_type", types);
+  }
 
-  if (error || !items) {
+  // Date range filter
+  if (range && RANGE_DAYS[range]) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - RANGE_DAYS[range]);
+    query = query.gte("published_date", cutoff.toISOString().slice(0, 10));
+  }
+
+  // My Products filter — restrict to items with relevant verdicts
+  if (myProductItemIds) {
+    query = query.in("id", myProductItemIds);
+  }
+
+  const { data: rawItems, error } = await query;
+
+  if (error || !rawItems) {
     console.error("[feed] query error:", error);
-    return [];
+    return { items: [], hasMore: false };
   }
 
-  // Fetch verdicts for this user for these items
+  // We fetched limit+1 rows — if we got more than limit, there's another page
+  const hasMore = rawItems.length > limit;
+  const items = hasMore ? rawItems.slice(0, limit) : rawItems;
+
+  // Fetch verdicts for display (matched product badges)
   const itemIds = items.map((i) => i.id);
-  const { data: verdicts } = await adminClient
-    .from("product_match_verdicts")
-    .select("item_id, product_id, relevant, reasoning, subscriber_products(id, name)")
-    .eq("user_id", userId)
-    .eq("relevant", true)
-    .in("item_id", itemIds);
-
-  // Group verdicts by item_id
   const verdictMap = new Map<string, Array<{ id: string; name: string }>>();
-  for (const v of verdicts ?? []) {
-    const product = v.subscriber_products as unknown as { id: string; name: string } | null;
-    if (!product) continue;
-    const list = verdictMap.get(v.item_id) ?? [];
-    list.push({ id: product.id, name: product.name });
-    verdictMap.set(v.item_id, list);
+
+  if (itemIds.length > 0) {
+    const { data: verdicts } = await adminClient
+      .from("product_match_verdicts")
+      .select("item_id, product_id, relevant, reasoning, subscriber_products(id, name)")
+      .eq("user_id", userId)
+      .eq("relevant", true)
+      .in("item_id", itemIds);
+
+    for (const v of verdicts ?? []) {
+      const product = v.subscriber_products as unknown as { id: string; name: string } | null;
+      if (!product) continue;
+      const list = verdictMap.get(v.item_id) ?? [];
+      list.push({ id: product.id, name: product.name });
+      verdictMap.set(v.item_id, list);
+    }
   }
 
-  return items.map((item) => {
+  const enrichedItems = items.map((item) => {
     const enrichment = parseEnrichment(item.item_enrichments);
     const raw = enrichment?.raw_response;
     const actionItems = (raw?.action_items as string[] | undefined) ?? null;
-
     const deadline = enrichment?.deadline ?? null;
     const lifecycle_state = getLifecycleState(
       { item_type: item.item_type, published_date: item.published_date, deadline },
@@ -445,6 +503,8 @@ export async function getFeedItems(
       matched_products: verdictMap.get(item.id) ?? [],
     };
   });
+
+  return { items: enrichedItems, hasMore };
 }
 
 // ---------------------------------------------------------------------------
@@ -489,7 +549,7 @@ function parseEnrichment(raw: unknown): ParsedEnrichment | null {
 // Item detail: single regulatory item with full enrichment + verdicts
 // ---------------------------------------------------------------------------
 
-export async function getItemDetail(
+export const getItemDetail = cache(async function getItemDetail(
   itemId: string,
   userId: string
 ): Promise<ItemDetailData | null> {
@@ -569,7 +629,7 @@ export async function getItemDetail(
     substances: (substances ?? []).map((s) => ({ raw_substance_name: s.raw_substance_name })),
     matched_products: matchedProducts,
   };
-}
+});
 
 // ---------------------------------------------------------------------------
 // Product verdicts: regulatory items with relevant verdicts for a product
@@ -598,7 +658,7 @@ export interface ProductVerdictItem {
   has_cross_reference: boolean;
 }
 
-export async function getProductVerdicts(
+export const getProductVerdicts = cache(async function getProductVerdicts(
   productId: string,
   userId: string
 ): Promise<ProductVerdictItem[]> {
@@ -676,12 +736,12 @@ export async function getProductVerdicts(
       };
     })
     .filter((v): v is ProductVerdictItem => v !== null);
-}
+});
 
 /**
  * Get verdict counts per product for deriving sidebar status.
  */
-export async function getProductVerdictCounts(
+export const getProductVerdictCounts = cache(async function getProductVerdictCounts(
   userId: string
 ): Promise<Map<string, { total: number; urgent: number; watching: number }>> {
   const { data, error } = await adminClient.rpc("get_live_verdict_counts", {
@@ -695,7 +755,7 @@ export async function getProductVerdictCounts(
     counts.set(row.product_id, { total: row.total, urgent: row.urgent, watching: row.watching });
   }
   return counts;
-}
+});
 
 // ---------------------------------------------------------------------------
 // Ingredient Use Codes (from GSRS substance_codes)
