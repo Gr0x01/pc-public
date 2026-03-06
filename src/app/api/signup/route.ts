@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
 import { headers } from "next/headers";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const SignupSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -11,34 +12,12 @@ const SignupSchema = z.object({
   }),
 });
 
-// In-memory rate limiter (MVP only — upgrade to Redis/Upstash for production)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 5;
-const RATE_WINDOW_MS = 60_000;
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return true;
-  }
-
-  if (entry.count >= RATE_LIMIT) {
-    return false;
-  }
-
-  entry.count += 1;
-  return true;
-}
-
 export async function POST(request: Request) {
   // 1. Rate limit (5 requests/min per IP)
   const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
-  if (ip && !checkRateLimit(ip)) {
+  if (!checkRateLimit(`signup:${ip}`, 5)) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }

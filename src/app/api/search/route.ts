@@ -4,34 +4,8 @@ import { generateText } from "ai";
 import { createClient } from "@/lib/supabase/server";
 import { generateEmbedding } from "@/lib/ai/openai";
 import { claudeSonnet } from "@/lib/ai/anthropic";
-
-// TODO: remove dev bypass before launch
-const isDev = process.env.NODE_ENV === "development";
-
-// ---------------------------------------------------------------------------
-// Rate limiter (in-memory, MVP — same pattern as signup route)
-// ---------------------------------------------------------------------------
-
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 10;
-const RATE_WINDOW_MS = 60_000;
-
-function checkRateLimit(key: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return true;
-  }
-
-  if (entry.count >= RATE_LIMIT) {
-    return false;
-  }
-
-  entry.count += 1;
-  return true;
-}
+import { checkRateLimit } from "@/lib/rate-limit";
+import { isDev } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
 // Input schema
@@ -48,9 +22,9 @@ const SearchSchema = z.object({
 export async function POST(request: Request) {
   // 1. Rate limit
   const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
-  if (ip && !checkRateLimit(ip)) {
+  if (!checkRateLimit(`search:${ip}`, 10)) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }

@@ -5,9 +5,7 @@ import type { ProductSidebarItem } from "@/lib/mock/products-data";
 import type { ProductStatus } from "@/lib/mock/products-data";
 import ProductsLayout from "@/components/app/products/ProductsLayout";
 
-// TODO: remove dev bypass before launch
-const isDev = process.env.NODE_ENV === "development";
-const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
+import { isDev, DEV_USER_ID } from "@/lib/dev";
 
 function deriveStatus(counts: { total: number; urgent: number; watching: number } | undefined): ProductStatus {
   if (!counts || counts.total === 0) return "all_clear";

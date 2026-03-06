@@ -6,9 +6,7 @@ import type { ItemDetailData } from "@/lib/mock/app-data";
 import { formatDate } from "@/lib/utils/format";
 import ItemTypeTag from "@/components/app/ItemTypeTag";
 
-// TODO: remove dev bypass before launch
-const isDev = process.env.NODE_ENV === "development";
-const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
+import { isDev, DEV_USER_ID } from "@/lib/dev";
 
 function relevanceLabel(rel: string | null): string | null {
   if (!rel) return null;

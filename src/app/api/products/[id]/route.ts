@@ -4,11 +4,10 @@ import { adminClient } from "@/lib/supabase/admin";
 import { getProductById, getProductVerdicts, getIngredientUseCodes } from "@/lib/products/queries";
 import { UpdateProductSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { invalidateUserMatches } from "@/lib/products/matches";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-// TODO: remove dev bypass before launch
-const isDev = process.env.NODE_ENV === "development";
-const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
+import { isDev, DEV_USER_ID } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
 // GET /api/products/[id]
@@ -71,8 +70,8 @@ export async function PATCH(
 ) {
   // Rate limit (10/min/IP for mutations)
   const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim();
-  if (ip && !checkRateLimit(`patch:${ip}`, 10)) {
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!checkRateLimit(`patch:${ip}`, 10)) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }
@@ -165,8 +164,8 @@ export async function DELETE(
 ) {
   // Rate limit (10/min/IP for mutations)
   const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim();
-  if (ip && !checkRateLimit(`delete:${ip}`, 10)) {
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!checkRateLimit(`delete:${ip}`, 10)) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }
@@ -216,5 +215,6 @@ export async function DELETE(
     );
   }
 
+  invalidateUserMatches(user.id);
   return Response.json({ data: { id: data.id, deleted: true } });
 }

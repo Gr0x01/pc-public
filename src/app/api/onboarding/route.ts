@@ -2,8 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 
-const isDev = process.env.NODE_ENV === "development";
-const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
+import { isDev, DEV_USER_ID } from "@/lib/dev";
 
 const OnboardingSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100),

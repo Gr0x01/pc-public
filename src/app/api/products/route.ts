@@ -10,6 +10,8 @@ import {
 } from "@/lib/products/queries";
 import { CreateProductSchema } from "@/lib/products/types";
 import { evaluateProductHistory } from "@/lib/products/verdicts";
+import { invalidateUserMatches } from "@/lib/products/matches";
+import { isDev, DEV_USER_ID } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
 // GET /api/products — list user's products
@@ -38,10 +40,6 @@ export async function GET() {
 // ---------------------------------------------------------------------------
 // POST /api/products — create a new product
 // ---------------------------------------------------------------------------
-
-// TODO: remove dev bypass before launch
-const isDev = process.env.NODE_ENV === "development";
-const DEV_USER_ID = "70360df8-4888-4401-9aa0-b2b15da354b0";
 
 export async function POST(request: Request) {
   // 1. Auth
@@ -202,7 +200,8 @@ export async function POST(request: Request) {
     ingredientCount = await ingestParsedIngredients(product.id, parsed_ingredients);
   }
 
-  // 8. Evaluate historical regulatory items against this product (non-blocking)
+  // 8. Invalidate match cache + evaluate historical regulatory items (non-blocking)
+  invalidateUserMatches(userId);
   if (ingredientCount > 0) {
     evaluateProductHistory(product.id, userId).catch((err) =>
       console.error("[products] verdict evaluation error:", err)

@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 const isDev = process.env.NODE_ENV === "development";
 
 export async function proxy(request: NextRequest) {
-  // Dev bypass — skip all auth guards in local development
+  // Dev bypass — skip all auth guards in local development.
+  // Safe for production: Vercel always sets NODE_ENV=production.
   if (isDev) {
     return NextResponse.next({ request });
   }

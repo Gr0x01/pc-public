@@ -46,7 +46,7 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>Usage data</strong> — pages viewed, features used, and
-              session information collected via PostHog analytics
+              session information collected via server-side logging
             </li>
             <li>
               <strong>Email subscriber information</strong> — your email address
@@ -160,11 +160,6 @@ export default function PrivacyPage() {
                   <td className="py-2 pr-4">Resend</td>
                   <td className="py-2 pr-4">Email delivery</td>
                   <td className="py-2">Email addresses, email content</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4">PostHog</td>
-                  <td className="py-2 pr-4">Product analytics</td>
-                  <td className="py-2">Usage data, session information</td>
                 </tr>
                 <tr>
                   <td className="py-2 pr-4">Vultr</td>

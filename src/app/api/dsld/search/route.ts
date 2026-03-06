@@ -4,8 +4,7 @@ import { searchDSLDProducts } from "@/lib/products/queries";
 import { DSLDSearchSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-// TODO: remove dev bypass before launch
-const isDev = process.env.NODE_ENV === "development";
+import { isDev } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
 // GET /api/dsld/search?q=fish+oil&limit=10
@@ -14,8 +13,8 @@ const isDev = process.env.NODE_ENV === "development";
 export async function GET(request: Request) {
   // 1. Rate limit (30/min/IP for typeahead)
   const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim();
-  if (ip && !checkRateLimit(ip, 30)) {
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!checkRateLimit(`dsld:${ip}`, 30)) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }

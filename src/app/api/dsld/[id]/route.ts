@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getDSLDProduct } from "@/lib/products/queries";
 
-// TODO: remove dev bypass before launch
-const isDev = process.env.NODE_ENV === "development";
+import { isDev } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
 // GET /api/dsld/[id]

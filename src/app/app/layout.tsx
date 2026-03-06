@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-// TODO: remove dev bypass before launch
-const isDev = process.env.NODE_ENV === "development";
+import { isDev } from "@/lib/dev";
 
 export default async function AppLayout({
   children,

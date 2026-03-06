@@ -24,8 +24,17 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://policycanary.io"),
   title: "Policy Canary",
   description: "FDA regulatory intelligence for your specific products.",
+  openGraph: {
+    siteName: "Policy Canary",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({

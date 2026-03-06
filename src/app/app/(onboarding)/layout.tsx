@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 
-const isDev = process.env.NODE_ENV === "development";
+import { isDev } from "@/lib/dev";
 
 export default async function OnboardingLayout({
   children,

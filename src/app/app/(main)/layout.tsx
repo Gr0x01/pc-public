@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import AppNav from "@/components/app/AppNav";
 
-const isDev = process.env.NODE_ENV === "development";
+import { isDev } from "@/lib/dev";
 
 export default async function MainAppLayout({
   children,
