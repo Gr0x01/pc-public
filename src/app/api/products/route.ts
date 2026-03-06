@@ -214,6 +214,24 @@ export async function POST(request: Request) {
     );
   }
 
+  // 8b. Classify product into a product category (non-blocking)
+  (async () => {
+    let ingredientNames: string[];
+    if (parsed_ingredients && parsed_ingredients.length > 0) {
+      ingredientNames = parsed_ingredients.map((i) => i.name);
+    } else if (ingredientCount > 0) {
+      // DSLD products: ingredients were ingested in step 7, fetch them
+      const { data: rows } = await adminClient
+        .from("product_ingredients")
+        .select("name")
+        .eq("product_id", product.id);
+      ingredientNames = (rows ?? []).map((r) => r.name);
+    } else {
+      ingredientNames = [];
+    }
+    await classifyProduct(product.id, { name, brand, product_type, ingredients: ingredientNames }, userId);
+  })().catch((err) => console.error("[products] classification error:", err));
+
   const ingredientsFailed =
     (data_source === "dsld" && ingredientCount === 0 && external_id) ||
     (parsed_ingredients && parsed_ingredients.length > 0 && ingredientCount === 0);

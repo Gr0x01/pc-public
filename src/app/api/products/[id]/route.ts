@@ -6,6 +6,7 @@ import { UpdateProductSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { invalidateUserMatches } from "@/lib/products/matches";
 import { evaluateProductHistory } from "@/lib/products/verdicts";
+import { classifyProduct } from "@/lib/products/classify";
 import { track } from "@/lib/analytics";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -186,6 +187,41 @@ export async function PATCH(
         console.error("[products] verdict re-evaluation error:", err)
       );
     }
+  }
+
+  // Reclassify product category if relevant fields changed (non-blocking)
+  const needsReclassification =
+    parsed.data.product_type !== undefined ||
+    parsed.data.name !== undefined ||
+    hasIngredientUpdates;
+
+  if (needsReclassification) {
+    (async () => {
+      const { data: current } = await adminClient
+        .from("subscriber_products")
+        .select("name, brand, product_type")
+        .eq("id", id)
+        .single();
+
+      if (!current) return;
+
+      let ingredientNames: string[];
+      if (hasIngredientUpdates && parsed.data.parsed_ingredients) {
+        ingredientNames = parsed.data.parsed_ingredients.map((i) => i.name);
+      } else {
+        const { data: rows } = await adminClient
+          .from("product_ingredients")
+          .select("name")
+          .eq("product_id", id);
+        ingredientNames = (rows ?? []).map((r) => r.name);
+      }
+
+      await classifyProduct(
+        id,
+        { name: current.name, brand: current.brand, product_type: current.product_type, ingredients: ingredientNames },
+        userId
+      );
+    })().catch((err) => console.error("[products] reclassification error:", err));
   }
 
   // Fetch updated product to return

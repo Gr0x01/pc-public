@@ -21,6 +21,7 @@
     "pipeline:content-fetch-test": "npx tsx scripts/test-content-fetch.ts",
     "pipeline:golden": "npx tsx scripts/run-golden-tests.ts",
     "pipeline:golden-enrich": "npx tsx scripts/run-golden-tests.ts --enrich",
+    "pipeline:classify": "npx tsx scripts/run-classify.ts",
     "email:dev": "npx react-email dev -d emails -p 3001",
     "pipeline:weekly-snapshot": "npx tsx scripts/generate-weekly-snapshot.ts"
   },
