@@ -5,7 +5,9 @@ import { trackLLM } from "@/lib/analytics";
 import BriefingEmail from "./templates/BriefingEmail";
 import WeeklyNewsletter from "./templates/WeeklyNewsletter";
 import AlertEmail from "./templates/AlertEmail";
+import WelcomeEmail from "./templates/WelcomeEmail";
 import type { AlertEmailProps } from "./templates/AlertEmail";
+import type { WelcomeEmailProps } from "./templates/WelcomeEmail";
 import type { BriefingData, WeeklyDigestData } from "./queries";
 import { SITE_URL } from "./constants";
 
@@ -92,6 +94,34 @@ export async function compileNewsletter(
       unsubscribe_url,
     })
   );
+
+  return { subject, html };
+}
+
+// ---------------------------------------------------------------------------
+// Compile Welcome Email (after first product added)
+// ---------------------------------------------------------------------------
+
+export interface CompiledWelcome {
+  subject: string;
+  html: string;
+}
+
+export async function compileWelcome(
+  props: WelcomeEmailProps
+): Promise<CompiledWelcome> {
+  const { products, first_name } = props;
+  const count = products.length;
+
+  // Subject line: "Monitoring active: Marine Collagen Powder and 2 more"
+  let subject: string;
+  if (count === 1) {
+    subject = `Monitoring active: ${products[0].name}`;
+  } else {
+    subject = `Monitoring active: ${products[0].name} and ${count - 1} more`;
+  }
+
+  const html = await render(WelcomeEmail(props));
 
   return { subject, html };
 }

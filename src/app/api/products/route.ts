@@ -13,6 +13,8 @@ import { evaluateProductHistory } from "@/lib/products/verdicts";
 import { invalidateUserMatches } from "@/lib/products/matches";
 import { track } from "@/lib/analytics";
 import { isDev, DEV_USER_ID } from "@/lib/dev";
+import { compileWelcome } from "@/lib/email/compiler";
+import { sendEmail } from "@/lib/email/sender";
 
 // ---------------------------------------------------------------------------
 // GET /api/products — list user's products
@@ -86,12 +88,14 @@ export async function POST(request: Request) {
 
   // 3. Plan limit check (fast-path rejection; DB trigger is the authoritative guard)
   let maxProducts: number;
+  let activeCountBefore: number;
   try {
     const [activeCount, max] = await Promise.all([
       countActiveProducts(userId),
       getMaxProducts(userId),
     ]);
     maxProducts = max;
+    activeCountBefore = activeCount;
 
     if (activeCount >= maxProducts) {
       return Response.json(
@@ -220,6 +224,13 @@ export async function POST(request: Request) {
     ingredient_count: ingredientCount,
   });
 
+  // 9. Send welcome email on first product (non-blocking)
+  if (activeCountBefore === 0) {
+    sendWelcomeEmail(userId, maxProducts).catch((err) =>
+      console.error("[products] welcome email error:", err)
+    );
+  }
+
   return Response.json(
     {
       data: { id: product.id, name: product.name, ingredient_count: ingredientCount },
@@ -229,4 +240,46 @@ export async function POST(request: Request) {
     },
     { status: 201 }
   );
+}
+
+// ---------------------------------------------------------------------------
+// Welcome email — fires once after the user's first product is added
+// ---------------------------------------------------------------------------
+
+async function sendWelcomeEmail(userId: string, maxProducts: number) {
+  // Fetch user profile + their products
+  const [{ data: user }, { data: products }] = await Promise.all([
+    adminClient
+      .from("users")
+      .select("first_name, email")
+      .eq("id", userId)
+      .single(),
+    adminClient
+      .from("subscriber_products")
+      .select("id, name")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  if (!user?.email || !user?.first_name || !products?.length) return;
+
+  const { subject, html } = await compileWelcome({
+    first_name: user.first_name,
+    products: products.map((p) => ({ id: p.id, name: p.name })),
+    max_products: maxProducts,
+  });
+
+  const result = await sendEmail({
+    to: user.email,
+    subject,
+    html,
+    tags: [{ name: "email_type", value: "welcome" }],
+  });
+
+  if (result.success) {
+    track(userId, "welcome_email_sent", { product_count: products.length });
+  } else {
+    console.error("[products] welcome email send failed:", result.error);
+  }
 }
