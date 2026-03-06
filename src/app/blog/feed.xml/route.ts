@@ -26,7 +26,11 @@ export async function GET() {
       <guid isPermaLink="true">${SITE_URL}/blog/${post.slug}</guid>
       <description>${escapeXml(post.excerpt)}</description>
       <category>${escapeXml(CATEGORY_LABELS[post.category])}</category>
-      <pubDate>${new Date(post.published_at!).toUTCString()}</pubDate>
+      <pubDate>${new Date(post.published_at!).toUTCString()}</pubDate>${
+        post.cover_image_url
+          ? `\n      <enclosure url="${escapeXml(post.cover_image_url)}" type="image/webp" length="0" />`
+          : ""
+      }
     </item>`
     )
     .join("\n");

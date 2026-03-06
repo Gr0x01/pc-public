@@ -270,6 +270,21 @@ function ChartImage({
   );
 }
 
+// ─── H2 with slug IDs (for TOC) ─────────────────────────
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function CustomH2({ children }: { children?: ReactNode }) {
+  const text = extractText(children);
+  const id = slugify(text);
+  return <h2 id={id}>{children}</h2>;
+}
+
 // ─── Blockquote Router ──────────────────────────────────
 
 function CustomBlockquote({ children }: { children?: ReactNode }) {
@@ -313,11 +328,11 @@ export function MarkdownContent({ content }: { content: string }) {
   return (
     <div
       className={[
-        "[&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-text-primary [&_h2]:mt-10 [&_h2]:mb-4",
+        "[&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-text-primary [&_h2]:mt-12 [&_h2]:mb-4",
         "[&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-text-primary [&_h3]:mt-8 [&_h3]:mb-3",
-        "[&_p]:text-base [&_p]:text-text-secondary [&_p]:leading-7 [&_p]:mb-5",
-        "[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-5 [&_ul]:text-text-secondary [&_ul]:leading-7",
-        "[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-5 [&_ol]:text-text-secondary [&_ol]:leading-7",
+        "[&_p]:text-base [&_p]:text-text-body [&_p]:leading-[1.8] [&_p]:mb-5",
+        "[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-5 [&_ul]:text-text-body [&_ul]:leading-[1.8]",
+        "[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-5 [&_ol]:text-text-body [&_ol]:leading-[1.8]",
         "[&_li]:mb-1.5",
         "[&_a]:text-amber [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-amber/80",
         "[&_strong]:font-semibold [&_strong]:text-text-primary",
@@ -334,6 +349,7 @@ export function MarkdownContent({ content }: { content: string }) {
         components={{
           blockquote: CustomBlockquote,
           img: ChartImage,
+          h2: CustomH2,
         }}
       >
         {cleaned}

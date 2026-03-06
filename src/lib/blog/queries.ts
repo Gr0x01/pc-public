@@ -11,7 +11,7 @@ export async function getPublishedPosts(
 ): Promise<BlogPostSummary[]> {
   let query = adminClient
     .from("blog_posts")
-    .select("id, slug, title, excerpt, category, published_at")
+    .select("id, slug, title, excerpt, category, published_at, cover_image_url, word_count")
     .eq("status", "published")
     .order("published_at", { ascending: false });
 
@@ -37,7 +37,7 @@ export async function getPostBySlug(
 ): Promise<BlogPost | null> {
   const { data, error } = await adminClient
     .from("blog_posts")
-    .select("id, slug, title, excerpt, content, category, status, published_at, seo_title, seo_description, created_at, updated_at")
+    .select("id, slug, title, excerpt, content, category, status, published_at, seo_title, seo_description, cover_image_url, word_count, created_at, updated_at")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
@@ -56,7 +56,7 @@ export async function getPostBySlug(
 export async function getPostsForRSS(): Promise<BlogPostRSS[]> {
   const { data, error } = await adminClient
     .from("blog_posts")
-    .select("slug, title, excerpt, category, published_at")
+    .select("slug, title, excerpt, category, published_at, cover_image_url")
     .eq("status", "published")
     .order("published_at", { ascending: false })
     .limit(50);
@@ -67,4 +67,29 @@ export async function getPostsForRSS(): Promise<BlogPostRSS[]> {
   }
 
   return data as BlogPostRSS[];
+}
+
+/**
+ * Related posts — same category, excluding the current post.
+ */
+export async function getRelatedPosts(
+  category: BlogCategory,
+  excludeSlug: string,
+  limit = 3
+): Promise<BlogPostSummary[]> {
+  const { data, error } = await adminClient
+    .from("blog_posts")
+    .select("id, slug, title, excerpt, category, published_at, cover_image_url, word_count")
+    .eq("status", "published")
+    .eq("category", category)
+    .neq("slug", excludeSlug)
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("[blog] getRelatedPosts error:", error);
+    return [];
+  }
+
+  return data as BlogPostSummary[];
 }

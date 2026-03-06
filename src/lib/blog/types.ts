@@ -25,6 +25,8 @@ export interface BlogPost {
   published_at: string | null;
   seo_title: string | null;
   seo_description: string | null;
+  cover_image_url: string | null;
+  word_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -37,6 +39,8 @@ export interface BlogPostSummary {
   excerpt: string;
   category: BlogCategory;
   published_at: string | null;
+  cover_image_url: string | null;
+  word_count: number;
 }
 
 /** Minimal projection for RSS feed. */
@@ -46,4 +50,10 @@ export interface BlogPostRSS {
   excerpt: string;
   category: BlogCategory;
   published_at: string | null;
+  cover_image_url: string | null;
+}
+
+/** Calculate reading time in minutes (230 WPM for technical content). */
+export function calculateReadingTime(wordCount: number): number {
+  return Math.max(1, Math.round(wordCount / 230));
 }

@@ -15,6 +15,7 @@ const BlogPostSchema = z.object({
   status: z.enum(["draft", "published"]).default("draft"),
   seo_title: z.string().max(200).nullish(),
   seo_description: z.string().max(500).nullish(),
+  cover_image_url: z.string().url().nullish(),
 });
 
 function isValidApiKey(provided: string, expected: string): boolean {
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { slug, title, excerpt, content, category, status, seo_title, seo_description } =
+  const { slug, title, excerpt, content, category, status, seo_title, seo_description, cover_image_url } =
     result.data;
 
   // 3. Check if post already exists (to preserve published_at)
@@ -78,6 +79,8 @@ export async function POST(request: Request) {
     published_at = new Date().toISOString();
   }
 
+  const word_count = content.trim().split(/\s+/).length;
+
   const postData = {
     slug,
     title,
@@ -88,6 +91,8 @@ export async function POST(request: Request) {
     published_at,
     seo_title: seo_title ?? null,
     seo_description: seo_description ?? null,
+    cover_image_url: cover_image_url ?? null,
+    word_count,
   };
 
   // 4. Upsert on slug
