@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { adminClient } from "@/lib/supabase/admin";
+import { track } from "@/lib/analytics";
 
 export async function POST(request: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -149,6 +150,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       .is("user_id", null);
   }
 
+  track(userId, "subscription_activated", {
+    plan: "monitor",
+    has_trial: !!trialEndsAt,
+  });
+
   console.log(`[stripe/webhook] User ${userId} upgraded to monitor`);
 }
 
@@ -183,6 +189,10 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       })
       .eq("id", user.id);
 
+    track(user.id, "subscription_downgraded", {
+      reason: subscription.status,
+    });
+
     console.log(`[stripe/webhook] User ${user.id} downgraded to free (status: ${subscription.status})`);
   }
 }
@@ -203,6 +213,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       stripe_subscription_id: null,
     })
     .eq("id", user.id);
+
+  track(user.id, "subscription_cancelled");
 
   console.log(`[stripe/webhook] User ${user.id} subscription deleted — reset to free`);
 }

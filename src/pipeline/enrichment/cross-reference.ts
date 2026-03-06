@@ -18,6 +18,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { PRODUCT_CATEGORY_SLUGS, type EnrichmentOutput } from "./prompts";
+import { trackLLM } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Step 1b: Use-Context Categories (deterministic)
@@ -343,15 +344,18 @@ export async function inferCrossCategories(
   try {
     const prompt = buildCrossRefPrompt(output, substanceContexts);
 
-    const { object } = await generateObject({
-      model: google("gemini-2.5-pro"),
-      schema: CrossReferenceOutputSchema,
-      system: CROSS_REF_SYSTEM_PROMPT,
-      prompt,
-      providerOptions: {
-        google: { thinkingConfig: { thinkingBudget: 4096 } },
-      },
-    });
+    const { object } = await trackLLM(null, "cross_reference", "gemini-pro", () =>
+      generateObject({
+        model: google("gemini-2.5-pro"),
+        schema: CrossReferenceOutputSchema,
+        system: CROSS_REF_SYSTEM_PROMPT,
+        prompt,
+        providerOptions: {
+          google: { thinkingConfig: { thinkingBudget: 4096 } },
+        },
+      }),
+      { substance_count: substanceContexts.size }
+    );
 
     if (!object.should_expand) return null;
 

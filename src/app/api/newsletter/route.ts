@@ -2,6 +2,7 @@ import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
 import { headers } from "next/headers";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { track } from "@/lib/analytics";
 
 const NewsletterSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -81,6 +82,8 @@ export async function POST(request: Request) {
       );
     }
   }
+
+  track(null, "newsletter_signup", { source: "newsletter" });
 
   return Response.json({ data: { subscribed: true }, error: null });
 }

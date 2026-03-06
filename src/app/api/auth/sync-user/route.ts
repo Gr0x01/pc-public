@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { track } from "@/lib/analytics";
 
 export async function POST() {
   const supabase = await createClient();
@@ -63,6 +64,8 @@ export async function POST() {
   if (linkError) {
     console.error("[auth/sync-user] email_subscribers link failed:", linkError.message);
   }
+
+  track(user.id, "user_login", { is_new: !existingUser });
 
   return NextResponse.json({ ok: true });
 }

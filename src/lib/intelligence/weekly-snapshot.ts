@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { geminiFlash } from "@/lib/ai/gemini";
 import { adminClient } from "@/lib/supabase/admin";
+import { trackLLM } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -264,9 +265,10 @@ export async function generateWeeklySnapshot(
       ),
   });
 
-  const { object: synthesis } = await generateObject({
-    model: geminiFlash,
-    schema: OutputSchema,
+  const { object: synthesis } = await trackLLM(null, "weekly_snapshot", "gemini-flash", () =>
+    generateObject({
+      model: geminiFlash,
+      schema: OutputSchema,
     system: `You are the analytical voice of Policy Canary — a regulatory intelligence service for FDA-regulated product companies. You are writing a 2-3 sentence weekly synthesis of FDA activity for professionals: quality directors, regulatory leads, and founders of supplement, food, cosmetics, pharmaceutical, and device companies.
 
 VOICE:
@@ -323,7 +325,9 @@ ${itemSummaries
   .join("\n\n")}
 
 Write the narrative synthesis and select 5 showcase items.`,
-  });
+    }),
+    { item_count: items.length }
+  );
 
   // 6. Build showcase items from the LLM's selections (by index)
   const selectedIds = new Set<string>();

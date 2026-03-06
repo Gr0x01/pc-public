@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateEmbedding } from "@/lib/ai/openai";
 import { claudeSonnet } from "@/lib/ai/anthropic";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { track, trackLLM } from "@/lib/analytics";
 import { isDev } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
   }
 
   // 2. Auth check
+  let userId: string | null = null;
   if (!isDev) {
     const supabase = await createClient();
     const {
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+    userId = user.id;
   }
 
   // 3. Validate input
@@ -147,11 +150,19 @@ export async function POST(request: Request) {
 
   // 9. Generate answer with Claude
   try {
-    const { text } = await generateText({
-      model: claudeSonnet,
-      system: systemPrompt,
-      prompt: userPrompt,
-      maxOutputTokens: 1024,
+    const { text } = await trackLLM(userId, "search_answer", "claude-sonnet", () =>
+      generateText({
+        model: claudeSonnet,
+        system: systemPrompt,
+        prompt: userPrompt,
+        maxOutputTokens: 1024,
+      })
+    );
+
+    track(userId, "search_query", {
+      query_length: query.length,
+      chunk_count: chunks.length,
+      citation_count: citations.length,
     });
 
     return Response.json({

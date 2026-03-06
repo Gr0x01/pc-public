@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
+import { track } from "@/lib/analytics";
 
 export async function POST() {
   // 1. Auth — require logged-in user
@@ -100,6 +101,8 @@ export async function POST() {
       cancel_url: `${siteUrl}/pricing`,
       metadata: { userId: user.id },
     });
+
+    track(user.id, "checkout_started", { trial_days: 14 });
 
     return NextResponse.json({ url: session.url });
   } catch (err) {

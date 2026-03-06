@@ -2,6 +2,7 @@ import { generateObject } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
+import { trackLLM } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -210,12 +211,15 @@ async function evaluateBatch(
 ): Promise<Verdict[]> {
   const prompt = buildVerdictPrompt(item, products);
 
-  const { object } = await generateObject({
-    model: google("gemini-2.5-flash"),
-    schema: VerdictOutputSchema,
-    system: VERDICT_SYSTEM_PROMPT,
-    prompt,
-  });
+  const { object } = await trackLLM(userId, "verdict_evaluation", "gemini-flash", () =>
+    generateObject({
+      model: google("gemini-2.5-flash"),
+      schema: VerdictOutputSchema,
+      system: VERDICT_SYSTEM_PROMPT,
+      prompt,
+    }),
+    { item_id: item.item_id, product_count: products.length }
+  );
 
   // Map Flash output back to full verdicts, filtering out any hallucinated product_ids
   const productIds = new Set(products.map((p) => p.product_id));

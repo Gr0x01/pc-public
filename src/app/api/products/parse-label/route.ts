@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { extractIngredientsFromImages } from "@/lib/products/vision";
 import { resolveSubstance } from "@/lib/products/queries";
+import { track } from "@/lib/analytics";
 import { randomUUID } from "crypto";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -161,6 +162,12 @@ export async function POST(request: Request) {
 
     imageUrls.push(signedUrlData?.signedUrl ?? "");
   }
+
+  track(userId, "label_scanned", {
+    image_count: files.length,
+    ingredient_count: ingredients.length,
+    vision_model: visionResult.model,
+  });
 
   return Response.json({
     data: {

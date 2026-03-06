@@ -1,7 +1,7 @@
-import "server-only";
 import { generateText } from "ai";
 import { render } from "@react-email/components";
 import { claudeSonnet } from "@/lib/ai/anthropic";
+import { trackLLM } from "@/lib/analytics";
 import BriefingEmail from "./templates/BriefingEmail";
 import WeeklyNewsletter from "./templates/WeeklyNewsletter";
 import AlertEmail from "./templates/AlertEmail";
@@ -114,11 +114,12 @@ async function generateEditorialOpening(
     .join("\n");
 
   try {
-    const { text } = await generateText({
-      model: claudeSonnet,
-      maxOutputTokens: 150,
-      temperature: 0.3,
-      system: `You write editorial openings for Policy Canary's Product Intelligence Briefing — a weekly regulatory email for FDA-regulated brands.
+    const { text } = await trackLLM(null, "editorial_opening", "claude-sonnet", () =>
+      generateText({
+        model: claudeSonnet,
+        maxOutputTokens: 150,
+        temperature: 0.3,
+        system: `You write editorial openings for Policy Canary's Product Intelligence Briefing — a weekly regulatory email for FDA-regulated brands.
 
 Voice: Senior regulatory analyst briefing their team. Calm, specific, calibrated. No hype.
 Rules:
@@ -130,12 +131,13 @@ Rules:
 - Match confidence to regulatory status: say "finalized" for final rules, "proposed" for proposed rules, "draft guidance" for guidance documents
 - Never describe a proposed rule as if it's already in effect
 - Reference the specific regulatory action type provided in the data`,
-      prompt: `Write a 1-2 sentence editorial opening for this week's briefing. The subscriber monitors ${data.products.length} products. Here are the top matched items:
+        prompt: `Write a 1-2 sentence editorial opening for this week's briefing. The subscriber monitors ${data.products.length} products. Here are the top matched items:
 
 ${itemSummaries}
 
 Total items reviewed this week: ${data.total_items_reviewed}`,
-    });
+      })
+    );
 
     return text.trim() || undefined;
   } catch (err) {
@@ -156,11 +158,12 @@ async function generateLeadStory(
   if (!topItem) return null;
 
   try {
-    const { text } = await generateText({
-      model: claudeSonnet,
-      maxOutputTokens: 400,
-      temperature: 0.3,
-      system: `You write lead stories for Policy Canary Weekly — a free FDA regulatory newsletter.
+    const { text } = await trackLLM(null, "lead_story", "claude-sonnet", () =>
+      generateText({
+        model: claudeSonnet,
+        maxOutputTokens: 400,
+        temperature: 0.3,
+        system: `You write lead stories for Policy Canary Weekly — a free FDA regulatory newsletter.
 
 Voice: Senior regulatory analyst briefing a broad audience. Clear, specific, accessible.
 Rules:
@@ -171,7 +174,7 @@ Rules:
 - Never describe a proposed rule as if it's already in effect
 - Never say "breaking", "urgent", or "comprehensive overview"
 - Never give legal advice`,
-      prompt: `Write a lead story (2-3 paragraphs) about this regulatory development:
+        prompt: `Write a lead story (2-3 paragraphs) about this regulatory development:
 
 Title: ${topItem.title}
 Type: ${topItem.item_type}
@@ -181,7 +184,8 @@ Summary: ${topItem.summary ?? "No summary available"}
 Deadline: ${topItem.deadline ?? "None"}
 
 Context: This week saw ${data.total_items} total regulatory actions.`,
-    });
+      })
+    );
 
     return {
       title: topItem.title,
@@ -198,11 +202,12 @@ async function generateTheNumber(
   data: WeeklyDigestData
 ): Promise<{ value: string; context: string; source_url?: string } | null> {
   try {
-    const { text } = await generateText({
-      model: claudeSonnet,
-      maxOutputTokens: 100,
-      temperature: 0.3,
-      system: `You pick a single sticky data point from FDA regulatory data for a newsletter section called "THE NUMBER."
+    const { text } = await trackLLM(null, "the_number", "claude-sonnet", () =>
+      generateText({
+        model: claudeSonnet,
+        maxOutputTokens: 100,
+        temperature: 0.3,
+        system: `You pick a single sticky data point from FDA regulatory data for a newsletter section called "THE NUMBER."
 
 Output format (exactly 2 lines):
 Line 1: The number (e.g., "47", "$2.3M", "12 days")
@@ -214,7 +219,7 @@ Rules:
 - Never pick the total count of regulatory actions as the number
 - Keep context to ONE sentence
 - Be specific and concrete`,
-      prompt: `This week: ${data.total_items} regulatory actions. Items include:
+        prompt: `This week: ${data.total_items} regulatory actions. Items include:
 ${data.items
   .slice(0, 8)
   .map((i) => `- ${i.title} (${i.item_type}, ${i.regulatory_action_type ?? "general"})`)
@@ -223,7 +228,8 @@ ${data.items
 ${data.bridge.products_with_action_items > 0 ? `${data.bridge.products_with_action_items} monitored products received action items across ${data.bridge.total_monitored_products} total monitored.` : ""}
 
 Pick one compelling number from this week's data.`,
-    });
+      })
+    );
 
     const lines = text.trim().split("\n").filter(Boolean);
     if (lines.length < 2) return null;

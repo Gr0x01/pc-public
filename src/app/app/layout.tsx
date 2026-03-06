@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAuthUser } from "@/lib/supabase/auth";
+import { PostHogIdentify } from "@/components/PostHogIdentify";
 
 import { isDev } from "@/lib/dev";
 
@@ -8,12 +9,17 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  if (!isDev) {
-    const user = await getAuthUser();
-    if (!user) {
-      redirect("/login");
-    }
+  const user = isDev ? null : await getAuthUser();
+  if (!isDev && !user) {
+    redirect("/login");
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {user && (
+        <PostHogIdentify userId={user.id} email={user.email} />
+      )}
+      {children}
+    </>
+  );
 }

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { track } from "@/lib/analytics";
 import { z } from "zod";
 
 import { isDev, DEV_USER_ID } from "@/lib/dev";
@@ -74,6 +75,12 @@ export async function PATCH(request: Request) {
       { status: 404 }
     );
   }
+
+  track(userId, "verdict_resolved", {
+    item_id,
+    product_id,
+    resolution,
+  });
 
   return Response.json({ data });
 }

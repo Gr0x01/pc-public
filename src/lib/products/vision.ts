@@ -4,6 +4,7 @@ import { z } from "zod";
 import { geminiFlash } from "@/lib/ai/gemini";
 import { gpt4oMini } from "@/lib/ai/openai";
 import { claudeHaiku } from "@/lib/ai/anthropic";
+import { trackLLM } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Vision model fallback chain: Gemini Flash → GPT-4o-mini → Claude Haiku
@@ -80,19 +81,22 @@ export async function extractIngredientsFromImages(
   for (const { name, model, retries } of VISION_MODELS) {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        const { object } = await generateObject({
-          model,
-          schema: LabelExtractionSchema,
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: SYSTEM_PROMPT },
-                ...imageParts,
-              ],
-            },
-          ],
-        });
+        const { object } = await trackLLM(null, "label_extraction", name, () =>
+          generateObject({
+            model,
+            schema: LabelExtractionSchema,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: SYSTEM_PROMPT },
+                  ...imageParts,
+                ],
+              },
+            ],
+          }),
+          { attempt, image_count: images.length }
+        );
 
         return { data: object, model: name };
       } catch (err) {

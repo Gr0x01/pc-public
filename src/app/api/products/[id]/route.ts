@@ -6,6 +6,7 @@ import { UpdateProductSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { invalidateUserMatches } from "@/lib/products/matches";
 import { evaluateProductHistory } from "@/lib/products/verdicts";
+import { track } from "@/lib/analytics";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { isDev, DEV_USER_ID } from "@/lib/dev";
@@ -202,6 +203,12 @@ export async function PATCH(
     );
   }
 
+  track(userId, "product_updated", {
+    product_id: id,
+    fields_updated: Object.keys(updates),
+    ingredients_replaced: hasIngredientUpdates,
+  });
+
   return Response.json({
     data: updated,
     ...(ingredientCount !== undefined ? { ingredient_count: ingredientCount } : {}),
@@ -276,5 +283,8 @@ export async function DELETE(
   }
 
   invalidateUserMatches(userId);
+
+  track(userId, "product_deleted", { product_id: id });
+
   return Response.json({ data: { id: data.id, deleted: true } });
 }

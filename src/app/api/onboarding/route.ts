@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { track } from "@/lib/analytics";
 import { z } from "zod";
 
 import { isDev, DEV_USER_ID } from "@/lib/dev";
@@ -67,6 +68,12 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  track(userId, "onboarding_completed", {
+    has_company: !!company_name,
+    has_role: !!role,
+    has_fei: !!fei_number,
+  });
 
   return Response.json({ success: true });
 }

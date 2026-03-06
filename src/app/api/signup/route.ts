@@ -2,6 +2,7 @@ import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
 import { headers } from "next/headers";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { track } from "@/lib/analytics";
 
 const SignupSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -123,6 +124,8 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  track(null, "pilot_signup", { company });
 
   return Response.json({ data: { message: "magic_link_sent" }, error: null });
 }

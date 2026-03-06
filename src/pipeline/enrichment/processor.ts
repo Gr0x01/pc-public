@@ -10,6 +10,7 @@
 import { generateObject } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { type SupabaseClient } from "@supabase/supabase-js";
+import { trackLLM } from "@/lib/analytics";
 import {
   EnrichmentOutputSchema,
   SYSTEM_PROMPT,
@@ -46,14 +47,14 @@ export interface EnrichItemResult {
  * Flash: short/simple items (recalls, safety alerts, RSS press releases, short notices)
  * Pro:   complex items (rules, proposed rules, warning letters, guidance, long notices)
  */
-function routeModel(item: RegulatoryItem, google: ReturnType<typeof createGoogleGenerativeAI>) {
+function routeModel(item: RegulatoryItem, google: ReturnType<typeof createGoogleGenerativeAI>): { model: ReturnType<ReturnType<typeof createGoogleGenerativeAI>>; name: string } {
   const simpleTypes = new Set(["recall", "safety_alert", "press_release"]);
   const contentLength = (item.raw_content ?? "").length;
 
   if (simpleTypes.has(item.item_type) || (item.item_type === "notice" && contentLength < 2000)) {
-    return google("gemini-2.5-flash");
+    return { model: google("gemini-2.5-flash"), name: "gemini-flash" };
   }
-  return google("gemini-2.5-pro");
+  return { model: google("gemini-2.5-pro"), name: "gemini-pro" };
 }
 
 // ---------------------------------------------------------------------------
@@ -154,18 +155,21 @@ export async function enrichItem(
 
     // ── 1. Build prompt + select model ──────────────────────────────────────
     const prompt = buildEnrichmentPrompt(item);
-    const model = routeModel(item, google);
+    const { model, name: modelName } = routeModel(item, google);
 
     // ── 2. Call LLM — Step 1 extraction ─────────────────────────────────────
     let rawOutput: EnrichmentOutput;
     try {
-      const result = await generateObject({
-        model,
-        schema: EnrichmentOutputSchema,
-        system: SYSTEM_PROMPT,
-        prompt,
-        maxRetries: 2,
-      });
+      const result = await trackLLM(null, "enrichment", modelName, () =>
+        generateObject({
+          model,
+          schema: EnrichmentOutputSchema,
+          system: SYSTEM_PROMPT,
+          prompt,
+          maxRetries: 2,
+        }),
+        { item_id: item.id, item_type: item.item_type }
+      );
       rawOutput = result.object;
     } catch (llmErr) {
       // Log diagnostic info for schema validation failures
