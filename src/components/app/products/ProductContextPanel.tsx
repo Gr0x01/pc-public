@@ -17,21 +17,16 @@ interface ProductContextPanelProps {
   detail: ProductDetailData;
   highlightedSubstanceIds: Set<string>;
   useCodes?: Record<string, string[]>;
-  isEditing: boolean;
   onStartEdit: () => void;
-  onStopEdit: () => void;
 }
 
 export default function ProductContextPanel({
   detail,
   highlightedSubstanceIds,
   useCodes = {},
-  isEditing,
   onStartEdit,
-  onStopEdit,
 }: ProductContextPanelProps) {
   const { product } = detail;
-  // Use structured ingredient rows when available for substance_id matching
   const ingredientRows = detail.ingredients ?? [];
   const ingredients = ingredientRows.length > 0
     ? ingredientRows.map((ing) => ing.name)
@@ -40,20 +35,22 @@ export default function ProductContextPanel({
   return (
     <div className="w-full h-full">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold text-text-primary truncate">{product.name}</h2>
-          <p className="text-[11px] font-mono text-text-secondary mt-0.5">
-            {product.brand && <>{product.brand} · </>}
-            {TYPE_LABELS[product.product_type] ?? product.product_type}
-          </p>
+      <div className="px-5 py-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold text-text-primary truncate">{product.name}</h2>
+            <p className="text-[11px] font-mono text-text-secondary mt-0.5">
+              {product.brand && <>{product.brand} · </>}
+              {TYPE_LABELS[product.product_type] ?? product.product_type}
+            </p>
+          </div>
+          <button
+            onClick={onStartEdit}
+            className="text-[12px] font-medium text-text-secondary hover:text-amber transition-colors shrink-0 ml-2"
+          >
+            Edit
+          </button>
         </div>
-        <button
-          onClick={onStartEdit}
-          className="text-[12px] font-medium text-text-secondary hover:text-amber transition-colors shrink-0 ml-2"
-        >
-          Edit
-        </button>
       </div>
 
       {/* Ingredients section — sticky */}

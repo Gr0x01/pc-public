@@ -1,10 +1,11 @@
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { getProductById, getProductVerdicts, getIngredientUseCodes } from "@/lib/products/queries";
+import { getProductById, getProductVerdicts, getIngredientUseCodes, ingestParsedIngredients } from "@/lib/products/queries";
 import { UpdateProductSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { invalidateUserMatches } from "@/lib/products/matches";
+import { evaluateProductHistory } from "@/lib/products/verdicts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { isDev, DEV_USER_ID } from "@/lib/dev";
@@ -79,13 +80,19 @@ export async function PATCH(
   }
 
   // Auth
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json(
-      { error: { message: "Authentication required." } },
-      { status: 401 }
-    );
+  let userId: string;
+  if (isDev) {
+    userId = DEV_USER_ID;
+  } else {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return Response.json(
+        { error: { message: "Authentication required." } },
+        { status: 401 }
+      );
+    }
+    userId = user.id;
   }
 
   const { id } = await params;
@@ -119,8 +126,15 @@ export async function PATCH(
   const updates: Record<string, unknown> = {};
   if (parsed.data.name !== undefined) updates.name = parsed.data.name;
   if (parsed.data.brand !== undefined) updates.brand = parsed.data.brand;
+  if (parsed.data.product_type !== undefined) updates.product_type = parsed.data.product_type;
+  if (parsed.data.manufacturer_name !== undefined) updates.manufacturer_name = parsed.data.manufacturer_name || null;
+  if (parsed.data.manufacturer_fei !== undefined) updates.manufacturer_fei = parsed.data.manufacturer_fei || null;
+  if (parsed.data.raw_ingredients_text !== undefined) updates.raw_ingredients_text = parsed.data.raw_ingredients_text;
 
-  if (Object.keys(updates).length === 0) {
+  const hasProductUpdates = Object.keys(updates).length > 0;
+  const hasIngredientUpdates = parsed.data.parsed_ingredients !== undefined;
+
+  if (!hasProductUpdates && !hasIngredientUpdates) {
     return Response.json(
       { error: { message: "No fields to update." } },
       { status: 400 }
@@ -128,30 +142,70 @@ export async function PATCH(
   }
 
   // Ownership check + update (updated_at handled by DB trigger)
-  const { data, error } = await adminClient
-    .from("subscriber_products")
-    .update(updates)
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .select("id, name, brand, product_type, is_active, updated_at")
-    .maybeSingle();
+  if (hasProductUpdates) {
+    const { data, error } = await adminClient
+      .from("subscriber_products")
+      .update(updates)
+      .eq("id", id)
+      .eq("user_id", userId)
+      .select("id")
+      .maybeSingle();
 
-  if (error) {
-    console.error("[products] update error:", error);
-    return Response.json(
-      { error: { message: "Failed to update product." } },
-      { status: 500 }
-    );
+    if (error) {
+      console.error("[products] update error:", error);
+      return Response.json(
+        { error: { message: "Failed to update product." } },
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
+      return Response.json(
+        { error: { message: "Product not found." } },
+        { status: 404 }
+      );
+    }
   }
 
-  if (!data) {
+  // Replace ingredients if provided
+  let ingredientCount: number | undefined;
+  if (hasIngredientUpdates && parsed.data.parsed_ingredients) {
+    // Delete existing ingredients
+    await adminClient
+      .from("product_ingredients")
+      .delete()
+      .eq("product_id", id);
+
+    ingredientCount = await ingestParsedIngredients(id, parsed.data.parsed_ingredients);
+
+    // Re-evaluate verdicts with new ingredients (non-blocking)
+    invalidateUserMatches(userId);
+    if (ingredientCount > 0) {
+      evaluateProductHistory(id, userId).catch((err) =>
+        console.error("[products] verdict re-evaluation error:", err)
+      );
+    }
+  }
+
+  // Fetch updated product to return
+  const { data: updated, error: fetchError } = await adminClient
+    .from("subscriber_products")
+    .select("id, name, brand, product_type, is_active, updated_at")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (fetchError || !updated) {
     return Response.json(
       { error: { message: "Product not found." } },
       { status: 404 }
     );
   }
 
-  return Response.json({ data });
+  return Response.json({
+    data: updated,
+    ...(ingredientCount !== undefined ? { ingredient_count: ingredientCount } : {}),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -173,13 +227,19 @@ export async function DELETE(
   }
 
   // Auth
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json(
-      { error: { message: "Authentication required." } },
-      { status: 401 }
-    );
+  let userId: string;
+  if (isDev) {
+    userId = DEV_USER_ID;
+  } else {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return Response.json(
+        { error: { message: "Authentication required." } },
+        { status: 401 }
+      );
+    }
+    userId = user.id;
   }
 
   const { id } = await params;
@@ -195,7 +255,7 @@ export async function DELETE(
     .from("subscriber_products")
     .update({ is_active: false })
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("is_active", true)
     .select("id")
     .maybeSingle();
@@ -215,6 +275,6 @@ export async function DELETE(
     );
   }
 
-  invalidateUserMatches(user.id);
+  invalidateUserMatches(userId);
   return Response.json({ data: { id: data.id, deleted: true } });
 }

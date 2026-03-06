@@ -18,6 +18,7 @@ interface IntelligencePanelProps {
   onResolveVerdict: (itemId: string, productId: string, resolution: VerdictResolution) => void;
   isWideLayout: boolean;
   initialExpandedItemId?: string;
+  onStartEdit?: () => void;
 }
 
 export default function IntelligencePanel({
@@ -26,6 +27,7 @@ export default function IntelligencePanel({
   onClearHighlight,
   onResolveVerdict,
   initialExpandedItemId,
+  onStartEdit,
 }: IntelligencePanelProps) {
   const { product, status, activeMatches, lastScannedAt } = detail;
   const shouldReduceMotion = useReducedMotion();
@@ -59,17 +61,34 @@ export default function IntelligencePanel({
       <div className="max-w-3xl mx-auto px-6 lg:px-8 py-6">
         {/* Product header */}
         <div className="mb-6">
-          <h1 className="font-serif text-2xl font-bold text-text-primary leading-tight mb-1">
-            {product.name}
-          </h1>
-          <div className="flex items-center gap-2 text-text-secondary">
-            {product.brand && (
-              <>
-                <span className="font-mono text-xs">{product.brand}</span>
-                <span className="text-xs text-border-strong">·</span>
-              </>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h1 className="font-serif text-2xl font-bold text-text-primary leading-tight mb-1">
+                {product.name}
+              </h1>
+              <div className="flex items-center gap-2 text-text-secondary">
+                {product.brand && (
+                  <>
+                    <span className="font-mono text-xs">{product.brand}</span>
+                    <span className="text-xs text-border-strong">·</span>
+                  </>
+                )}
+                <span className="font-mono text-xs capitalize">{product.product_type}</span>
+              </div>
+            </div>
+
+            {/* Edit button — shown at <1440px where context panel is hidden */}
+            {onStartEdit && (
+              <button
+                onClick={onStartEdit}
+                className="3col:hidden shrink-0 p-1.5 text-text-secondary hover:text-amber transition-colors rounded"
+                aria-label="Edit product"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M11.5 2.5l2 2L5 13H3v-2l8.5-8.5z" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             )}
-            <span className="font-mono text-xs capitalize">{product.product_type}</span>
           </div>
 
           <div className="flex items-center justify-between mt-3">

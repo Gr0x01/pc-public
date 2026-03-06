@@ -59,27 +59,59 @@ function CaseToggle({ value, onChange, disabled }: { value: string; onChange: (v
   );
 }
 
+import type { ProductDetail, ProductIngredientRow } from "@/lib/products/types";
+
+/** Convert stored ingredient rows to the ParsedIngredient shape used by the edit form */
+function ingredientRowsToParsed(rows: ProductIngredientRow[]): ParsedIngredient[] {
+  return rows.map((row) => ({
+    name: row.name,
+    amount: row.amount ?? undefined,
+    unit: row.unit ?? undefined,
+    substanceId: row.substance_id,
+    normalizedName: row.normalized_name,
+    matchStatus: (row.normalization_status === "matched" ? "matched" :
+      row.normalization_status === "ambiguous" ? "ambiguous" : "unmatched") as "matched" | "ambiguous" | "unmatched",
+    confidence: row.normalization_confidence,
+  }));
+}
+
 interface AddProductPanelProps {
   onCancel: () => void;
   onProductAdded: (product: { id: string; name: string; brand?: string | null; productType: ProductType }) => void;
+  /** When set, panel operates in edit mode — pre-filled with existing product data */
+  editingProduct?: ProductDetail;
+  onProductUpdated?: (product: { id: string; name: string; brand?: string | null; productType: ProductType }) => void;
+  onDelete?: () => Promise<boolean>;
 }
 
-export default function AddProductPanel({ onCancel, onProductAdded }: AddProductPanelProps) {
-  const [step, setStep] = useState<Step>("pick_type");
-  const [productType, setProductType] = useState<ProductType | null>(null);
+export default function AddProductPanel({ onCancel, onProductAdded, editingProduct, onProductUpdated, onDelete }: AddProductPanelProps) {
+  const isEditMode = !!editingProduct;
+
+  // In edit mode, skip pick_type and go straight to ingredient_preview
+  const initialStep: Step = isEditMode ? "ingredient_preview" : "pick_type";
+  const initialType: ProductType | null = isEditMode ? (editingProduct.product_type as ProductType) : null;
+
+  const [step, setStep] = useState<Step>(initialStep);
+  const [productType, setProductType] = useState<ProductType | null>(initialType);
   const [detail, setDetail] = useState<DSLDProductDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Vision / manual parsed data
   const [parsedLabel, setParsedLabel] = useState<ParsedLabel | null>(null);
-  const [editableIngredients, setEditableIngredients] = useState<ParsedIngredient[]>([]);
-  const [editableName, setEditableName] = useState("");
-  const [editableBrand, setEditableBrand] = useState("");
+  const [editableIngredients, setEditableIngredients] = useState<ParsedIngredient[]>(
+    isEditMode ? ingredientRowsToParsed(editingProduct.ingredients) : []
+  );
+  const [editableName, setEditableName] = useState(isEditMode ? editingProduct.name : "");
+  const [editableBrand, setEditableBrand] = useState(isEditMode ? (editingProduct.brand ?? "") : "");
 
   // Manufacturer fields
-  const [manufacturerName, setManufacturerName] = useState("");
-  const [manufacturerFei, setManufacturerFei] = useState("");
+  const [manufacturerName, setManufacturerName] = useState(isEditMode ? (editingProduct.manufacturer_name ?? "") : "");
+  const [manufacturerFei, setManufacturerFei] = useState(isEditMode ? (editingProduct.manufacturer_fei ?? "") : "");
+
+  // Delete confirmation (edit mode only)
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // QoL state
   const [ingredientFilter, setIngredientFilter] = useState("");
@@ -172,12 +204,55 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
     ]);
   }, []);
 
-  // Submit (DSLD, label_scan, or manual)
+  // Submit (DSLD, label_scan, or manual — and edit mode)
   const handleSubmit = useCallback(async () => {
     if (!productType) return;
     setStep("submitting");
     setError(null);
 
+    // --- Edit mode: PATCH existing product ---
+    if (isEditMode && editingProduct) {
+      const body: Record<string, unknown> = {
+        name: editableName.trim(),
+        brand: editableBrand.trim() || null,
+        product_type: productType,
+        manufacturer_name: manufacturerName.trim() || null,
+        manufacturer_fei: manufacturerFei.replace(/\D/g, "") || null,
+        raw_ingredients_text: editableIngredients.length > 0
+          ? editableIngredients.map((i) => i.name).join(", ")
+          : null,
+        parsed_ingredients: editableIngredients.length > 0 ? editableIngredients : undefined,
+      };
+
+      try {
+        const res = await fetch(`/api/products/${editingProduct.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok) {
+          setError(json.error?.message ?? "Failed to update product.");
+          setStep("ingredient_preview");
+          return;
+        }
+
+        onProductUpdated?.({
+          id: editingProduct.id,
+          name: editableName.trim(),
+          brand: editableBrand.trim() || null,
+          productType,
+        });
+      } catch {
+        setError("Network error. Please try again.");
+        setStep("ingredient_preview");
+      }
+      return;
+    }
+
+    // --- Create mode ---
     let body: Record<string, unknown>;
 
     const mfgFields = {
@@ -254,7 +329,7 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
       setError("Network error. Please try again.");
       setStep(detail ? "preview" : "ingredient_preview");
     }
-  }, [productType, detail, parsedLabel, editableName, editableBrand, editableIngredients, manufacturerName, manufacturerFei, onProductAdded]);
+  }, [productType, detail, parsedLabel, editableName, editableBrand, editableIngredients, manufacturerName, manufacturerFei, onProductAdded, isEditMode, editingProduct, onProductUpdated]);
 
   // Determine if we're on a wide step
   const isWideStep = step === "ingredient_preview" || step === "preview" || (step === "submitting");
@@ -263,13 +338,13 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
     <div className={`mx-auto px-6 py-8 transition-[max-width] duration-300 ease-out ${isWideStep ? "max-w-5xl" : "max-w-2xl"}`}>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-text-primary">
-          {step === "pick_type" ? "What type of product are you adding?" : "Add Product"}
+          {isEditMode ? "Edit Product" : step === "pick_type" ? "What type of product are you adding?" : "Add Product"}
         </h2>
         <button
-          onClick={step === "pick_type" ? onCancel : handleBackToType}
+          onClick={isEditMode ? onCancel : step === "pick_type" ? onCancel : handleBackToType}
           className="text-sm text-text-secondary hover:text-text-primary transition-colors"
         >
-          {step === "pick_type" ? "Cancel" : "Change type"}
+          {isEditMode ? "Cancel" : step === "pick_type" ? "Cancel" : "Change type"}
         </button>
       </div>
 
@@ -349,6 +424,7 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
           ingredientFilter={ingredientFilter}
           isLabelScan={parsedLabel?.isLabelScan ?? false}
           isSubmitting={step === "submitting"}
+          isEditMode={isEditMode}
           onNameChange={setEditableName}
           onBrandChange={setEditableBrand}
           onManufacturerNameChange={setManufacturerName}
@@ -356,8 +432,11 @@ export default function AddProductPanel({ onCancel, onProductAdded }: AddProduct
           onFilterChange={setIngredientFilter}
           onRemoveIngredient={handleRemoveIngredient}
           onAddSubstance={handleAddSubstance}
-          onBack={handleBackFromPreview}
+          onBack={isEditMode ? onCancel : handleBackFromPreview}
           onSubmit={handleSubmit}
+          onDelete={onDelete}
+          productName={editingProduct?.name}
+          activeMatchCount={0}
         />
       )}
 
@@ -393,6 +472,7 @@ interface IngredientPreviewLayoutProps {
   ingredientFilter: string;
   isLabelScan: boolean;
   isSubmitting: boolean;
+  isEditMode?: boolean;
   onNameChange: (v: string) => void;
   onBrandChange: (v: string) => void;
   onManufacturerNameChange: (v: string) => void;
@@ -402,6 +482,9 @@ interface IngredientPreviewLayoutProps {
   onAddSubstance: (substance: { substanceId: string; name: string; canonicalName: string }) => void;
   onBack: () => void;
   onSubmit: () => void;
+  onDelete?: () => Promise<boolean>;
+  productName?: string;
+  activeMatchCount?: number;
 }
 
 function IngredientPreviewLayout({
@@ -413,6 +496,7 @@ function IngredientPreviewLayout({
   ingredientFilter,
   isLabelScan,
   isSubmitting,
+  isEditMode = false,
   onNameChange,
   onBrandChange,
   onManufacturerNameChange,
@@ -422,7 +506,12 @@ function IngredientPreviewLayout({
   onAddSubstance,
   onBack,
   onSubmit,
+  onDelete,
+  productName,
+  activeMatchCount = 0,
 }: IngredientPreviewLayoutProps) {
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const matched = editableIngredients.filter((i) => i.matchStatus === "matched").length;
   const ambiguous = editableIngredients.filter((i) => i.matchStatus === "ambiguous").length;
   const unmatched = editableIngredients.filter((i) => i.matchStatus === "unmatched").length;
@@ -531,7 +620,7 @@ function IngredientPreviewLayout({
             disabled={isSubmitting}
             className="px-4 py-2.5 text-sm text-text-secondary border border-border rounded hover:bg-slate-50 transition-colors disabled:opacity-50"
           >
-            Back
+            {isEditMode ? "Cancel" : "Back"}
           </button>
           <button
             onClick={onSubmit}
@@ -541,13 +630,61 @@ function IngredientPreviewLayout({
             {isSubmitting ? (
               <>
                 <Spinner />
-                Adding...
+                {isEditMode ? "Saving..." : "Adding..."}
               </>
             ) : (
-              "Start Monitoring This Product"
+              isEditMode ? "Save Changes" : "Start Monitoring This Product"
             )}
           </button>
         </div>
+
+        {/* Remove from monitoring — edit mode only */}
+        {isEditMode && onDelete && (
+          <div className="pt-4 mt-2 border-t border-border">
+            {confirmingRemove ? (
+              <div className="space-y-2">
+                <p className="text-[12px] text-text-body leading-snug">
+                  Remove <span className="font-semibold">{productName ?? editableName}</span> from monitoring?
+                  {activeMatchCount > 0 && (
+                    <span className="text-text-secondary">
+                      {" "}This product has {activeMatchCount} active regulatory item{activeMatchCount !== 1 ? "s" : ""} that will be archived.
+                    </span>
+                  )}
+                </p>
+                <p className="text-[11px] text-text-secondary leading-snug">
+                  You will no longer receive alerts when FDA regulatory changes affect this product.
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setConfirmingRemove(false)}
+                    disabled={removing}
+                    className="px-3 py-1.5 text-[12px] font-medium text-text-secondary border border-border rounded hover:border-border-strong transition-colors"
+                  >
+                    Keep
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setRemoving(true);
+                      await onDelete();
+                      setRemoving(false);
+                    }}
+                    disabled={removing}
+                    className="px-3 py-1.5 text-[12px] font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {removing ? "Removing..." : "Remove from Monitoring"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmingRemove(true)}
+                className="text-[12px] font-medium text-red-600 hover:text-red-700 transition-colors"
+              >
+                Remove from Monitoring
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* RIGHT COLUMN: Ingredient List */}

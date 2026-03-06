@@ -121,7 +121,7 @@ export async function getProductById(
   const { data: product, error } = await adminClient
     .from("subscriber_products")
     .select(
-      "id, name, brand, product_type, product_category_id, data_source, external_id, raw_ingredients_text, is_active, created_at, updated_at"
+      "id, name, brand, product_type, product_category_id, data_source, external_id, raw_ingredients_text, manufacturer_name, manufacturer_fei, is_active, created_at, updated_at"
     )
     .eq("id", productId)
     .eq("user_id", userId)

@@ -139,13 +139,13 @@ export default function ProductsLayout({
     : initialItems[0]?.id ?? null;
   const [selectedId, setSelectedId] = useState<string | null>(startProductId);
   const [useCodes, setUseCodes] = useState<Record<string, string[]>>({});
-  const [mode, setMode] = useState<"view" | "add">(initialItems.length === 0 ? "add" : "view");
+  const [mode, setMode] = useState<"view" | "add" | "edit">(initialItems.length === 0 ? "add" : "view");
+  const [editingProduct, setEditingProduct] = useState<ProductDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [currentDetail, setCurrentDetail] = useState<ProductDetailData | null>(null);
   const detailCache = useRef(new Map<string, ProductDetailData>());
 
   const [highlightedSubstanceIds, setHighlightedSubstanceIds] = useState<Set<string>>(new Set());
-  const [isEditing, setIsEditing] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
@@ -198,7 +198,7 @@ export default function ProductsLayout({
     (id: string) => {
       setSelectedId(id);
       setMode("view");
-      setIsEditing(false);
+      setEditingProduct(null);
       setHighlightedSubstanceIds(new Set());
       setIsMobileSidebarOpen(false);
       fetchDetail(id);
@@ -242,6 +242,75 @@ export default function ProductsLayout({
     },
     [fetchDetail]
   );
+
+  const handleDeleteProduct = useCallback(
+    async (productId: string) => {
+      try {
+        const res = await fetch(`/api/products/${productId}`, { method: "DELETE" });
+        if (!res.ok) return false;
+
+        detailCache.current.delete(productId);
+        setSidebarItems((prev) => {
+          const next = prev.filter((p) => p.id !== productId);
+          if (next.length === 0) {
+            setSelectedId(null);
+            setCurrentDetail(null);
+            setMode("add");
+          } else {
+            const nextId = next[0].id;
+            setSelectedId(nextId);
+            fetchDetail(nextId);
+          }
+          return next;
+        });
+        setEditingProduct(null);
+        return true;
+      } catch (err) {
+        console.error("[ProductsLayout] delete error:", err);
+        return false;
+      }
+    },
+    [fetchDetail]
+  );
+
+  const handleEditProduct = useCallback(async () => {
+    if (!selectedId) return;
+    // Fetch the raw ProductDetail for the edit form
+    try {
+      const res = await fetch(`/api/products/${selectedId}`);
+      if (!res.ok) return;
+      const { data } = await res.json();
+      setEditingProduct(data as ProductDetail);
+      setMode("edit");
+    } catch (err) {
+      console.error("[ProductsLayout] fetch for edit error:", err);
+    }
+  }, [selectedId]);
+
+  const handleProductUpdated = useCallback(
+    (updated: { id: string; name: string; brand?: string | null; productType: string }) => {
+      setSidebarItems((prev) =>
+        prev.map((item) =>
+          item.id === updated.id
+            ? { ...item, name: updated.name, brand: updated.brand ?? null }
+            : item
+        )
+      );
+      detailCache.current.delete(updated.id);
+      setEditingProduct(null);
+      setMode("view");
+      setSelectedId(updated.id);
+      fetchDetail(updated.id);
+    },
+    [fetchDetail]
+  );
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingProduct(null);
+    setMode("view");
+    // Re-fetch to show any updated data
+    if (selectedId) fetchDetail(selectedId);
+  }, [selectedId, fetchDetail]);
 
   const handleHighlight = useCallback((ids: string[]) => {
     setHighlightedSubstanceIds(new Set(ids));
@@ -420,6 +489,22 @@ export default function ProductsLayout({
                 onProductAdded={handleProductAdded}
               />
             </motion.div>
+          ) : mode === "edit" && editingProduct ? (
+            <motion.div
+              key="edit"
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <AddProductPanel
+                onCancel={handleCancelEdit}
+                onProductAdded={handleProductAdded}
+                editingProduct={editingProduct}
+                onProductUpdated={handleProductUpdated}
+                onDelete={() => handleDeleteProduct(editingProduct.id)}
+              />
+            </motion.div>
           ) : loadingDetail ? (
             <motion.div
               key="skeleton"
@@ -445,6 +530,7 @@ export default function ProductsLayout({
                 onResolveVerdict={handleResolveVerdict}
                 isWideLayout={false}
                 initialExpandedItemId={initialItemId}
+                onStartEdit={handleEditProduct}
               />
             </motion.div>
           ) : (
@@ -460,8 +546,8 @@ export default function ProductsLayout({
         </AnimatePresence>
       </div>
 
-      {/* Product context panel (right, >=1440px only) — hidden during add mode */}
-      {mode !== "add" && (
+      {/* Product context panel (right, >=1440px only) — hidden during add/edit mode */}
+      {mode === "view" && (
         <div className="hidden 3col:flex flex-shrink-0 w-[360px] min-[1600px]:w-[400px] border-l border-border bg-white overflow-y-auto">
           {loadingDetail ? (
             <ContextSkeleton />
@@ -470,9 +556,7 @@ export default function ProductsLayout({
               detail={currentDetail}
               highlightedSubstanceIds={highlightedSubstanceIds}
               useCodes={useCodes}
-              isEditing={isEditing}
-              onStartEdit={() => setIsEditing(true)}
-              onStopEdit={() => setIsEditing(false)}
+              onStartEdit={handleEditProduct}
             />
           ) : null}
         </div>

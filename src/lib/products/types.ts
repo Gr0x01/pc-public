@@ -52,6 +52,27 @@ export type CreateProductInput = z.infer<typeof CreateProductSchema>;
 export const UpdateProductSchema = z.object({
   name: z.string().min(1).max(500).optional(),
   brand: z.string().max(300).nullish(),
+  product_type: z.enum([
+    "supplement", "food", "cosmetic", "drug",
+    "medical_device", "biologic", "tobacco", "veterinary",
+  ]).optional(),
+  manufacturer_name: z.string().max(300).nullish(),
+  manufacturer_fei: z
+    .string()
+    .regex(/^\d{7,10}$/, "Manufacturer FEI must be 7-10 digits")
+    .nullish()
+    .or(z.literal("")),
+  raw_ingredients_text: z.string().max(50_000).nullish(),
+  parsed_ingredients: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(200),
+        amount: z.string().max(50).optional(),
+        unit: z.string().max(20).optional(),
+      })
+    )
+    .max(200)
+    .nullish(),
 });
 
 export const DSLDSearchSchema = z.object({
@@ -110,6 +131,8 @@ export interface ProductDetail {
   data_source: string;
   external_id: string | null;
   raw_ingredients_text: string | null;
+  manufacturer_name: string | null;
+  manufacturer_fei: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
