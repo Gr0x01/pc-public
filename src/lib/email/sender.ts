@@ -1,4 +1,3 @@
-import "server-only";
 import { Resend } from "resend";
 import { FROM_ADDRESS, REPLY_TO } from "./constants";
 
