@@ -21,7 +21,8 @@
     "pipeline:content-fetch-test": "npx tsx scripts/test-content-fetch.ts",
     "pipeline:golden": "npx tsx scripts/run-golden-tests.ts",
     "pipeline:golden-enrich": "npx tsx scripts/run-golden-tests.ts --enrich",
-    "email:dev": "npx react-email dev -d emails -p 3001"
+    "email:dev": "npx react-email dev -d emails -p 3001",
+    "pipeline:weekly-snapshot": "npx tsx scripts/generate-weekly-snapshot.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.53",

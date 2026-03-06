@@ -5,7 +5,8 @@ import ProductShowcase from "@/components/marketing/ProductShowcase";
 import BuyerRoleCard from "@/components/marketing/BuyerRoleCard";
 import { RevealSection } from "@/components/marketing/RevealSection";
 import { SignupForm } from "@/components/marketing/SignupForm";
-import DayAtFda from "@/components/marketing/DayAtFda";
+import WeeklyIntelligence from "@/components/marketing/WeeklyIntelligence";
+import { getLatestSnapshot } from "@/lib/intelligence/weekly-snapshot";
 
 export const metadata: Metadata = {
   title: "Policy Canary — FDA Regulatory Intelligence for Your Products",
@@ -13,7 +14,12 @@ export const metadata: Metadata = {
     "Product-level FDA monitoring. Know which of your products are affected — by name and ingredient — before the warning letter arrives.",
 };
 
-export default function LandingPage() {
+// Revalidate every 4 hours — snapshot updates weekly on Fridays
+export const revalidate = 14400;
+
+export default async function LandingPage() {
+  const snapshot = await getLatestSnapshot();
+
   return (
     <>
       {/* Hero — full width, handles its own animations */}
@@ -27,8 +33,20 @@ export default function LandingPage() {
         <ProductShowcase />
       </RevealSection>
 
-      {/* A Day at the FDA — noise vs signal story */}
-      <DayAtFda />
+      {/* Weekly Intelligence — live data from the FDA */}
+      {snapshot && (
+        <WeeklyIntelligence
+          weekStart={snapshot.week_start}
+          weekEnd={snapshot.week_end}
+          narrative={snapshot.narrative}
+          sectorCounts={snapshot.sector_counts}
+          totalItems={snapshot.total_items}
+          totalSectors={snapshot.total_sectors}
+          totalSubstancesFlagged={snapshot.total_substances_flagged}
+          totalDeadlines={snapshot.total_deadlines}
+          showcaseItems={snapshot.showcase_items}
+        />
+      )}
 
       {/* Who It's For — handles its own staggered reveal */}
       <BuyerRoleCard />
