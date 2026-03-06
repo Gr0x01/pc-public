@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="supported-color-schemes" content="light dark" />
+  <style>
+    @media (prefers-color-scheme: dark) {
+      body, .body { background-color: #0F172A !important; }
+      .container { background-color: #1E293B !important; }
+      .text-primary { color: #F1F5F9 !important; }
+      .text-body { color: #CBD5E1 !important; }
+      .text-secondary { color: #94A3B8 !important; }
+      .text-tertiary { color: #64748B !important; }
+      .border-light { border-color: #334155 !important; }
+      .top-rule { background-color: #EAC100 !important; }
+      a { color: #EAC100 !important; }
+      .footer a { color: #94A3B8 !important; }
+    }
+  </style>
+</head>
+<body class="body" style="background-color: #F8FAFC; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; margin: 0; padding: 0;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #F8FAFC;">
+    <tr>
+      <td align="center" style="padding: 40px 16px;">
+        <table role="presentation" class="container" width="100%" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; max-width: 480px; border-radius: 0;">
+          <!-- Canary top rule -->
+          <tr>
+            <td class="top-rule" style="background-color: #EAC100; height: 3px; font-size: 0; line-height: 0;">&nbsp;</td>
+          </tr>
+
+          <!-- Header -->
+          <tr>
+            <td style="padding: 32px 40px 0;">
+              <p class="text-secondary" style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #64748B; margin: 0; text-transform: uppercase;">POLICY CANARY</p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 24px 40px 0;">
+              <h1 class="text-primary" style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 22px; font-weight: 700; color: #0F172A; line-height: 1.3; margin: 0 0 12px;">Sign in to Policy Canary</h1>
+              <p class="text-body" style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 16px; color: #334155; line-height: 1.5; margin: 0 0 24px;">Click the button below to sign in. This link is valid for one hour.</p>
+            </td>
+          </tr>
+
+          <!-- CTA Button -->
+          <tr>
+            <td style="padding: 0 40px 8px;" align="center">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background-color: #D97706; border-radius: 4px;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 600; color: #FFFFFF; text-decoration: none;">Sign in</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Secondary link -->
+          <tr>
+            <td style="padding: 8px 40px 0;">
+              <p class="text-secondary" style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 13px; color: #64748B; line-height: 1.5; margin: 0;">Or copy this URL into your browser:</p>
+              <p style="font-family: 'IBM Plex Mono', 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 12px; color: #64748B; line-height: 1.5; margin: 4px 0 0; word-break: break-all;">{{ .ConfirmationURL }}</p>
+            </td>
+          </tr>
+
+          <!-- Security note -->
+          <tr>
+            <td style="padding: 24px 40px 0;">
+              <p class="text-tertiary" style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 13px; color: #94A3B8; line-height: 1.5; margin: 0;">If you didn't request this link, you can safely ignore this email.</p>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding: 24px 40px 0;">
+              <hr class="border-light" style="border: none; border-top: 1px solid #E2E8F0; margin: 0;" />
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td class="footer" style="padding: 20px 40px 32px;">
+              <p class="text-tertiary" style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 12px; color: #94A3B8; line-height: 1.5; margin: 0;">Policy Canary, 9901 Brodie Lane Ste 160 #1323, Austin, TX 78748</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
