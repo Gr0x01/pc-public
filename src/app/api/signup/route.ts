@@ -5,7 +5,8 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 const SignupSchema = z.object({
   email: z.string().email("Invalid email address"),
-  name: z.string().min(1, "Name is required").max(100),
+  first_name: z.string().min(1, "First name is required").max(50),
+  last_name: z.string().min(1, "Last name is required").max(50),
   company: z.string().min(1, "Company name is required").max(200),
   feedback_consent: z.literal(true, {
     message: "You must agree to the pilot terms",
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
   }
 
   const email = result.data.email.trim().toLowerCase();
-  const { name, company } = result.data;
+  const { first_name, last_name, company } = result.data;
 
   // 3. Upsert email_subscribers (insert or reactivate)
   const { data: existing } = await adminClient
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     if (existing.status !== "active") {
       const { error: reactivateError } = await adminClient
         .from("email_subscribers")
-        .update({ status: "active", unsubscribed_at: null })
+        .update({ status: "active", source: "signup_form", unsubscribed_at: null })
         .eq("id", existing.id);
 
       if (reactivateError) {
@@ -67,6 +68,12 @@ export async function POST(request: Request) {
           { status: 500 }
         );
       }
+    } else {
+      // Already active — upgrade source (e.g. newsletter → signup_form)
+      await adminClient
+        .from("email_subscribers")
+        .update({ source: "signup_form" })
+        .eq("id", existing.id);
     }
   } else {
     const unsubscribe_token = crypto.randomUUID();
@@ -78,11 +85,16 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      console.error("[signup] DB insert error:", error);
-      return Response.json(
-        { error: { message: "Failed to sign up. Please try again." } },
-        { status: 500 }
-      );
+      // Race condition: another request inserted this email concurrently
+      if (error.code === "23505") {
+        // Proceed to OTP — subscriber exists
+      } else {
+        console.error("[signup] DB insert error:", error);
+        return Response.json(
+          { error: { message: "Failed to sign up. Please try again." } },
+          { status: 500 }
+        );
+      }
     }
   }
 
@@ -95,7 +107,8 @@ export async function POST(request: Request) {
       emailRedirectTo: `${siteUrl}/auth/callback`,
       shouldCreateUser: true,
       data: {
-        name,
+        first_name,
+        last_name,
         company_name: company,
         pilot_feedback_consent: true,
         terms_version: "2026-03",

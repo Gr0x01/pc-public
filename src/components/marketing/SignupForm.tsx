@@ -9,7 +9,8 @@ import Link from "next/link";
 // Client-side pre-validation only — server is authoritative.
 const SignupSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  name: z.string().min(1, "Please enter your name").max(100),
+  first_name: z.string().min(1, "Please enter your first name").max(50),
+  last_name: z.string().min(1, "Please enter your last name").max(50),
   company: z.string().min(1, "Please enter your company name").max(200),
   feedback_consent: z.literal(true, {
     message: "Please agree to the terms to continue",
@@ -20,7 +21,8 @@ type Status = "idle" | "loading" | "success" | "error";
 
 interface State {
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   company: string;
   feedbackConsent: boolean;
   status: Status;
@@ -30,7 +32,8 @@ interface State {
 
 type Action =
   | { type: "SET_EMAIL"; payload: string }
-  | { type: "SET_NAME"; payload: string }
+  | { type: "SET_FIRST_NAME"; payload: string }
+  | { type: "SET_LAST_NAME"; payload: string }
   | { type: "SET_COMPANY"; payload: string }
   | { type: "SET_FEEDBACK_CONSENT"; payload: boolean }
   | { type: "SUBMIT" }
@@ -41,8 +44,10 @@ function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "SET_EMAIL":
       return { ...state, email: action.payload };
-    case "SET_NAME":
-      return { ...state, name: action.payload };
+    case "SET_FIRST_NAME":
+      return { ...state, firstName: action.payload };
+    case "SET_LAST_NAME":
+      return { ...state, lastName: action.payload };
     case "SET_COMPANY":
       return { ...state, company: action.payload };
     case "SET_FEEDBACK_CONSENT":
@@ -66,7 +71,8 @@ export function SignupForm({ dark = false }: SignupFormProps) {
   const reduce = useReducedMotion();
   const [state, dispatch] = useReducer(reducer, {
     email: "",
-    name: "",
+    firstName: "",
+    lastName: "",
     company: "",
     feedbackConsent: false,
     status: "idle",
@@ -82,7 +88,8 @@ export function SignupForm({ dark = false }: SignupFormProps) {
     e.preventDefault();
     const parsed = SignupSchema.safeParse({
       email: state.email,
-      name: state.name,
+      first_name: state.firstName,
+      last_name: state.lastName,
       company: state.company,
       feedback_consent: state.feedbackConsent || undefined,
     });
@@ -102,9 +109,10 @@ export function SignupForm({ dark = false }: SignupFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: state.email,
-          name: state.name,
+          first_name: state.firstName,
+          last_name: state.lastName,
           company: state.company,
-          feedback_consent: true,
+          feedback_consent: state.feedbackConsent,
         }),
       });
       const json = await res.json();
@@ -154,20 +162,37 @@ export function SignupForm({ dark = false }: SignupFormProps) {
             onSubmit={handleSubmit}
             className="flex flex-col gap-3"
           >
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="text"
+                aria-label="First name"
+                placeholder="First name"
+                value={state.firstName}
+                onChange={(e) =>
+                  dispatch({ type: "SET_FIRST_NAME", payload: e.target.value })
+                }
+                required
+                autoComplete="given-name"
+                className={inputClasses}
+                disabled={state.status === "loading"}
+              />
+              <input
+                type="text"
+                aria-label="Last name"
+                placeholder="Last name"
+                value={state.lastName}
+                onChange={(e) =>
+                  dispatch({ type: "SET_LAST_NAME", payload: e.target.value })
+                }
+                required
+                autoComplete="family-name"
+                className={inputClasses}
+                disabled={state.status === "loading"}
+              />
+            </div>
             <input
               type="text"
-              placeholder="Your name"
-              value={state.name}
-              onChange={(e) =>
-                dispatch({ type: "SET_NAME", payload: e.target.value })
-              }
-              required
-              autoComplete="name"
-              className={inputClasses}
-              disabled={state.status === "loading"}
-            />
-            <input
-              type="text"
+              aria-label="Company name"
               placeholder="Company name"
               value={state.company}
               onChange={(e) =>
@@ -180,6 +205,7 @@ export function SignupForm({ dark = false }: SignupFormProps) {
             />
             <input
               type="email"
+              aria-label="Work email"
               placeholder="Work email"
               value={state.email}
               onChange={(e) =>
@@ -218,7 +244,7 @@ export function SignupForm({ dark = false }: SignupFormProps) {
             <button
               type="submit"
               disabled={state.status === "loading" || !state.feedbackConsent}
-              className="bg-surface-dark text-white px-6 py-3 rounded font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1E293B] transition-colors duration-150 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="bg-canary text-surface-dark px-6 py-3 rounded font-semibold text-sm flex items-center justify-center gap-2 hover:bg-canary/90 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {state.status === "loading" && (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -227,7 +253,7 @@ export function SignupForm({ dark = false }: SignupFormProps) {
             </button>
 
             {state.status === "error" && (
-              <p className="text-sm text-urgent mt-1">{state.errorMessage}</p>
+              <p role="alert" className="text-sm text-urgent mt-1">{state.errorMessage}</p>
             )}
           </motion.form>
         )}
