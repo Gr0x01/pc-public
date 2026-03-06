@@ -11,8 +11,6 @@ export default async function MainAppLayout({
   children: React.ReactNode;
 }) {
   let email = "dev@localhost";
-  let accessLevel = "free";
-  let hasSubscription = false;
 
   if (!isDev) {
     const supabase = await createClient();
@@ -26,14 +24,11 @@ export default async function MainAppLayout({
 
     const { data: dbUser } = await adminClient
       .from("users")
-      .select("access_level, max_products, stripe_customer_id, onboarding_completed_at")
+      .select("onboarding_completed_at")
       .eq("id", user.id)
       .single();
 
     if (dbUser) {
-      accessLevel = dbUser.access_level ?? "free";
-      hasSubscription = accessLevel !== "free";
-
       if (!dbUser.onboarding_completed_at) {
         redirect("/app/onboarding");
       }
@@ -49,12 +44,7 @@ export default async function MainAppLayout({
 
   return (
     <div className="min-h-screen bg-surface-muted text-text-primary flex flex-col">
-      <AppNav
-        email={email}
-        signOut={signOut}
-        accessLevel={accessLevel}
-        hasSubscription={hasSubscription}
-      />
+      <AppNav email={email} signOut={signOut} />
       <main className="flex-1">{children}</main>
     </div>
   );

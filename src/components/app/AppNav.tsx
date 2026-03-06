@@ -1,15 +1,11 @@
 import Link from "next/link";
 import NavLinks from "./NavLinks";
-import BillingButton from "./BillingButton";
-
 interface AppNavProps {
   email: string;
   signOut: () => Promise<void>;
-  accessLevel: string;
-  hasSubscription: boolean;
 }
 
-export default function AppNav({ email, signOut, accessLevel, hasSubscription }: AppNavProps) {
+export default function AppNav({ email, signOut }: AppNavProps) {
   return (
     <header className="h-14 bg-[#07111F] border-b border-border-dark flex items-center px-4 shrink-0">
       {/* Logo */}
@@ -32,24 +28,15 @@ export default function AppNav({ email, signOut, accessLevel, hasSubscription }:
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-4 shrink-0">
-        <span className="font-mono text-xs text-slate-400 hidden sm:block">
+      <div className="flex items-baseline gap-4 shrink-0">
+        <span className="font-mono text-xs text-slate-400 hidden sm:block leading-none">
           {email}
         </span>
-        {accessLevel === "free" && !hasSubscription ? (
-          <Link
-            href="/pricing"
-            className="text-xs font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-3 py-1 rounded hover:bg-amber-400/20 transition-colors duration-100"
-          >
-            Upgrade
-          </Link>
-        ) : (
-          <BillingButton />
-        )}
+        {/* Upgrade/Billing hidden during pilot program */}
         <form action={signOut}>
           <button
             type="submit"
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors duration-100"
+            className="text-xs text-slate-500 hover:text-slate-300 transition-colors duration-100 leading-none"
           >
             Sign out
           </button>
