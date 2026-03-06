@@ -181,10 +181,6 @@ export default function BriefingEmail({
               <Link href={`${SITE_URL}/app/products`} style={footerLinkStyle}>
                 Manage your products
               </Link>
-              {" · "}
-              <Link href={`${SITE_URL}/api/stripe/portal`} style={footerLinkStyle}>
-                Manage your subscription
-              </Link>
             </Text>
             <Text style={footerAddressStyle} className="text-tertiary">{PHYSICAL_ADDRESS}</Text>
           </Section>
