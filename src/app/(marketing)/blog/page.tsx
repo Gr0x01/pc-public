@@ -60,11 +60,10 @@ export default async function BlogPage({
       <section className="bg-surface-dark py-16">
         <div className="max-w-xl mx-auto px-6 text-center">
           <h2 className="text-2xl font-bold text-white mb-3">
-            Get the weekly FDA roundup
+            Monitor the FDA for your products
           </h2>
           <p className="text-slate-300 mb-6">
-            Free regulatory intelligence delivered every Monday. No spam, cancel
-            anytime.
+            Join the pilot and get product-level regulatory intelligence — by name, by ingredient, by facility.
           </p>
           <div className="flex justify-center">
             <SignupForm dark={true} />

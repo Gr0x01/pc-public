@@ -82,7 +82,7 @@ export default function Header() {
           {/* Primary CTA */}
           <Link
             href="/#signup"
-            className="bg-surface-dark text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#1E293B] hover:scale-[1.02] transition-all duration-150"
+            className="bg-surface-dark text-white text-sm font-semibold px-4 py-2 rounded hover:bg-[#1E293B] hover:scale-[1.02] transition-all duration-150"
           >
             Join the Pilot
           </Link>
