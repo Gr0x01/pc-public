@@ -1,24 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 
-export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-
-  if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=missing_code`);
-  }
-
+export async function POST() {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (error || !data.user) {
-    console.error("[auth/callback] PKCE exchange failed:", error?.message);
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const user = data.user;
   const meta = user.user_metadata ?? {};
 
   // Check if user already exists — only grant pilot access on first login
@@ -36,7 +29,7 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id);
 
     if (updateError) {
-      console.error("[auth/callback] users update failed:", updateError.message);
+      console.error("[auth/sync-user] users update failed:", updateError.message);
     }
   } else {
     // New user — grant pilot access
@@ -56,7 +49,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (insertError) {
-      console.error("[auth/callback] users insert failed:", insertError.message);
+      console.error("[auth/sync-user] users insert failed:", insertError.message);
     }
   }
 
@@ -68,20 +61,8 @@ export async function GET(request: NextRequest) {
     .is("user_id", null);
 
   if (linkError) {
-    console.error("[auth/callback] email_subscribers link failed:", linkError.message);
+    console.error("[auth/sync-user] email_subscribers link failed:", linkError.message);
   }
 
-  // Redirect based on next param — allowlisted values only
-  const VALID_NEXT = new Set(["checkout", "onboarding"]);
-  const next = searchParams.get("next");
-  if (next && VALID_NEXT.has(next)) {
-    if (next === "checkout") {
-      return NextResponse.redirect(`${origin}/app/feed?checkout=start`);
-    }
-    if (next === "onboarding") {
-      return NextResponse.redirect(`${origin}/app/onboarding`);
-    }
-  }
-
-  return NextResponse.redirect(`${origin}/app/feed`);
+  return NextResponse.json({ ok: true });
 }

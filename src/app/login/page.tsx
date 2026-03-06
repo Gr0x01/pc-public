@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, Mail } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 
@@ -22,9 +22,6 @@ function LoginForm() {
     if (errorParam === "auth_failed") {
       setStatus("error");
       setErrorMessage("That link has expired or is invalid. Please request a new one.");
-    } else if (errorParam === "missing_code") {
-      setStatus("error");
-      setErrorMessage("Something went wrong with the login link. Please try again.");
     }
   }, [searchParams]);
 
@@ -68,42 +65,84 @@ function LoginForm() {
           initial={reduce ? { opacity: 1 } : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="text-center py-4"
+          className="text-center py-2"
         >
-          <p className="text-white font-semibold text-base">Check your inbox</p>
-          <p className="text-sm text-slate-400 mt-1">
-            We sent a link to{" "}
-            <span className="text-canary font-mono">{submittedEmail}</span>
+          <motion.div
+            initial={reduce ? {} : { scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.4, type: "spring", bounce: 0.4, delay: 0.1 }}
+            className="mx-auto mb-4"
+          >
+            <div className="w-14 h-14 rounded-full bg-clear-muted flex items-center justify-center mx-auto">
+              <CheckCircle2 className="h-7 w-7 text-clear" />
+            </div>
+          </motion.div>
+
+          <h2 className="font-sans text-xl font-semibold text-text-primary">
+            Check your inbox
+          </h2>
+          <p className="text-sm text-text-secondary mt-2 leading-relaxed">
+            We sent a magic link to{" "}
+            <span className="font-mono text-amber font-medium">{submittedEmail}</span>
           </p>
-          <p className="text-xs text-slate-500 mt-3">
+          <p className="text-xs text-text-secondary/70 mt-4">
             The link expires in 1 hour. Check spam if it doesn&apos;t arrive.
           </p>
+
+          <button
+            onClick={() => {
+              setStatus("idle");
+              setSubmittedEmail("");
+            }}
+            className="mt-5 text-sm text-text-secondary hover:text-text-primary transition-colors duration-150 underline underline-offset-2"
+          >
+            Use a different email
+          </button>
         </motion.div>
       ) : (
         <motion.form key="form" onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input
-            type="email"
-            placeholder="Work email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            className="border border-white/20 bg-white/5 rounded px-4 py-2.5 text-sm text-white focus:border-canary focus:outline-none placeholder:text-slate-500"
-            disabled={status === "loading"}
-          />
+          <div>
+            <label htmlFor="login-email" className="block text-xs font-medium text-text-secondary mb-1.5">
+              Work email
+            </label>
+            <input
+              id="login-email"
+              type="email"
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              className="w-full border border-border bg-surface rounded px-4 py-2.5 text-sm text-text-primary focus:border-amber focus:ring-1 focus:ring-amber/30 focus:outline-none placeholder:text-text-secondary/50 transition-colors duration-150"
+              disabled={status === "loading"}
+            />
+          </div>
           <button
             type="submit"
             disabled={status === "loading"}
-            className="bg-amber text-white px-6 py-3 rounded font-semibold text-sm flex items-center justify-center gap-2 hover:bg-amber/90 transition-colors duration-150 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="bg-amber text-white px-6 py-3 rounded font-semibold text-sm flex items-center justify-center gap-2 hover:bg-amber-action transition-colors duration-150 disabled:opacity-70 disabled:cursor-not-allowed mt-1"
           >
-            {status === "loading" && (
+            {status === "loading" ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Mail className="h-4 w-4" aria-hidden="true" />
             )}
             Send magic link
           </button>
-          {status === "error" && (
-            <p className="text-sm text-urgent mt-1">{errorMessage}</p>
-          )}
+
+          <AnimatePresence>
+            {status === "error" && (
+              <motion.div
+                initial={reduce ? { opacity: 1 } : { opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2 }}
+                className="bg-urgent-muted border border-urgent/15 rounded px-3 py-2.5 mt-1"
+              >
+                <p className="text-sm text-urgent">{errorMessage}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.form>
       )}
     </AnimatePresence>
@@ -112,35 +151,46 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="hero-gradient min-h-screen flex items-center justify-center px-6">
+    <div className="min-h-screen bg-surface-muted flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <div className="bg-white/5 border border-white/10 rounded overflow-hidden">
-          <div className="h-[3px] bg-canary" />
+        <a href="/" className="block text-center mb-8">
+          <span className="font-mono text-xs text-amber uppercase tracking-[0.2em]">
+            Policy Canary
+          </span>
+        </a>
+
+        <div className="bg-surface rounded-lg overflow-hidden border border-border shadow-[0_1px_3px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.04)]">
+          <div className="h-[3px] bg-gradient-to-r from-canary via-amber to-canary" />
+
           <div className="p-8">
             <div className="mb-6">
-              <p className="font-mono text-xs text-slate-400 uppercase tracking-widest mb-2">
-                Policy Canary
-              </p>
-              <h1 className="font-serif text-2xl font-bold text-white">Sign in</h1>
-              <p className="text-sm text-slate-400 mt-1">
-                We&apos;ll send a magic link to your inbox.
+              <h1 className="font-serif text-2xl font-bold text-text-primary">
+                Sign in
+              </h1>
+              <p className="text-sm text-text-secondary mt-1.5 leading-relaxed">
+                Enter your email and we&apos;ll send a secure link.
               </p>
             </div>
-            <Suspense fallback={<div className="h-20" />}>
+
+            <Suspense fallback={<div className="h-24" />}>
               <LoginForm />
             </Suspense>
           </div>
         </div>
-        <p className="text-center text-xs text-slate-500 mt-6">
+
+        <p className="text-center text-sm text-text-secondary mt-6">
           Not signed up yet?{" "}
-          <a href="/#signup" className="text-slate-400 hover:text-white underline transition-colors">
+          <a
+            href="/#signup"
+            className="text-amber font-medium hover:text-amber-action underline underline-offset-2 transition-colors duration-150"
+          >
             Join the pilot
           </a>
         </p>
         {process.env.NODE_ENV === "development" && (
-          <p className="text-center text-xs text-slate-600 mt-3">
-            <a href="/app/dashboard" className="hover:text-slate-400 transition-colors">
-              ↳ dev bypass
+          <p className="text-center text-xs text-text-secondary/50 mt-3">
+            <a href="/app/dashboard" className="hover:text-text-secondary transition-colors duration-150">
+              dev bypass
             </a>
           </p>
         )}
