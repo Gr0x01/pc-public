@@ -258,9 +258,9 @@ export async function generateWeeklySnapshot(
       ),
     showcase_items: z
       .array(ShowcaseItemSchema)
-      .length(3)
+      .length(5)
       .describe(
-        "Exactly 3 items by their [N] index number. Must span at least 2 sectors."
+        "Exactly 5 items by their [N] index number. Must span at least 2 sectors."
       ),
   });
 
@@ -322,7 +322,7 @@ ${itemSummaries
   )
   .join("\n\n")}
 
-Write the narrative synthesis and select 3 showcase items.`,
+Write the narrative synthesis and select 5 showcase items.`,
   });
 
   // 6. Build showcase items from the LLM's selections (by index)
@@ -336,8 +336,8 @@ Write the narrative synthesis and select 3 showcase items.`,
     .filter((i) => selectedIds.has(i.id))
     .map(itemToShowcase);
 
-  // Fallback: if LLM picks didn't resolve to 3, fill from best candidates
-  if (showcaseItems.length < 3) {
+  // Fallback: if LLM picks didn't resolve to 5, fill from best candidates
+  if (showcaseItems.length < 5) {
     const preferredTypes = new Set(["recall", "warning_letter", "safety_alert"]);
     const fallbacks = itemSummaries
       .filter((i) => !selectedIds.has(i.id))
@@ -347,7 +347,7 @@ Write the narrative synthesis and select 3 showcase items.`,
         return bScore - aScore;
       });
     for (const fb of fallbacks) {
-      if (showcaseItems.length >= 3) break;
+      if (showcaseItems.length >= 5) break;
       showcaseItems.push(itemToShowcase(fb));
     }
   }
