@@ -36,7 +36,7 @@ export default function BuyerRoleCard() {
   const reduce = useReducedMotion();
 
   return (
-    <section className="bg-slate-50 py-24 px-6 relative overflow-hidden">
+    <section className="bg-white py-24 px-6 relative overflow-hidden">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{

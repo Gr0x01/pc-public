@@ -1,9 +1,13 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { useRef, useState } from "react";
+import { motion, AnimatePresence, useInView, useReducedMotion } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { z } from "zod";
 import { StatCounter } from "./StatCounter";
 import type { ShowcaseItem } from "@/lib/intelligence/weekly-snapshot";
+
+const EmailSchema = z.string().email("Please enter a valid email address");
 
 // ---------------------------------------------------------------------------
 // Types
@@ -116,10 +120,10 @@ function CategoryPill({ slug }: { slug: string }) {
 
 function FeaturedItem({ item }: { item: ShowcaseItem }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200/60 overflow-hidden">
-      <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-[auto_1fr] gap-x-10 gap-y-6">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200/60 overflow-hidden h-full flex flex-col">
+      <div className="p-7 md:p-10 grid grid-cols-1 md:grid-cols-[auto_1fr] gap-x-12 gap-y-6 h-full">
         {/* Left: meta column */}
-        <div className="md:w-48 flex flex-col gap-3">
+        <div className="md:w-52 flex flex-col gap-4">
           <div className="flex flex-wrap gap-2">
             <TypeBadge type={item.item_type} />
             {item.deadline && (
@@ -130,14 +134,14 @@ function FeaturedItem({ item }: { item: ShowcaseItem }) {
           </div>
           
           {item.company_name && (
-            <p className="text-[13px] text-slate-500 leading-snug font-medium">
+            <p className="text-[14px] text-slate-500 leading-snug font-medium">
               {item.company_name}
             </p>
           )}
           
-          <div className="hidden md:block">
+          <div className="hidden md:block mt-auto pb-1">
             {item.deadline && (
-              <p className="text-[13px] font-semibold text-amber-600 mb-2">
+              <p className="text-[13px] font-semibold text-amber-600 mb-3">
                 Deadline: {item.deadline}
               </p>
             )}
@@ -148,32 +152,32 @@ function FeaturedItem({ item }: { item: ShowcaseItem }) {
                 rel="noopener noreferrer"
                 className="font-mono text-[11px] text-slate-400 hover:text-amber-600 transition-colors underline decoration-slate-300 hover:decoration-amber-400"
               >
-                View Source \u2197
+                View Source {"\u2197"}
               </a>
             )}
           </div>
         </div>
 
         {/* Right: content */}
-        <div>
+        <div className="flex flex-col h-full">
           {/* Substance pills */}
           {item.affected_ingredients.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
+            <div className="flex flex-wrap gap-1.5 mb-4">
               {item.affected_ingredients.map((name) => (
                 <SubstancePill key={name} name={name} />
               ))}
             </div>
           )}
 
-          <h4 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight tracking-tight">
+          <h4 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight tracking-tight mb-2">
             {item.title}
           </h4>
 
-          <p className="text-[15px] text-slate-600 leading-[1.7] mt-3 mb-4">
+          <p className="text-[16px] text-slate-600 leading-relaxed mt-2 mb-6 flex-grow">
             {item.summary}
           </p>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 mt-auto">
+          <div className="flex flex-wrap items-center justify-between gap-4 mt-auto pt-4 border-t border-slate-100/50">
             {/* Category pills */}
             <div className="flex flex-wrap gap-1.5">
               {item.affected_product_categories.map((slug) => (
@@ -190,7 +194,7 @@ function FeaturedItem({ item }: { item: ShowcaseItem }) {
                   rel="noopener noreferrer"
                   className="font-mono text-[11px] text-slate-400"
                 >
-                  Source \u2197
+                  Source {"\u2197"}
                 </a>
               )}
             </div>
@@ -207,13 +211,13 @@ function FeaturedItem({ item }: { item: ShowcaseItem }) {
 
 function CompactItem({ item }: { item: ShowcaseItem }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200/60 p-6 h-full flex flex-col group hover:border-amber-200/50 transition-colors">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200/60 p-5 h-full flex flex-col group hover:border-amber-200/50 transition-colors">
       {/* Header: Type & Deadline */}
       <div className="flex justify-between items-start mb-3">
         <TypeBadge type={item.item_type} />
         {item.deadline && (
-          <span className="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
-            {item.deadline}
+          <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded tracking-tight">
+            Due {item.deadline}
           </span>
         )}
       </div>
@@ -221,38 +225,38 @@ function CompactItem({ item }: { item: ShowcaseItem }) {
       {/* Substance pills */}
       {item.affected_ingredients.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
-          {item.affected_ingredients.slice(0, 3).map((name) => (
+          {item.affected_ingredients.slice(0, 2).map((name) => (
             <SubstancePill key={name} name={name} />
           ))}
-          {item.affected_ingredients.length > 3 && (
-            <span className="text-[10px] text-slate-400 self-center">
-              +{item.affected_ingredients.length - 3}
+          {item.affected_ingredients.length > 2 && (
+            <span className="text-[10px] text-slate-400 self-center font-medium bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+              +{item.affected_ingredients.length - 2}
             </span>
           )}
         </div>
       )}
 
       {/* Title */}
-      <h4 className="text-[15px] font-bold text-slate-900 leading-snug mb-2">
+      <h4 className="text-[16px] font-bold text-slate-900 leading-tight mb-2 tracking-tight">
         {item.title}
       </h4>
 
       {/* Company */}
       {item.company_name && (
-        <p className="text-[12px] text-slate-500 mb-3 font-medium">
+        <p className="text-[13px] text-slate-500 mb-3 font-medium">
           {item.company_name}
         </p>
       )}
 
       {/* Summary */}
-      <p className="text-[13px] text-slate-600 leading-relaxed line-clamp-3 mb-4 flex-grow">
+      <p className="text-[14px] text-slate-600 leading-relaxed line-clamp-4 mb-4 flex-grow">
         {item.summary}
       </p>
 
       {/* Footer */}
       <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
         <div className="flex flex-wrap gap-1">
-           {/* Limit categories to 1-2 to save space */}
+           {/* Limit categories to 1 to save space */}
            {item.affected_product_categories.slice(0, 1).map((slug) => (
               <CategoryPill key={slug} slug={slug} />
             ))}
@@ -263,13 +267,134 @@ function CompactItem({ item }: { item: ShowcaseItem }) {
             href={item.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-[10px] text-slate-400 hover:text-amber-600 transition-colors flex items-center gap-1"
+            className="font-mono text-[10px] text-slate-400 hover:text-amber-600 transition-colors flex items-center gap-1 group-hover:text-amber-500"
           >
-            SRC <span className="text-[8px]">\u2197</span>
+            Source <span className="text-[8px] opacity-70">{"\u2197"}</span>
           </a>
         )}
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Newsletter Capture (inline, replaces bridge CTA)
+// ---------------------------------------------------------------------------
+
+function NewsletterInline({
+  reduce,
+  fadeUp,
+}: {
+  reduce: boolean | null;
+  fadeUp: (delay: number) => Record<string, unknown>;
+}) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const parsed = EmailSchema.safeParse(email);
+    if (!parsed.success) {
+      setStatus("error");
+      setErrorMessage(parsed.error.issues[0]?.message ?? "Invalid email");
+      return;
+    }
+    setStatus("loading");
+    setErrorMessage("");
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setStatus("error");
+        setErrorMessage(json.error?.message ?? "Something went wrong. Please try again.");
+        return;
+      }
+      setStatus("success");
+    } catch {
+      setStatus("error");
+      setErrorMessage("Something went wrong. Please try again.");
+    }
+  }
+
+  return (
+    <motion.div className="mt-12 md:mt-16" {...fadeUp(0.2)}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+        {/* Left: Copy */}
+        <div>
+          <h3 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
+            Don&apos;t miss the next&nbsp;briefing.
+          </h3>
+          <p className="text-[16px] text-slate-600 leading-relaxed">
+            The weekly FDA digest for product teams. Free. No account&nbsp;required.
+          </p>
+        </div>
+
+        {/* Right: Form / Success */}
+        <div>
+          <AnimatePresence mode="wait">
+            {status === "success" ? (
+              <motion.div
+                key="success"
+                initial={reduce ? { opacity: 1 } : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center gap-2.5"
+              >
+                <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                <p className="text-[15px] font-medium text-slate-600">
+                  You&apos;re subscribed. First issue arrives next&nbsp;Friday.
+                </p>
+              </motion.div>
+            ) : (
+              <motion.form
+                key="form"
+                onSubmit={handleSubmit}
+              >
+                <div className="relative">
+                  <input
+                    type="email"
+                    aria-label="Email address"
+                    placeholder="you@company.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (status === "error") setStatus("idle");
+                    }}
+                    required
+                    autoComplete="email"
+                    disabled={status === "loading"}
+                    className="w-full bg-white border border-slate-200 rounded-lg pl-4 pr-32 py-3.5 shadow-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-[15px]"
+                  />
+                  <div className="absolute right-1.5 top-1.5 bottom-1.5">
+                    <button
+                      type="submit"
+                      disabled={status === "loading"}
+                      className="h-full bg-slate-900 hover:bg-slate-800 text-white px-5 rounded-md font-medium text-[13px] transition-colors duration-150 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {status === "loading" && (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                      )}
+                      Subscribe
+                    </button>
+                  </div>
+                </div>
+                {status === "error" && (
+                  <p role="alert" className="text-[13px] text-red-600 mt-2">{errorMessage}</p>
+                )}
+                <p className="text-[12px] text-slate-400 mt-3">
+                  No spam. Unsubscribe&nbsp;anytime.
+                </p>
+              </motion.form>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -315,7 +440,8 @@ export default function WeeklyIntelligence(props: WeeklyIntelligenceProps) {
     ([, a], [, b]) => b - a
   );
 
-  const [featured, ...compact] = props.showcaseItems;
+  const [featured, ...rest] = props.showcaseItems;
+  const compact = rest.slice(0, 3);
 
   return (
     <section className="bg-slate-50 py-24 px-6 relative overflow-hidden">
@@ -379,50 +505,28 @@ export default function WeeklyIntelligence(props: WeeklyIntelligenceProps) {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            className="space-y-6"
           >
-            {/* Featured Item - Takes full width on mobile, spans 2 cols on desktop if we want, or side-by-side if we want logic */}
-            {/* Design decision: Let's make Featured item full width to stand out, then compacts below */}
-            
-            <motion.div className="md:col-span-2" variants={cardItem}>
+            {/* Featured Item - Full width */}
+            <motion.div variants={cardItem}>
                <FeaturedItem item={featured} />
             </motion.div>
 
-            {/* Compact items */}
-            {compact.map((item) => (
-              <motion.div key={item.item_id} variants={cardItem}>
-                <CompactItem item={item} />
-              </motion.div>
-            ))}
+            {/* Compact items - 3-col grid below */}
+            {compact.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {compact.map((item) => (
+                  <motion.div key={item.item_id} variants={cardItem}>
+                    <CompactItem item={item} />
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
 
-        {/* ── Bridge CTA ───────────────────────────────────────────── */}
-        <motion.div className="text-center mt-16" {...fadeUp(0.1)}>
-          <p className="text-[15px] text-slate-500">
-            Every action above, filtered to your specific products and
-            ingredients.
-          </p>
-          <a
-            href="#signup"
-            className="inline-flex items-center gap-1 text-[15px] font-medium text-amber-600 hover:text-amber-700 transition-colors mt-2"
-          >
-            Add Your Products
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </a>
-        </motion.div>
+        {/* ── Newsletter Capture ────────────────────────────────────── */}
+        <NewsletterInline reduce={reduce} fadeUp={fadeUp} />
       </div>
     </section>
   );

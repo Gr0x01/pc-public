@@ -21,7 +21,7 @@ const card = {
 /* ── Mini email mockup (Card A) ──────────────────────────── */
 function EmailMockup() {
   return (
-    <div className="mt-4 rounded-lg overflow-hidden border border-white/20 bg-white/60 backdrop-blur-sm shadow-lg max-w-sm">
+    <div className="rounded-lg overflow-hidden border border-white/20 bg-white/60 backdrop-blur-sm shadow-lg max-w-sm">
       <div className="h-[3px] bg-gradient-to-r from-canary via-amber to-canary" />
       <div className="px-4 py-2 border-b border-slate-200/60">
         <p className="text-[9px] text-text-secondary">
@@ -135,8 +135,6 @@ function DashboardMini() {
     { name: "Marine Collagen Powder", status: "urgent" as const },
     { name: "BHA Eye Cream SPF 15", status: "review" as const },
     { name: "Biotin Complex 5000mcg", status: "clear" as const },
-    { name: "Turmeric Joint Formula", status: "clear" as const },
-    { name: "Probiotic Daily 30B", status: "clear" as const },
   ];
   const dotColor = { urgent: "bg-urgent", review: "bg-amber", clear: "bg-clear" };
 
@@ -196,18 +194,18 @@ function CoverageSources() {
   };
 
   return (
-    <div className="mt-4 grid grid-cols-2 gap-2">
+    <div className="mt-4 grid grid-cols-2 gap-3">
       {sources.map((src) => (
         <div
           key={src.name}
-          className="flex items-center gap-2 bg-white/50 border border-white/40 rounded-lg px-2.5 py-2"
+          className="flex items-center gap-2.5 bg-white/50 border border-white/40 rounded-lg px-3 py-2.5"
         >
           {icons[src.icon]}
           <div className="min-w-0">
-            <p className="text-[10px] font-medium text-text-primary truncate">
+            <p className="text-xs font-medium text-text-primary truncate">
               {src.name}
             </p>
-            <p className="font-mono text-[9px] text-text-secondary">{src.count}</p>
+            <p className="font-mono text-[11px] text-text-secondary">{src.count}</p>
           </div>
         </div>
       ))}
@@ -236,7 +234,7 @@ export default function FeatureComparison() {
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
             Not summaries — product intelligence. Each card shows what Policy
-            Canary actually delivers to your inbox.
+            Canary actually delivers to your&nbsp;inbox.
           </p>
         </div>
 
@@ -253,20 +251,22 @@ export default function FeatureComparison() {
             className="md:col-span-2 relative rounded-2xl overflow-hidden p-8 soft-card"
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-amber/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-            <div className="relative z-10 h-full flex flex-col justify-between">
-              <div>
+            <div className="relative z-10 h-full grid md:grid-cols-2 gap-8 items-center">
+              <div className="flex flex-col justify-center">
               <p className="font-mono text-[10px] text-amber uppercase tracking-widest mb-1">
                 Email Intelligence
               </p>
               <h3 className="text-xl font-semibold text-slate-900">
                 Intelligence delivered, not searched for
               </h3>
-              <p className="text-[15px] text-slate-500 mt-2 max-w-md">
+              <p className="text-[15px] text-slate-500 mt-2">
                 Every alert arrives in your inbox, scoped to your products —
-                with the analysis and action items already written.
+                with the analysis and action items already&nbsp;written.
               </p>
               </div>
-              <EmailMockup />
+              <div className="flex justify-center">
+                <EmailMockup />
+              </div>
             </div>
           </motion.div>
 
@@ -285,7 +285,7 @@ export default function FeatureComparison() {
               </h3>
               <p className="text-[15px] text-slate-500 mt-2">
                 We match FDA actions to your actual ingredients — not just
-                product categories.
+                product&nbsp;categories.
               </p>
               </div>
               <IngredientMatch />
@@ -306,7 +306,7 @@ export default function FeatureComparison() {
                 FDA to inbox in hours
               </h3>
               <p className="text-[15px] text-slate-500 mt-2">
-                Our pipeline ingests every publication the same day.
+                Our pipeline ingests every publication the same&nbsp;day.
               </p>
               </div>
               <AlertTimeline />
@@ -328,7 +328,7 @@ export default function FeatureComparison() {
                 Every product at a glance
               </h3>
               <p className="text-[15px] text-slate-500 mt-2">
-                One view. All your products. Color-coded status.
+                One view. All your products. Color-coded&nbsp;status.
               </p>
               </div>
               <DashboardMini />
@@ -340,7 +340,7 @@ export default function FeatureComparison() {
             variants={reduce ? undefined : card}
             className="relative rounded-2xl overflow-hidden p-8 soft-card"
           >
-            <div className="relative z-10 h-full flex flex-col justify-between">
+            <div className="relative z-10 h-full flex flex-col justify-start">
               <div>
               <p className="font-mono text-[10px] text-amber-text uppercase tracking-widest mb-1">
                 Coverage
@@ -350,7 +350,7 @@ export default function FeatureComparison() {
               </h3>
               <p className="text-[15px] text-slate-500 mt-2">
                 Federal Register, warning letters, openFDA, and curated RSS —
-                all in one pipeline.
+                all in one&nbsp;pipeline.
               </p>
               </div>
               <CoverageSources />

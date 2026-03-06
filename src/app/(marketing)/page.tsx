@@ -5,7 +5,6 @@ import ProductShowcase from "@/components/marketing/ProductShowcase";
 import BuyerRoleCard from "@/components/marketing/BuyerRoleCard";
 import { RevealSection } from "@/components/marketing/RevealSection";
 import WeeklyIntelligence from "@/components/marketing/WeeklyIntelligence";
-import NewsletterCapture from "@/components/marketing/NewsletterCapture";
 import PilotSignup from "@/components/marketing/PilotSignup";
 import { getLatestSnapshot } from "@/lib/intelligence/weekly-snapshot";
 
@@ -48,9 +47,6 @@ export default async function LandingPage() {
           showcaseItems={snapshot.showcase_items}
         />
       )}
-
-      {/* Newsletter Capture — free weekly, no auth */}
-      <NewsletterCapture />
 
       {/* Who It's For — handles its own staggered reveal */}
       <BuyerRoleCard />
