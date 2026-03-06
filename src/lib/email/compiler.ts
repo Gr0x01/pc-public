@@ -113,9 +113,10 @@ export async function compileWelcome(
   const { products, first_name } = props;
   const count = products.length;
 
-  // Subject line: "Monitoring active: Marine Collagen Powder and 2 more"
   let subject: string;
-  if (count === 1) {
+  if (count === 0) {
+    subject = `Welcome to Policy Canary, ${first_name}`;
+  } else if (count === 1) {
     subject = `Monitoring active: ${products[0].name}`;
   } else {
     subject = `Monitoring active: ${products[0].name} and ${count - 1} more`;

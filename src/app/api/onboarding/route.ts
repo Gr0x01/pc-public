@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { track } from "@/lib/analytics";
 import { z } from "zod";
+import { compileWelcome } from "@/lib/email/compiler";
+import { sendEmail } from "@/lib/email/sender";
+import { inngest } from "@/lib/inngest/client";
 
 import { isDev, DEV_USER_ID } from "@/lib/dev";
 
@@ -75,5 +78,49 @@ export async function POST(request: Request) {
     has_fei: !!fei_number,
   });
 
+  // Send welcome email + schedule product nudge (non-blocking)
+  sendWelcomeAndScheduleNudge(userId, first_name).catch((err) =>
+    console.error("[onboarding] welcome email error:", err)
+  );
+
   return Response.json({ success: true });
+}
+
+// ---------------------------------------------------------------------------
+// Welcome email (0 products) + schedule 24h nudge
+// ---------------------------------------------------------------------------
+
+async function sendWelcomeAndScheduleNudge(userId: string, firstName: string) {
+  const { data: user } = await adminClient
+    .from("users")
+    .select("email, max_products")
+    .eq("id", userId)
+    .single();
+
+  if (!user?.email) return;
+
+  const { subject, html } = await compileWelcome({
+    first_name: firstName,
+    products: [],
+    max_products: user.max_products ?? 5,
+  });
+
+  const result = await sendEmail({
+    to: user.email,
+    subject,
+    html,
+    tags: [{ name: "email_type", value: "welcome" }],
+  });
+
+  if (result.success) {
+    track(userId, "welcome_email_sent", { product_count: 0 });
+  } else {
+    console.error("[onboarding] welcome email send failed:", result.error);
+  }
+
+  // Schedule 24h product nudge check
+  await inngest.send({
+    name: "email/product-nudge",
+    data: { userId },
+  });
 }

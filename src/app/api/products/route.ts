@@ -224,10 +224,10 @@ export async function POST(request: Request) {
     ingredient_count: ingredientCount,
   });
 
-  // 9. Send welcome email on first product (non-blocking)
+  // 9. Send monitoring-active confirmation on first product (non-blocking)
   if (activeCountBefore === 0) {
-    sendWelcomeEmail(userId, maxProducts).catch((err) =>
-      console.error("[products] welcome email error:", err)
+    sendMonitoringActiveEmail(userId, maxProducts).catch((err) =>
+      console.error("[products] monitoring-active email error:", err)
     );
   }
 
@@ -243,11 +243,10 @@ export async function POST(request: Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Welcome email — fires once after the user's first product is added
+// Monitoring-active email — fires once after the user's first product is added
 // ---------------------------------------------------------------------------
 
-async function sendWelcomeEmail(userId: string, maxProducts: number) {
-  // Fetch user profile + their products
+async function sendMonitoringActiveEmail(userId: string, maxProducts: number) {
   const [{ data: user }, { data: products }] = await Promise.all([
     adminClient
       .from("users")
@@ -274,12 +273,12 @@ async function sendWelcomeEmail(userId: string, maxProducts: number) {
     to: user.email,
     subject,
     html,
-    tags: [{ name: "email_type", value: "welcome" }],
+    tags: [{ name: "email_type", value: "monitoring_active" }],
   });
 
   if (result.success) {
-    track(userId, "welcome_email_sent", { product_count: products.length });
+    track(userId, "monitoring_active_email_sent", { product_count: products.length });
   } else {
-    console.error("[products] welcome email send failed:", result.error);
+    console.error("[products] monitoring-active email send failed:", result.error);
   }
 }

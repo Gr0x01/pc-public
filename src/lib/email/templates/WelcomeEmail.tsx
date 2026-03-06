@@ -33,8 +33,8 @@ export default function WelcomeEmail({
   products,
   max_products,
 }: WelcomeEmailProps) {
-  const productCount = products.length;
-  const canAddMore = productCount < max_products;
+  const hasProducts = products.length > 0;
+  const canAddMore = products.length < max_products;
 
   return (
     <Html>
@@ -44,7 +44,9 @@ export default function WelcomeEmail({
         <style dangerouslySetInnerHTML={{ __html: DARK_MODE_CSS }} />
       </Head>
       <Preview>
-        {`${first_name}, your ${productCount} product${productCount !== 1 ? "s are" : " is"} now monitored. Here's what to expect.`}
+        {hasProducts
+          ? `${first_name}, your ${products.length} product${products.length !== 1 ? "s are" : " is"} now monitored. Here's what to expect.`
+          : `${first_name}, your account is set up. Add your first product to start monitoring.`}
       </Preview>
       <Body style={bodyStyle} className="body">
         <Container style={containerStyle} className="container">
@@ -62,40 +64,62 @@ export default function WelcomeEmail({
               Welcome, {first_name}.
             </Text>
             <Text style={welcomeBodyStyle} className="text-body">
-              Your products are now monitored. Policy Canary is watching every
-              FDA regulatory action and matching it against your specific
-              products.
+              {hasProducts
+                ? "Your products are now monitored. Policy Canary is watching every FDA regulatory action and matching it against your specific products."
+                : "Your account is set up. Add your first product and Policy Canary will start watching every FDA regulatory action that could affect it."}
             </Text>
           </Section>
 
-          {/* YOUR MONITORED PRODUCTS */}
-          <Section>
-            <Text style={sectionLabelStyle} className="text-secondary">
-              YOUR MONITORED PRODUCTS
-            </Text>
-            <Section style={productListWrapperStyle}>
-              <Section style={productListBlockStyle} className="bg-light">
-                {products.map((product) => (
-                  <Text key={product.id} style={productItemStyle} className="text-primary">
-                    {/* Green dot — inline background-color is fine in dark mode
-                        since #059669 has sufficient contrast on dark slate */}
-                    <span style={greenDotStyle} />
-                    {product.name}
+          {hasProducts ? (
+            <>
+              {/* YOUR MONITORED PRODUCTS */}
+              <Section>
+                <Text style={sectionLabelStyle} className="text-secondary">
+                  YOUR MONITORED PRODUCTS
+                </Text>
+                <Section style={productListWrapperStyle}>
+                  <Section style={productListBlockStyle} className="bg-light">
+                    {products.map((product) => (
+                      <Text key={product.id} style={productItemStyle} className="text-primary">
+                        <span style={greenDotStyle} />
+                        {product.name}
+                      </Text>
+                    ))}
+                  </Section>
+                </Section>
+                {canAddMore && (
+                  <Text style={addMoreStyle} className="text-secondary">
+                    You can monitor up to {max_products} products.{" "}
+                    <Link href={`${SITE_URL}/app/products`} style={addMoreLinkStyle}>
+                      Add more in the web app.
+                    </Link>
                   </Text>
-                ))}
+                )}
               </Section>
-            </Section>
-            {canAddMore && (
-              <Text style={addMoreStyle} className="text-secondary">
-                You can monitor up to {max_products} products.{" "}
-                <Link href={`${SITE_URL}/app/products`} style={addMoreLinkStyle}>
-                  Add more in the web app.
-                </Link>
-              </Text>
-            )}
-          </Section>
 
-          <Hr style={dividerStyle} className="border-light" />
+              <Hr style={dividerStyle} className="border-light" />
+            </>
+          ) : (
+            <>
+              {/* ADD YOUR FIRST PRODUCT nudge */}
+              <Section style={nudgeSectionStyle}>
+                <Section style={productListWrapperStyle}>
+                  <Section style={nudgeBlockStyle} className="bg-light">
+                    <Text style={nudgeTextStyle} className="text-body">
+                      Add your first product to start monitoring. We&apos;ll
+                      watch every FDA regulatory action and alert you to anything
+                      that affects it.
+                    </Text>
+                    <Link href={`${SITE_URL}/app/products`} style={buttonStyle}>
+                      Add your products
+                    </Link>
+                  </Section>
+                </Section>
+              </Section>
+
+              <Hr style={dividerStyle} className="border-light" />
+            </>
+          )}
 
           {/* WHAT HAPPENS NEXT */}
           <Section style={expectationsStyle}>
@@ -125,8 +149,8 @@ export default function WelcomeEmail({
 
           {/* CTA */}
           <Section style={buttonSectionStyle}>
-            <Link href={`${SITE_URL}/app/feed`} style={buttonStyle}>
-              View your regulatory feed
+            <Link href={hasProducts ? `${SITE_URL}/app/feed` : `${SITE_URL}/app/products`} style={buttonStyle}>
+              {hasProducts ? "View your regulatory feed" : "Add your products"}
             </Link>
           </Section>
 
@@ -258,6 +282,25 @@ const addMoreStyle: React.CSSProperties = {
 const addMoreLinkStyle: React.CSSProperties = {
   color: COLORS.textSecondary,
   textDecoration: "underline",
+};
+
+const nudgeSectionStyle: React.CSSProperties = {
+  padding: "24px 0 0",
+};
+
+const nudgeBlockStyle: React.CSSProperties = {
+  backgroundColor: COLORS.bgLight,
+  padding: "24px 24px",
+  borderRadius: "4px",
+  textAlign: "center" as const,
+};
+
+const nudgeTextStyle: React.CSSProperties = {
+  fontFamily: FONTS.sans,
+  fontSize: "15px",
+  color: COLORS.textBody,
+  lineHeight: "1.5",
+  margin: "0 0 16px",
 };
 
 const dividerStyle: React.CSSProperties = {

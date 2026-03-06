@@ -12,6 +12,11 @@ type Events = {
       itemId: string;
     };
   };
+  "email/product-nudge": {
+    data: {
+      userId: string;
+    };
+  };
 };
 
 export const inngest = new Inngest({
