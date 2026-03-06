@@ -11,7 +11,7 @@ import {
   Button,
   Preview,
 } from "@react-email/components";
-import { COLORS, FONTS, SITE_URL, PHYSICAL_ADDRESS } from "../constants";
+import { COLORS, FONTS, SITE_URL, PHYSICAL_ADDRESS, DARK_MODE_CSS } from "../constants";
 import type { WeeklyDigestData } from "../queries";
 
 // ---------------------------------------------------------------------------
@@ -54,15 +54,16 @@ export default function WeeklyNewsletter({
       <Head>
         <meta name="color-scheme" content="light dark" />
         <meta name="supported-color-schemes" content="light dark" />
+        <style dangerouslySetInnerHTML={{ __html: DARK_MODE_CSS }} />
       </Head>
       <Preview>
         Week in FDA: {String(data.total_items)} regulatory actions.{" "}
         {lead_story?.title ?? "Here's what matters."}
       </Preview>
-      <Body style={bodyStyle}>
-        <Container style={containerStyle}>
+      <Body style={bodyStyle} className="body">
+        <Container style={containerStyle} className="container">
           {/* Canary top rule */}
-          <Section style={topRuleStyle} />
+          <Section style={topRuleStyle} className="top-rule" />
 
           {/* Header — logo image for free newsletter */}
           <Section style={headerStyle}>
@@ -126,7 +127,7 @@ export default function WeeklyNewsletter({
           {/* THE NUMBER */}
           {the_number && (
             <>
-              <Hr style={dividerStyle} />
+              <Hr style={dividerStyle} className="border-light" />
               <Section style={numberSectionStyle}>
                 <Text style={sectionLabelStyle}>THE NUMBER</Text>
                 <Text style={numberValueStyle}>{the_number.value}</Text>
@@ -143,8 +144,8 @@ export default function WeeklyNewsletter({
           )}
 
           {/* THE BRIDGE — free to paid */}
-          <Hr style={dividerStyle} />
-          <Section style={bridgeSectionStyle}>
+          <Hr style={dividerStyle} className="border-light" />
+          <Section style={bridgeSectionStyle} className="bg-bridge">
             <Text style={bridgeTitleStyle}>
               What this means for YOUR products
             </Text>
@@ -166,7 +167,7 @@ export default function WeeklyNewsletter({
           {/* IN BRIEF */}
           {data.items.length > 5 && (
             <>
-              <Hr style={dividerStyle} />
+              <Hr style={dividerStyle} className="border-light" />
               <Section style={contentStyle}>
                 <Text style={sectionLabelStyle}>IN BRIEF</Text>
                 {data.items.slice(5, 12).map((item, i) => (
@@ -187,8 +188,8 @@ export default function WeeklyNewsletter({
           )}
 
           {/* Footer */}
-          <Hr style={dividerStyle} />
-          <Section style={footerStyle}>
+          <Hr style={dividerStyle} className="border-light" />
+          <Section style={footerStyle} className="footer">
             <Text style={footerDisclaimerStyle}>
               Policy Canary Weekly{"\n"}
               AI-generated from public FDA sources. Regulatory intelligence

@@ -9,7 +9,7 @@ import {
   Hr,
   Preview,
 } from "@react-email/components";
-import { COLORS, FONTS, SITE_URL, PHYSICAL_ADDRESS } from "../constants";
+import { COLORS, FONTS, SITE_URL, PHYSICAL_ADDRESS, DARK_MODE_CSS } from "../constants";
 import type { BriefingData, BriefingItem } from "../queries";
 
 // ---------------------------------------------------------------------------
@@ -42,34 +42,35 @@ export default function BriefingEmail({
       <Head>
         <meta name="color-scheme" content="light dark" />
         <meta name="supported-color-schemes" content="light dark" />
+        <style dangerouslySetInnerHTML={{ __html: DARK_MODE_CSS }} />
       </Head>
       <Preview>
         {hasProductItems
           ? `${affectedCount} of your ${productCount} products affected this week`
           : `All clear — ${data.total_items_reviewed} FDA actions reviewed, none affect your products`}
       </Preview>
-      <Body style={bodyStyle}>
-        <Container style={containerStyle}>
+      <Body style={bodyStyle} className="body">
+        <Container style={containerStyle} className="container">
           {/* Canary top rule */}
-          <Section style={topRuleStyle} />
+          <Section style={topRuleStyle} className="top-rule" />
 
           {/* Header */}
           <Section style={headerStyle}>
-            <Text style={wordmarkStyle}>POLICY CANARY</Text>
-            <Text style={dateStyle}>Product Intelligence Briefing — {weekOf}</Text>
+            <Text style={wordmarkStyle} className="text-secondary">POLICY CANARY</Text>
+            <Text style={dateStyle} className="text-secondary">Product Intelligence Briefing — {weekOf}</Text>
           </Section>
 
           {/* BLUF — Bottom Line Up Front */}
           <Section style={blufStyle}>
             {hasProductItems ? (
               <>
-                <Text style={blufTextStyle}>
+                <Text style={blufTextStyle} className="text-primary">
                   {affectedCount === 1
                     ? `${getFirstAffectedProductName(data)} is affected.`
                     : `${affectedCount} of your ${productCount} products are affected this week.`}
                 </Text>
                 {editorial_opening && (
-                  <Text style={editorialStyle}>{editorial_opening}</Text>
+                  <Text style={editorialStyle} className="text-body">{editorial_opening}</Text>
                 )}
               </>
             ) : (
@@ -90,7 +91,7 @@ export default function BriefingEmail({
               {groupByProduct(data.product_items, data.products).map(
                 (group, idx) => (
                   <Section key={group.product.id}>
-                    {idx > 0 && <Hr style={dividerStyle} />}
+                    {idx > 0 && <Hr style={dividerStyle} className="border-light" />}
                     <ProductSection
                       product={group.product}
                       items={group.items}
@@ -113,7 +114,7 @@ export default function BriefingEmail({
             </Section>
           )}
 
-          <Hr style={dividerStyle} />
+          <Hr style={dividerStyle} className="border-light" />
 
           {/* ZONE 2: YOUR INDUSTRY */}
           {data.industry_items.length > 0 && (
@@ -134,7 +135,7 @@ export default function BriefingEmail({
                   )}
                 </Section>
               ))}
-              <Hr style={dividerStyle} />
+              <Hr style={dividerStyle} className="border-light" />
             </Section>
           )}
 
@@ -168,9 +169,9 @@ export default function BriefingEmail({
           </Section>
 
           {/* Footer */}
-          <Hr style={dividerStyle} />
-          <Section style={footerStyle}>
-            <Text style={footerDisclaimerStyle}>
+          <Hr style={dividerStyle} className="border-light" />
+          <Section style={footerStyle} className="footer">
+            <Text style={footerDisclaimerStyle} className="text-tertiary">
               Policy Canary | Product Intelligence Briefing{"\n"}
               AI-generated from public FDA sources. Regulatory intelligence
               for your review, not legal advice. Verify with source documents
@@ -224,7 +225,7 @@ function ProductSection({
 
           {/* Action items */}
           {item.action_items && item.action_items.length > 0 && (
-            <Section style={actionBlockStyle}>
+            <Section style={actionBlockStyle} className="action-block">
               <Text style={actionBlockHeaderStyle}>ITEMS TO CONSIDER</Text>
               {item.action_items.map((ai, idx) => (
                 <Text key={idx} style={actionItemStyle}>

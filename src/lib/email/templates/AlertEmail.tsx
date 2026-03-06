@@ -9,7 +9,7 @@ import {
   Hr,
   Preview,
 } from "@react-email/components";
-import { COLORS, FONTS, SITE_URL, PHYSICAL_ADDRESS } from "../constants";
+import { COLORS, FONTS, SITE_URL, PHYSICAL_ADDRESS, DARK_MODE_CSS } from "../constants";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -55,14 +55,15 @@ export default function AlertEmail({
       <Head>
         <meta name="color-scheme" content="light dark" />
         <meta name="supported-color-schemes" content="light dark" />
+        <style dangerouslySetInnerHTML={{ __html: DARK_MODE_CSS }} />
       </Head>
       <Preview>
         {product_name} | {actionLabel}: {truncate(title, 60)}
       </Preview>
-      <Body style={bodyStyle}>
-        <Container style={containerStyle}>
+      <Body style={bodyStyle} className="body">
+        <Container style={containerStyle} className="container">
           {/* Urgent red top rule (not canary — signals alert) */}
-          <Section style={topRuleStyle} />
+          <Section style={topRuleStyle} className="top-rule-alert" />
 
           {/* Header */}
           <Section style={headerStyle}>
@@ -94,7 +95,7 @@ export default function AlertEmail({
 
             {/* Deadline */}
             {deadline && (
-              <Section style={deadlineBlockStyle}>
+              <Section style={deadlineBlockStyle} className="action-block">
                 <Text style={deadlineStyle}>
                   Deadline: {formatDate(deadline)}
                 </Text>
@@ -124,8 +125,8 @@ export default function AlertEmail({
           </Section>
 
           {/* Footer */}
-          <Hr style={dividerStyle} />
-          <Section style={footerStyle}>
+          <Hr style={dividerStyle} className="border-light" />
+          <Section style={footerStyle} className="footer">
             <Text style={footerDisclaimerStyle}>
               Policy Canary | Regulatory Alert{"\n"}
               AI-generated from public FDA sources. Regulatory intelligence
