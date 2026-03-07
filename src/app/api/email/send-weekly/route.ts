@@ -9,16 +9,21 @@ import {
   recordEmailSend,
   updateCampaignStatus,
 } from "@/lib/email/queries";
-import { compileBriefing, compileNewsletter } from "@/lib/email/compiler";
-import { sendEmail, sendBatch } from "@/lib/email/sender";
+import {
+  compileBriefing,
+  generateNewsletterContent,
+  renderNewsletter,
+} from "@/lib/email/compiler";
+import { sendEmail } from "@/lib/email/sender";
 import { SITE_URL } from "@/lib/email/constants";
 
 // ---------------------------------------------------------------------------
-// Weekly Email Send — triggered by cron (Vercel cron or external)
+// Weekly Email Send — manual trigger (Inngest handles the cron schedule)
 // ---------------------------------------------------------------------------
-// Vercel cron: sends Authorization: Bearer <CRON_SECRET> header automatically
-// Manual:      GET /api/email/send-weekly?secret=<CRON_SECRET>
+// GET /api/email/send-weekly?secret=<CRON_SECRET>
 // ---------------------------------------------------------------------------
+
+export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -26,7 +31,6 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: "CRON_SECRET not configured" }, { status: 500 });
   }
 
-  // Accept secret from either Authorization header (Vercel cron) or query param (manual)
   const headerSecret = request.headers.get("authorization")?.replace("Bearer ", "");
   const querySecret = request.nextUrl.searchParams.get("secret");
   const secret = headerSecret || querySecret;
@@ -62,10 +66,9 @@ export async function GET(request: NextRequest) {
 
         const { subject, html } = await compileBriefing(briefingData);
 
-        // Store campaign
+        // subscriber_id omitted — FK references email_subscribers(id), not users(id)
         const campaignId = await createCampaign({
           campaign_type: "weekly_paid",
-          subscriber_id: sub.user_id,
           subject_line: subject,
           html_content: html,
           period_start: briefingData.period.start,
@@ -73,7 +76,6 @@ export async function GET(request: NextRequest) {
           recipient_count: 1,
         });
 
-        // Send (paid emails: token-based one-click unsubscribe per RFC 8058)
         const unsubUrl = `${SITE_URL}/api/email/unsubscribe?token=${sub.email_unsubscribe_token}`;
         const result = await sendEmail({
           to: sub.email, subject, html,
@@ -84,12 +86,6 @@ export async function GET(request: NextRequest) {
         });
 
         if (campaignId) {
-          await recordEmailSend({
-            campaign_id: campaignId,
-            subscriber_id: sub.user_id,
-            provider_message_id: result.messageId,
-            status: result.success ? "sent" : "queued",
-          });
           await updateCampaignStatus(
             campaignId,
             result.success ? "sent" : "failed"
@@ -112,7 +108,7 @@ export async function GET(request: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 2. Free newsletter (same content for all)
+  // 2. Free newsletter (generate content once, render per subscriber)
   // -------------------------------------------------------------------------
   try {
     const [digestData, newsletterSubs] = await Promise.all([
@@ -123,13 +119,13 @@ export async function GET(request: NextRequest) {
     results.free.total = newsletterSubs.length;
 
     if (newsletterSubs.length > 0 && digestData.items.length > 0) {
-      // Compile one template (same for all, except unsubscribe_url)
-      // For batch, use a placeholder unsub URL — Resend doesn't support per-recipient vars in batch
-      // So we send individually for proper unsubscribe tokens
+      // Generate LLM content once for all subscribers
+      const newsletterContent = await generateNewsletterContent(digestData);
+
       const campaignId = await createCampaign({
         campaign_type: "weekly_free",
-        subject_line: `Week in FDA: ${digestData.total_items} regulatory actions`,
-        html_content: "", // filled per-send
+        subject_line: newsletterContent.subject,
+        html_content: "",
         period_start: digestData.period.start,
         period_end: digestData.period.end,
         recipient_count: newsletterSubs.length,
@@ -139,8 +135,9 @@ export async function GET(request: NextRequest) {
         try {
           const token = sub.unsubscribe_token ?? sub.id;
           const unsubscribe_url = `${SITE_URL}/api/email/unsubscribe?token=${token}`;
-          const { subject, html } = await compileNewsletter(
+          const { subject, html } = await renderNewsletter(
             digestData,
+            newsletterContent,
             unsubscribe_url
           );
 

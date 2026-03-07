@@ -70,32 +70,46 @@ export interface CompiledNewsletter {
   html: string;
 }
 
-export async function compileNewsletter(
-  data: WeeklyDigestData,
-  unsubscribe_url: string
-): Promise<CompiledNewsletter> {
-  // Generate lead story and "the number" with Claude Sonnet
+/** Pre-generated newsletter content (LLM calls). Generate once, render per subscriber. */
+export interface NewsletterContent {
+  leadStory: { title: string; body: string; source_url?: string; regulation?: string } | null;
+  theNumber: { value: string; context: string; source_url?: string } | null;
+  subject: string;
+}
+
+/** Generate newsletter content (2 LLM calls). Call once, not per subscriber. */
+export async function generateNewsletterContent(
+  data: WeeklyDigestData
+): Promise<NewsletterContent> {
   const [leadStory, theNumber] = await Promise.all([
     generateLeadStory(data),
     generateTheNumber(data),
   ]);
 
-  // Lead with the story, not a count
   const leadTitle = leadStory?.title;
   const subject = leadTitle
     ? `${truncate(leadTitle, 50)} | Week in FDA`
     : `Week in FDA: ${data.total_items} regulatory actions`;
 
+  return { leadStory, theNumber, subject };
+}
+
+/** Render newsletter HTML from pre-generated content. No LLM calls. */
+export async function renderNewsletter(
+  data: WeeklyDigestData,
+  content: NewsletterContent,
+  unsubscribe_url: string
+): Promise<CompiledNewsletter> {
   const html = await render(
     WeeklyNewsletter({
       data,
-      lead_story: leadStory ?? undefined,
-      the_number: theNumber ?? undefined,
+      lead_story: content.leadStory ?? undefined,
+      the_number: content.theNumber ?? undefined,
       unsubscribe_url,
     })
   );
 
-  return { subject, html };
+  return { subject: content.subject, html };
 }
 
 // ---------------------------------------------------------------------------
