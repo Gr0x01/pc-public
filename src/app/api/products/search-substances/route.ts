@@ -1,4 +1,8 @@
+import { headers } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { isDev } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
 // GET /api/products/search-substances?q=vanill
@@ -6,11 +10,32 @@ import { adminClient } from "@/lib/supabase/admin";
 // ---------------------------------------------------------------------------
 
 export async function GET(request: Request) {
+  // Auth
+  if (!isDev) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return Response.json(
+        { error: { message: "Authentication required." } },
+        { status: 401 }
+      );
+    }
+  }
+
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim();
 
   if (!q || q.length < 2) {
     return Response.json({ data: [] });
+  }
+
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!(await checkRateLimit(`substances:${ip}`, 30))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
   }
 
   const { data, error } = await adminClient

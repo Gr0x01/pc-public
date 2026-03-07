@@ -185,8 +185,9 @@ export default async function ItemDetailPage({ params, searchParams }: ItemDetai
               <span
                 key={i}
                 className="font-mono text-xs bg-surface-subtle border border-border rounded px-2.5 py-1 text-text-body"
+                title={s.canonical_name && s.canonical_name !== s.raw_substance_name ? `Resolved: ${s.canonical_name}` : undefined}
               >
-                {s.raw_substance_name}
+                {s.canonical_name ?? s.raw_substance_name}
               </span>
             ))}
           </div>

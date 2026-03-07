@@ -459,6 +459,7 @@ export async function getFeedItems(
   // Fetch verdicts for display (matched product badges)
   const itemIds = items.map((i) => i.id);
   const verdictMap = new Map<string, Array<{ id: string; name: string }>>();
+  const verdictReasoningMap = new Map<string, string>();
 
   if (itemIds.length > 0) {
     const { data: verdicts } = await adminClient
@@ -474,6 +475,10 @@ export async function getFeedItems(
       const list = verdictMap.get(v.item_id) ?? [];
       list.push({ id: product.id, name: product.name });
       verdictMap.set(v.item_id, list);
+      // Store first reasoning per item (for display)
+      if (v.reasoning && !verdictReasoningMap.has(v.item_id)) {
+        verdictReasoningMap.set(v.item_id, v.reasoning);
+      }
     }
   }
 
@@ -501,6 +506,7 @@ export async function getFeedItems(
       deadline,
       lifecycle_state,
       matched_products: verdictMap.get(item.id) ?? [],
+      verdict_reasoning: verdictReasoningMap.get(item.id) ?? null,
     };
   });
 
@@ -578,10 +584,10 @@ export const getItemDetail = cache(async function getItemDetail(
 
   if (error || !item) return null;
 
-  // Substances
+  // Substances (join to resolved substance for canonical name)
   const { data: substances } = await adminClient
     .from("regulatory_item_substances")
-    .select("raw_substance_name")
+    .select("raw_substance_name, substance_id, substances(canonical_name)")
     .eq("regulatory_item_id", itemId);
 
   // Verdicts for this user
@@ -626,7 +632,13 @@ export const getItemDetail = cache(async function getItemDetail(
     enrichment,
     relevance: matchedProducts.length > 0 ? "high" : null,
     action_items: actionItems,
-    substances: (substances ?? []).map((s) => ({ raw_substance_name: s.raw_substance_name })),
+    substances: (substances ?? []).map((s) => {
+      const resolved = s.substances as unknown as { canonical_name: string } | null;
+      return {
+        raw_substance_name: s.raw_substance_name,
+        canonical_name: resolved?.canonical_name ?? null,
+      };
+    }),
     matched_products: matchedProducts,
   };
 });

@@ -98,6 +98,7 @@ function toDetailData(detail: ProductDetail, verdicts: ProductVerdictItem[]): Pr
         deadline: v.deadline,
         lifecycle_state: v.lifecycle_state,
         matched_products: [],
+        verdict_reasoning: v.reasoning,
       },
       substanceIds: matchedSubstanceIds,
       resolution: v.resolution,

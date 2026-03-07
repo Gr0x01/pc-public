@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { z } from "zod";
 import { compileWelcome } from "@/lib/email/compiler";
@@ -37,6 +38,13 @@ export async function POST(request: Request) {
       );
     }
     userId = user.id;
+  }
+
+  if (!(await checkRateLimit(`onboard:${userId}`, 10))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
   }
 
   // Validate

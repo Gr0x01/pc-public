@@ -12,6 +12,7 @@ import { CreateProductSchema } from "@/lib/products/types";
 import { evaluateProductHistory } from "@/lib/products/verdicts";
 import { invalidateUserMatches } from "@/lib/products/matches";
 import { classifyProduct } from "@/lib/products/classify";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { isDev, DEV_USER_ID } from "@/lib/dev";
 import { compileWelcome } from "@/lib/email/compiler";
@@ -37,6 +38,13 @@ export async function GET() {
     userId = user.id;
   }
 
+  if (!(await checkRateLimit(`products:list:${userId}`, 30))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
+  }
+
   const data = await getUserProducts(userId);
   return Response.json({ data });
 }
@@ -60,6 +68,13 @@ export async function POST(request: Request) {
       );
     }
     userId = user.id;
+  }
+
+  if (!(await checkRateLimit(`products:create:${userId}`, 10))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
   }
 
   // 2. Validate body

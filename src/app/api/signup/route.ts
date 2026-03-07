@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
-  if (!checkRateLimit(`signup:${ip}`, 5)) {
+  if (!(await checkRateLimit(`signup:${ip}`, 5))) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }

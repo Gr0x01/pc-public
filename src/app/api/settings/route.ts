@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { getStripe } from "@/lib/stripe";
 import { z } from "zod";
@@ -36,6 +37,13 @@ export async function PATCH(request: Request) {
     return Response.json(
       { error: { message: "Authentication required." } },
       { status: 401 }
+    );
+  }
+
+  if (!(await checkRateLimit(`settings:${userId}`, 10))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
     );
   }
 
@@ -90,6 +98,13 @@ export async function DELETE() {
     return Response.json(
       { error: { message: "Authentication required." } },
       { status: 401 }
+    );
+  }
+
+  if (!(await checkRateLimit(`delete-acct:${userId}`, 3))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
     );
   }
 

@@ -1,4 +1,8 @@
+import { headers } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { resolveSubstance } from "@/lib/products/queries";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { isDev } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
 // GET /api/products/resolve-ingredient?name=Whey+Protein+Isolate
@@ -7,6 +11,27 @@ import { resolveSubstance } from "@/lib/products/queries";
 // ---------------------------------------------------------------------------
 
 export async function GET(request: Request) {
+  // Auth — only authenticated users can resolve ingredients
+  if (!isDev) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return Response.json(
+        { error: { message: "Authentication required." } },
+        { status: 401 }
+      );
+    }
+  }
+
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!(await checkRateLimit(`resolve:${ip}`, 20))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const name = searchParams.get("name")?.trim();
 

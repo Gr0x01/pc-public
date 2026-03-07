@@ -152,6 +152,9 @@ export async function getBriefingData(
 
   // Get matches for this subscriber in the period
   const matches = await getMatchesForUser(userId, start);
+  if (matches.length === 0 && productList.length > 0) {
+    console.warn(`[email-queries] Zero matches for user ${userId} with ${productList.length} products — RPC may have failed`);
+  }
 
   // Get all recent items in the period for industry + other zones
   const { data: recentItems } = await adminClient
@@ -163,11 +166,11 @@ export async function getBriefingData(
     .gte("published_date", start.toISOString().slice(0, 10))
     .lte("published_date", end.toISOString().slice(0, 10))
     .not("item_enrichments", "is", null)
-    .order("published_date", { ascending: false });
+    .order("published_date", { ascending: false })
+    .limit(200); // cap to avoid unbounded .in() on tag batch query
 
   const totalReviewed = recentItems?.length ?? 0;
   const matchedItemIds = new Set(matches.map((m) => m.item_id));
-  const productIds = new Set(productList.map((p) => p.id));
 
   // Get category slugs for subscriber's products (for industry zone filtering)
   const { data: productCategories } = await adminClient
@@ -198,6 +201,23 @@ export async function getBriefingData(
     })
     .map((m) => matchToBriefingItem(m));
 
+  // Batch-fetch all product_type tags for recent items (avoids N+1)
+  const recentItemIds = (recentItems ?? []).map((i) => i.id);
+  const { data: allItemTags } = recentItemIds.length > 0
+    ? await adminClient
+        .from("item_enrichment_tags")
+        .select("item_id, tag_value")
+        .in("item_id", recentItemIds)
+        .eq("tag_dimension", "product_type")
+    : { data: [] };
+
+  const tagsByItem = new Map<string, string[]>();
+  for (const t of allItemTags ?? []) {
+    const list = tagsByItem.get(t.item_id) ?? [];
+    list.push(t.tag_value);
+    tagsByItem.set(t.item_id, list);
+  }
+
   // Build industry items: items NOT matched to products, but in subscriber's categories
   const industryItems: BriefingItem[] = [];
   const otherItems: Array<{ title: string; item_type: string; source_url: string | null }> = [];
@@ -210,14 +230,7 @@ export async function getBriefingData(
       : item.item_enrichments;
     if (!enrichment) continue;
 
-    // Check if item's product_type tags overlap with subscriber's categories
-    const { data: tags } = await adminClient
-      .from("item_enrichment_tags")
-      .select("tag_value")
-      .eq("item_id", item.id)
-      .eq("tag_dimension", "product_type");
-
-    const itemCategories = (tags ?? []).map((t) => t.tag_value);
+    const itemCategories = tagsByItem.get(item.id) ?? [];
     const isIndustry = itemCategories.some((c) => subscriberCategorySlugs.has(c));
 
     if (isIndustry && industryItems.length < 5) {

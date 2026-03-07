@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getFeedItems } from "@/lib/products/queries";
 import type { FeedFilters } from "@/lib/products/queries";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 import { isDev, DEV_USER_ID } from "@/lib/dev";
 
@@ -15,6 +16,13 @@ export async function GET(request: Request) {
       return Response.json({ error: "Authentication required." }, { status: 401 });
     }
     userId = user.id;
+  }
+
+  if (!(await checkRateLimit(`feed:${userId}`, 30))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
   }
 
   const url = new URL(request.url);

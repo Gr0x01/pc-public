@@ -74,7 +74,7 @@ export async function PATCH(
   // Rate limit (10/min/IP for mutations)
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!checkRateLimit(`patch:${ip}`, 10)) {
+  if (!(await checkRateLimit(`products:patch:${ip}`, 10))) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }
@@ -172,13 +172,21 @@ export async function PATCH(
   // Replace ingredients if provided
   let ingredientCount: number | undefined;
   if (hasIngredientUpdates && parsed.data.parsed_ingredients) {
-    // Delete existing ingredients
-    await adminClient
-      .from("product_ingredients")
-      .delete()
-      .eq("product_id", id);
+    try {
+      // Delete existing ingredients then insert new ones
+      await adminClient
+        .from("product_ingredients")
+        .delete()
+        .eq("product_id", id);
 
-    ingredientCount = await ingestParsedIngredients(id, parsed.data.parsed_ingredients);
+      ingredientCount = await ingestParsedIngredients(id, parsed.data.parsed_ingredients);
+    } catch (err) {
+      console.error("[products] ingredient replacement failed:", err);
+      return Response.json(
+        { error: { message: "Failed to update ingredients. Previous ingredients may be lost. Please re-save." } },
+        { status: 500 }
+      );
+    }
 
     // Re-evaluate verdicts with new ingredients (non-blocking)
     invalidateUserMatches(userId);
@@ -262,7 +270,7 @@ export async function DELETE(
   // Rate limit (10/min/IP for mutations)
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!checkRateLimit(`delete:${ip}`, 10)) {
+  if (!(await checkRateLimit(`products:delete:${ip}`, 10))) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }

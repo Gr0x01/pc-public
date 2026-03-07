@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
+import { headers } from "next/headers";
 import { adminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // ---------------------------------------------------------------------------
 // One-click unsubscribe for free newsletter (CAN-SPAM compliance)
@@ -8,6 +10,15 @@ import { adminClient } from "@/lib/supabase/admin";
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!(await checkRateLimit(`unsub:${ip}`, 10))) {
+    return new Response(unsubscribePage("Too many requests. Please wait a moment."), {
+      status: 429,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+
   const token = request.nextUrl.searchParams.get("token");
 
   if (!token) {

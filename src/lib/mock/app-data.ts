@@ -35,6 +35,7 @@ export interface FeedItemEnriched {
   lifecycle_state: LifecycleState;
   // From product_matches (for current user)
   matched_products: Array<{ id: string; name: string }>;
+  verdict_reasoning: string | null;
 }
 
 export interface ItemDetailData {
@@ -42,7 +43,7 @@ export interface ItemDetailData {
   enrichment: ItemEnrichment | null;
   relevance: RelevanceLevel | null;
   action_items: string[] | null;
-  substances: Array<{ raw_substance_name: string }>;
+  substances: Array<{ raw_substance_name: string; canonical_name?: string | null }>;
   matched_products: Array<{ id: string; name: string }>;
 }
 
@@ -88,6 +89,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     deadline: null,
     lifecycle_state: "active",
     matched_products: [{ id: "prod-001", name: "Marine Collagen Powder" }],
+    verdict_reasoning: null,
   },
   {
     id: "fi-002",
@@ -111,6 +113,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     deadline: null,
     lifecycle_state: "active",
     matched_products: [{ id: "prod-001", name: "Marine Collagen Powder" }],
+    verdict_reasoning: null,
   },
   {
     id: "fi-003",
@@ -134,6 +137,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     deadline: "2026-06-15",
     lifecycle_state: "urgent",
     matched_products: [{ id: "prod-002", name: "BHA Eye Cream SPF 15" }],
+    verdict_reasoning: null,
   },
   {
     id: "fi-004",
@@ -157,6 +161,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     deadline: "2026-08-15",
     lifecycle_state: "active",
     matched_products: [{ id: "prod-001", name: "Marine Collagen Powder" }],
+    verdict_reasoning: null,
   },
   {
     id: "fi-005",
@@ -176,6 +181,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     deadline: null,
     lifecycle_state: "active",
     matched_products: [],
+    verdict_reasoning: null,
   },
   {
     id: "fi-006",
@@ -194,6 +200,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     deadline: null,
     lifecycle_state: "archived",
     matched_products: [],
+    verdict_reasoning: null,
   },
   {
     id: "fi-007",
@@ -216,6 +223,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     deadline: null,
     lifecycle_state: "archived",
     matched_products: [{ id: "prod-004", name: "Turmeric Joint Formula" }],
+    verdict_reasoning: null,
   },
   {
     id: "fi-008",
@@ -234,6 +242,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     deadline: null,
     lifecycle_state: "archived",
     matched_products: [],
+    verdict_reasoning: null,
   },
   {
     id: "fi-009",
@@ -262,6 +271,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
       { id: "prod-004", name: "Turmeric Joint Formula" },
       { id: "prod-005", name: "Probiotic Daily 30B" },
     ],
+    verdict_reasoning: null,
   },
   {
     id: "fi-010",
@@ -284,6 +294,7 @@ export const MOCK_FEED_ITEMS: FeedItemEnriched[] = [
     deadline: null,
     lifecycle_state: "archived",
     matched_products: [{ id: "prod-002", name: "BHA Eye Cream SPF 15" }],
+    verdict_reasoning: null,
   },
 ];
 

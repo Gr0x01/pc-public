@@ -64,6 +64,13 @@ export default function FeedItemCard({ item, isSelected, onSelect }: FeedItemCar
         </p>
       )}
 
+      {/* Verdict reasoning (only for high-relevance items) */}
+      {item.relevance === "high" && item.verdict_reasoning && (
+        <p className="text-xs text-text-secondary italic leading-relaxed line-clamp-2 ml-3.5">
+          {item.verdict_reasoning}
+        </p>
+      )}
+
       {/* Impact summary (only if enriched) */}
       {hasEnrichment && item.impact_summary && (
         <p className="text-xs text-text-body leading-relaxed line-clamp-2">

@@ -19,6 +19,8 @@ interface EnrichmentData {
   affected_product_categories: string[];
   key_entities: string[];
   reasoning: string | null;
+  /** tag_value → 'direct' | 'cross_reference' */
+  signal_sources: Record<string, string>;
 }
 
 interface ProductData {
@@ -102,6 +104,15 @@ function buildVerdictPrompt(
   }
   if (item.affected_product_categories.length > 0) {
     parts.push(`Product categories affected: ${item.affected_product_categories.join(", ")}`);
+    // Annotate signal sources for category tags
+    const direct = item.affected_product_categories.filter((c) => item.signal_sources[c] === "direct");
+    const crossRef = item.affected_product_categories.filter((c) => item.signal_sources[c] === "cross_reference");
+    if (crossRef.length > 0) {
+      if (direct.length > 0) {
+        parts.push(`Categories (direct match): ${direct.join(", ")}`);
+      }
+      parts.push(`Categories (cross-reference, lower confidence): ${crossRef.join(", ")}`);
+    }
   }
   if (item.key_entities.length > 0) {
     parts.push(`Companies/entities named: ${item.key_entities.join(", ")}`);
@@ -137,7 +148,7 @@ async function getEnrichmentData(itemId: string): Promise<EnrichmentData | null>
 async function getEnrichmentDataBatch(itemIds: string[]): Promise<EnrichmentData[]> {
   if (itemIds.length === 0) return [];
 
-  const [itemsRes, enrichmentsRes] = await Promise.all([
+  const [itemsRes, enrichmentsRes, tagsRes] = await Promise.all([
     adminClient
       .from("regulatory_items")
       .select("id, title, item_type")
@@ -146,11 +157,29 @@ async function getEnrichmentDataBatch(itemIds: string[]): Promise<EnrichmentData
       .from("item_enrichments")
       .select("item_id, summary, regulatory_action_type, deadline, raw_response")
       .in("item_id", itemIds),
+    adminClient
+      .from("item_enrichment_tags")
+      .select("item_id, tag_value, signal_source")
+      .in("item_id", itemIds)
+      .eq("tag_dimension", "product_type"),
   ]);
 
   const enrichmentMap = new Map(
     (enrichmentsRes.data ?? []).map((e) => [e.item_id, e])
   );
+
+  // Build signal_sources map per item: tag_value → signal_source
+  const signalsByItem = new Map<string, Record<string, string>>();
+  for (const tag of tagsRes.data ?? []) {
+    let map = signalsByItem.get(tag.item_id);
+    if (!map) {
+      map = {};
+      signalsByItem.set(tag.item_id, map);
+    }
+    if (tag.signal_source) {
+      map[tag.tag_value] = tag.signal_source;
+    }
+  }
 
   return (itemsRes.data ?? [])
     .map((item) => {
@@ -174,6 +203,7 @@ async function getEnrichmentDataBatch(itemIds: string[]): Promise<EnrichmentData
           ? (raw!.key_entities as string[])
           : [],
         reasoning: typeof raw?.reasoning === "string" ? raw.reasoning : null,
+        signal_sources: signalsByItem.get(item.id) ?? {},
       };
     })
     .filter((e): e is EnrichmentData => e !== null);

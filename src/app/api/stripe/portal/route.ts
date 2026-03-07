@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST() {
   // 1. Auth — require logged-in user
@@ -12,6 +13,13 @@ export async function POST() {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!(await checkRateLimit(`portal:${user.id}`, 10))) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait a moment." },
+      { status: 429 }
+    );
   }
 
   // 2. Look up Stripe customer ID

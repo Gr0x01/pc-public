@@ -1,5 +1,7 @@
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getDSLDProduct } from "@/lib/products/queries";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 import { isDev } from "@/lib/dev";
 
@@ -11,6 +13,16 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limit
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!(await checkRateLimit(`dsld-detail:${ip}`, 30))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
+  }
+
   // 1. Auth check
   if (!isDev) {
     const supabase = await createClient();

@@ -2,6 +2,7 @@ import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
 import { BLOG_CATEGORIES } from "@/lib/blog/types";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const BlogPostSchema = z.object({
   slug: z
@@ -39,6 +40,13 @@ export async function POST(request: Request) {
     return Response.json(
       { error: { message: "Unauthorized" } },
       { status: 401 }
+    );
+  }
+
+  if (!(await checkRateLimit(`blog:${apiKey.slice(-8)}`, 5))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
     );
   }
 

@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   // 1. Rate limit (30/min/IP for typeahead)
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!checkRateLimit(`dsld:${ip}`, 30)) {
+  if (!(await checkRateLimit(`dsld-search:${ip}`, 30))) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }
