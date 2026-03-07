@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2, Mail } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import Logo from "@/components/ui/Logo";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -154,9 +155,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-surface-muted flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <a href="/" className="block text-center mb-8">
-          <span className="font-mono text-xs text-amber uppercase tracking-[0.2em]">
-            Policy Canary
-          </span>
+          <Logo className="h-3 text-text-primary mx-auto" />
         </a>
 
         <div className="bg-surface rounded-lg overflow-hidden border border-border shadow-[0_1px_3px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.04)]">

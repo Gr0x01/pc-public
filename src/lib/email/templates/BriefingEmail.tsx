@@ -7,9 +7,10 @@ import {
   Text,
   Link,
   Hr,
+  Img,
   Preview,
 } from "@react-email/components";
-import { COLORS, FONTS, SITE_URL, PHYSICAL_ADDRESS, DARK_MODE_CSS } from "../constants";
+import { COLORS, FONTS, LOGO_DARK_DATA_URI, LOGO_LIGHT_DATA_URI, SITE_URL, PHYSICAL_ADDRESS, DARK_MODE_CSS } from "../constants";
 import type { BriefingData, BriefingItem } from "../queries";
 
 // ---------------------------------------------------------------------------
@@ -56,7 +57,8 @@ export default function BriefingEmail({
 
           {/* Header */}
           <Section style={headerStyle}>
-            <Text style={wordmarkStyle} className="text-secondary">POLICY CANARY</Text>
+            <Img src={LOGO_DARK_DATA_URI} width="110" height="10" alt="Policy Canary" className="logo-dark" style={wordmarkImgStyle} />
+            <Img src={LOGO_LIGHT_DATA_URI} width="110" height="10" alt="Policy Canary" className="logo-light" style={{ ...wordmarkImgStyle, display: "none" }} />
             <Text style={dateStyle} className="text-secondary">Product Intelligence Briefing — {weekOf}</Text>
           </Section>
 
@@ -415,13 +417,9 @@ const headerStyle: React.CSSProperties = {
   padding: "32px 40px 0",
 };
 
-const wordmarkStyle: React.CSSProperties = {
-  fontFamily: FONTS.sans,
-  fontSize: "11px",
-  fontWeight: 700,
-  letterSpacing: "2px",
-  color: COLORS.textSecondary,
+const wordmarkImgStyle: React.CSSProperties = {
   margin: 0,
+  display: "block",
 };
 
 const dateStyle: React.CSSProperties = {

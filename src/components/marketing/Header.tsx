@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Logo from "@/components/ui/Logo";
 
 /* ── Nav link with active indicator + hover underline ──── */
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
@@ -60,9 +61,7 @@ export default function Header() {
             className="h-2 w-2 rounded-full bg-canary group-hover:scale-110 transition-transform duration-150"
             aria-hidden="true"
           />
-          <span className="font-semibold text-text-primary font-sans tracking-tight">
-            Policy Canary
-          </span>
+          <Logo className="h-3 text-text-primary" />
         </Link>
 
         {/* Nav */}

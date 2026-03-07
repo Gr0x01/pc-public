@@ -1,5 +1,6 @@
 import Link from "next/link";
 import NavLinks from "./NavLinks";
+import Logo from "@/components/ui/Logo";
 
 interface AppNavProps {
   initials: string;
@@ -18,9 +19,7 @@ export default function AppNav({ initials, signOut }: AppNavProps) {
           className="h-2 w-2 rounded-full bg-canary group-hover:scale-110 transition-transform duration-150"
           aria-hidden="true"
         />
-        <span className="font-bold text-white text-sm tracking-tight">
-          Policy Canary
-        </span>
+        <Logo className="h-2.5 text-white" />
       </Link>
 
       {/* Center nav */}
