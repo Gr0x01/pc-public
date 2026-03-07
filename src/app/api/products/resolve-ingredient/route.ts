@@ -1,8 +1,7 @@
-import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { resolveSubstance } from "@/lib/products/queries";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { isDev } from "@/lib/dev";
+import { isDev, DEV_USER_ID } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
 // GET /api/products/resolve-ingredient?name=Whey+Protein+Isolate
@@ -12,7 +11,10 @@ import { isDev } from "@/lib/dev";
 
 export async function GET(request: Request) {
   // Auth — only authenticated users can resolve ingredients
-  if (!isDev) {
+  let userId: string;
+  if (isDev) {
+    userId = DEV_USER_ID;
+  } else {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -21,11 +23,10 @@ export async function GET(request: Request) {
         { status: 401 }
       );
     }
+    userId = user.id;
   }
 
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!(await checkRateLimit(`resolve:${ip}`, 20))) {
+  if (!(await checkRateLimit(`resolve:${userId}`, 20))) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }

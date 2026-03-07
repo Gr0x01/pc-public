@@ -1,8 +1,7 @@
-import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { isDev } from "@/lib/dev";
+import { isDev, DEV_USER_ID } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
 // GET /api/products/search-substances?q=vanill
@@ -11,7 +10,10 @@ import { isDev } from "@/lib/dev";
 
 export async function GET(request: Request) {
   // Auth
-  if (!isDev) {
+  let userId: string;
+  if (isDev) {
+    userId = DEV_USER_ID;
+  } else {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -20,6 +22,7 @@ export async function GET(request: Request) {
         { status: 401 }
       );
     }
+    userId = user.id;
   }
 
   const { searchParams } = new URL(request.url);
@@ -29,9 +32,7 @@ export async function GET(request: Request) {
     return Response.json({ data: [] });
   }
 
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!(await checkRateLimit(`substances:${ip}`, 30))) {
+  if (!(await checkRateLimit(`substances:${userId}`, 30))) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }

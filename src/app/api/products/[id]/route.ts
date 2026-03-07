@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { getProductById, getProductVerdicts, getIngredientUseCodes, ingestParsedIngredients } from "@/lib/products/queries";
+import { getProductById, getProductVerdicts, getIngredientUseCodes, resolveIngredients, replaceProductIngredients } from "@/lib/products/queries";
 import { UpdateProductSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { invalidateUserMatches } from "@/lib/products/matches";
@@ -170,17 +170,13 @@ export async function PATCH(
   let ingredientCount: number | undefined;
   if (hasIngredientUpdates && parsed.data.parsed_ingredients) {
     try {
-      // Delete existing ingredients then insert new ones
-      await adminClient
-        .from("product_ingredients")
-        .delete()
-        .eq("product_id", id);
-
-      ingredientCount = await ingestParsedIngredients(id, parsed.data.parsed_ingredients);
+      // Resolve substances in JS, then atomically replace via RPC
+      const rows = await resolveIngredients(parsed.data.parsed_ingredients);
+      ingredientCount = await replaceProductIngredients(id, rows);
     } catch (err) {
       console.error("[products] ingredient replacement failed:", err);
       return Response.json(
-        { error: { message: "Failed to update ingredients. Previous ingredients may be lost. Please re-save." } },
+        { error: { message: "Failed to update ingredients." } },
         { status: 500 }
       );
     }

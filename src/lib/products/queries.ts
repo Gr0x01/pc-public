@@ -318,13 +318,15 @@ export async function ingestDSLDIngredients(
 // Ingredient Ingestion (from vision-parsed or manual entry)
 // ---------------------------------------------------------------------------
 
-export async function ingestParsedIngredients(
-  productId: string,
+/**
+ * Resolve ingredient names against GSRS substances and build fully-formed rows.
+ * Does NOT touch the database — pure data transformation + RPC lookups.
+ */
+export async function resolveIngredients(
   ingredients: { name: string; amount?: string; unit?: string }[]
-): Promise<number> {
-  if (ingredients.length === 0) return 0;
+): Promise<Record<string, unknown>[]> {
+  if (ingredients.length === 0) return [];
 
-  // Resolve substances in batches of 25 to avoid overwhelming the connection pool
   const BATCH_SIZE = 25;
   const resolutions: Awaited<ReturnType<typeof resolveSubstance>>[] = [];
   for (let i = 0; i < ingredients.length; i += BATCH_SIZE) {
@@ -333,8 +335,7 @@ export async function ingestParsedIngredients(
     resolutions.push(...results);
   }
 
-  const rows = ingredients.map((ing, i) => ({
-    product_id: productId,
+  return ingredients.map((ing, i) => ({
     name: ing.name,
     normalized_name: resolutions[i].normalized_name,
     substance_id: resolutions[i].substance_id,
@@ -344,11 +345,46 @@ export async function ingestParsedIngredients(
     normalization_status: resolutions[i].normalization_status,
     normalization_confidence: resolutions[i].normalization_confidence,
     normalization_method: resolutions[i].substance_id ? "fuzzy" : null,
+    source_metadata: null,
   }));
+}
 
+/**
+ * Atomically replace all ingredients for a product via RPC (single transaction).
+ * Rows must be pre-built via `resolveIngredients()`.
+ */
+export async function replaceProductIngredients(
+  productId: string,
+  rows: Record<string, unknown>[]
+): Promise<number> {
+  const { data, error } = await adminClient.rpc("replace_product_ingredients", {
+    p_product_id: productId,
+    p_rows: rows,
+  });
+
+  if (error) {
+    console.error("[products] replaceProductIngredients error:", error);
+    throw new Error("Failed to replace ingredients");
+  }
+
+  return (data as number) ?? 0;
+}
+
+/**
+ * Insert parsed ingredients for a new product (no delete needed).
+ */
+export async function ingestParsedIngredients(
+  productId: string,
+  ingredients: { name: string; amount?: string; unit?: string }[]
+): Promise<number> {
+  if (ingredients.length === 0) return 0;
+
+  const rows = await resolveIngredients(ingredients);
+
+  const insertRows = rows.map((r) => ({ ...r, product_id: productId }));
   const { error } = await adminClient
     .from("product_ingredients")
-    .insert(rows);
+    .insert(insertRows);
 
   if (error) {
     console.error("[products] ingestParsedIngredients error:", error);

@@ -33,10 +33,9 @@ export async function GET(request: NextRequest) {
 
   const { digestData, newsletterContent } = await generateWeeklyContent();
 
-  const [paid, free] = await Promise.all([
-    sendPaidBriefings(),
-    sendFreeNewsletters(digestData, newsletterContent),
-  ]);
+  // Sequential: paid first so a dual-subscribed user doesn't get both simultaneously
+  const paid = await sendPaidBriefings();
+  const free = await sendFreeNewsletters(digestData, newsletterContent);
 
   const results = { paid, free };
   console.log("[send-weekly] Complete:", results);

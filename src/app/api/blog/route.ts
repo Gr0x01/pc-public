@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!(await checkRateLimit(`blog:${apiKey.slice(-8)}`, 5))) {
+  if (!(await checkRateLimit("blog:write", 5))) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }
