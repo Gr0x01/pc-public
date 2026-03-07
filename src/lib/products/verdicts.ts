@@ -17,6 +17,8 @@ interface EnrichmentData {
   deadline: string | null;
   affected_ingredients: string[];
   affected_product_categories: string[];
+  key_entities: string[];
+  reasoning: string | null;
 }
 
 interface ProductData {
@@ -58,10 +60,10 @@ const VERDICT_SYSTEM_PROMPT = `You are a regulatory compliance analyst. Given an
 
 ## RELEVANT — flag these
 
-- Industry-wide rules, bans, or regulations that apply to the product's category or an ingredient it contains (e.g., "FDA bans Red No. 3" affects any product with Red No. 3)
+- Industry-wide rules, bans, or regulations that apply to the product's category or an ingredient it actually contains (e.g., "FDA bans Red No. 3" affects any product with Red No. 3 in its ingredient list)
 - Systemic contamination affecting an ingredient supply broadly across multiple suppliers
 - New labeling, testing, or registration requirements for the product's category
-- Genuine gray areas where the product COULD be affected — when in doubt, flag it
+- Genuine gray areas — but ONLY when there is a plausible connection based on the product's actual listed ingredients, its category, or its stated purpose. Never speculate about ingredients the product might contain.
 
 ## NOT RELEVANT — these are obvious noise, filter them out
 
@@ -69,12 +71,17 @@ const VERDICT_SYSTEM_PROMPT = `You are a regulatory compliance analyst. Given an
 - Facility-specific warning letters or GMP violations at another company
 - Allergen mislabeling at another company — their labeling failure does not affect your product
 - Coincidental ingredient overlap. Both products contain cinnamon, sugar, whey, etc., but the action is about one company's specific product — not the ingredient supply.
+- Actions about a substance the product does NOT contain. If the product's ingredients are listed and the banned/flagged substance is not among them, it is NOT relevant — even if the product is in the same broad category.
+
+## HANDLING "INGREDIENTS: NOT SPECIFIED"
+
+If a product's ingredients are listed as "not specified," evaluate based on the product's name, brand, type, and category ONLY. Do NOT assume the product might contain any particular ingredient. If the FDA action targets a specific substance and you cannot confirm the product contains it, mark NOT relevant.
 
 ## KEY TEST
 
-"Is this about a systemic risk to an ingredient or product category? Or is it about one specific company's failure?"
+"Is this about a systemic risk to an ingredient THIS PRODUCT ACTUALLY CONTAINS or a category THIS PRODUCT BELONGS TO? Or is it about one specific company's failure or an ingredient this product doesn't have?"
 
-If it names a specific company, product, UPC, lot number, or facility — and the subscriber's product is from a different company — it is NOT relevant. This is not a gray area.
+If it names a specific company, product, UPC, lot number, or facility — and the subscriber's product is from a different company — it is NOT relevant.
 
 Keep reasoning to ONE sentence. Return a verdict for EVERY product.`;
 
@@ -95,6 +102,12 @@ function buildVerdictPrompt(
   }
   if (item.affected_product_categories.length > 0) {
     parts.push(`Product categories affected: ${item.affected_product_categories.join(", ")}`);
+  }
+  if (item.key_entities.length > 0) {
+    parts.push(`Companies/entities named: ${item.key_entities.join(", ")}`);
+  }
+  if (item.reasoning) {
+    parts.push(`Analysis: ${item.reasoning}`);
   }
   parts.push("");
 
@@ -157,6 +170,10 @@ async function getEnrichmentDataBatch(itemIds: string[]): Promise<EnrichmentData
         affected_product_categories: Array.isArray(raw?.affected_product_categories)
           ? (raw!.affected_product_categories as string[])
           : [],
+        key_entities: Array.isArray(raw?.key_entities)
+          ? (raw!.key_entities as string[])
+          : [],
+        reasoning: typeof raw?.reasoning === "string" ? raw.reasoning : null,
       };
     })
     .filter((e): e is EnrichmentData => e !== null);
@@ -170,7 +187,7 @@ async function getProductData(productIds: string[]): Promise<ProductData[]> {
     .select(`
       id, name, brand, product_type,
       product_categories(slug),
-      product_ingredients(substances(canonical_name))
+      product_ingredients(name, normalized_name, substances(canonical_name))
     `)
     .in("id", productIds)
     .eq("is_active", true);
@@ -181,6 +198,8 @@ async function getProductData(productIds: string[]): Promise<ProductData[]> {
     // Supabase returns FK relations as objects (single) or arrays (multiple)
     const category = p.product_categories as unknown as { slug: string } | null;
     const ingredients = (p.product_ingredients ?? []) as unknown as Array<{
+      name: string;
+      normalized_name: string | null;
       substances: { canonical_name: string } | null;
     }>;
 
@@ -191,7 +210,7 @@ async function getProductData(productIds: string[]): Promise<ProductData[]> {
       product_type: p.product_type,
       category_slug: category?.slug ?? null,
       ingredients: ingredients
-        .map((pi) => pi.substances?.canonical_name)
+        .map((pi) => pi.substances?.canonical_name ?? pi.normalized_name ?? pi.name)
         .filter((name): name is string => !!name),
     };
   });

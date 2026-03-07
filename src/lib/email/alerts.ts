@@ -61,7 +61,7 @@ export async function sendUrgentAlerts(itemId: string): Promise<number> {
     .from("product_match_verdicts")
     .select(`
       product_id, user_id,
-      subscriber_products!inner(name, product_ingredients(substances(canonical_name)))
+      subscriber_products!inner(name, product_ingredients(name, normalized_name, substances(canonical_name)))
     `)
     .eq("item_id", itemId)
     .eq("relevant", true);
@@ -100,11 +100,15 @@ export async function sendUrgentAlerts(itemId: string): Promise<number> {
 
     const product = verdict.subscriber_products as unknown as {
       name: string;
-      product_ingredients: Array<{ substances: { canonical_name: string } | null }>;
+      product_ingredients: Array<{
+        name: string;
+        normalized_name: string | null;
+        substances: { canonical_name: string } | null;
+      }>;
     };
 
     const matchedSubstances = (product.product_ingredients ?? [])
-      .map((pi) => pi.substances?.canonical_name)
+      .map((pi) => pi.substances?.canonical_name ?? pi.normalized_name ?? pi.name)
       .filter((name): name is string => !!name);
 
     try {
