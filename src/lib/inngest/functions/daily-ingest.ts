@@ -79,7 +79,7 @@ export const dailyIngest = inngest.createFunction(
         return await runEnrichment({ limit: 100 });
       } catch (err) {
         console.error("[daily-ingest] enrichment failed:", safeError(err));
-        return { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, errors: 1, skipped: 0, durationMs: 0, error: safeError(err) };
+        return { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, verdicts: 0, alertsQueued: 0, errors: 1, skipped: 0, durationMs: 0, error: safeError(err) };
       }
     });
 
@@ -91,8 +91,12 @@ export const dailyIngest = inngest.createFunction(
         rss: { created: rssResult.created, errors: rssResult.errors, error: rssResult.error },
       },
       enrichment: {
+        processed: enrichResult.processed,
         enriched: enrichResult.enriched,
+        crossReferenced: enrichResult.crossReferenced,
         embedded: enrichResult.embedded,
+        verdicts: enrichResult.verdicts,
+        alertsQueued: enrichResult.alertsQueued,
         errors: enrichResult.errors,
         error: "error" in enrichResult ? enrichResult.error : undefined,
       },

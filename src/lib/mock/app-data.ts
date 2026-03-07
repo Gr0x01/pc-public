@@ -412,6 +412,8 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     raw_ingredients_text:
       "Hydrolyzed Marine Collagen (fish), Hyaluronic Acid, Vitamin C (Ascorbic Acid), Biotin",
     product_metadata: null,
+    manufacturer_name: null,
+    manufacturer_fei: null,
     is_active: true,
     created_at: "2026-01-15T10:00:00Z",
     updated_at: "2026-02-28T14:30:00Z",
@@ -429,6 +431,8 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     raw_ingredients_text:
       "Water, Butylated Hydroxyanisole (BHA), Octinoxate, Titanium Dioxide, Retinol, Niacinamide",
     product_metadata: null,
+    manufacturer_name: null,
+    manufacturer_fei: null,
     is_active: true,
     created_at: "2026-01-20T10:00:00Z",
     updated_at: "2026-02-20T10:00:00Z",
@@ -446,6 +450,8 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     raw_ingredients_text:
       "Biotin (D-Biotin), Vitamin B6 (Pyridoxine HCl), Zinc (Zinc Citrate), Selenium (Sodium Selenite)",
     product_metadata: null,
+    manufacturer_name: null,
+    manufacturer_fei: null,
     is_active: true,
     created_at: "2026-01-15T10:00:00Z",
     updated_at: "2026-01-15T10:00:00Z",
@@ -463,6 +469,8 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     raw_ingredients_text:
       "Turmeric Extract (Curcuma longa), BioPerine (Black Pepper Extract), Boswellia Serrata Extract, Ginger Root Extract",
     product_metadata: null,
+    manufacturer_name: null,
+    manufacturer_fei: null,
     is_active: true,
     created_at: "2026-01-15T10:00:00Z",
     updated_at: "2026-02-08T10:00:00Z",
@@ -480,6 +488,8 @@ export const MOCK_PRODUCTS: SubscriberProduct[] = [
     raw_ingredients_text:
       "Lactobacillus acidophilus, Bifidobacterium lactis, Lactobacillus rhamnosus, Prebiotic Fiber (FOS)",
     product_metadata: null,
+    manufacturer_name: null,
+    manufacturer_fei: null,
     is_active: true,
     created_at: "2026-01-15T10:00:00Z",
     updated_at: "2026-01-15T10:00:00Z",

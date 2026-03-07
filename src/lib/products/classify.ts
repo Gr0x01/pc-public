@@ -82,7 +82,7 @@ export async function classifyProduct(
       "gemini-flash",
       () =>
         generateObject({
-          model: google("gemini-2.5-flash"),
+          model: google("gemini-3-flash-preview"),
           schema: ClassificationSchema,
           system: SYSTEM_PROMPT,
           prompt,

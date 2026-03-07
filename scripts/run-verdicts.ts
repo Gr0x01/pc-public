@@ -276,7 +276,7 @@ async function run() {
         limit(async () => {
           try {
             const { object } = await generateObject({
-              model: google("gemini-2.5-flash"),
+              model: google("gemini-3-flash-preview"),
               schema: VerdictOutputSchema,
               system: VERDICT_SYSTEM_PROMPT,
               prompt: buildPrompt(item, [product]),

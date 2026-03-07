@@ -34,6 +34,8 @@ function toDetailData(detail: ProductDetail, verdicts: ProductVerdictItem[]): Pr
     upc_barcode: null,
     raw_ingredients_text: detail.raw_ingredients_text,
     product_metadata: null,
+    manufacturer_name: null,
+    manufacturer_fei: null,
     is_active: detail.is_active,
     created_at: detail.created_at,
     updated_at: detail.updated_at,

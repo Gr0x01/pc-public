@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { getProductById, getProductVerdicts, getIngredientUseCodes, ingestParsedIngredients } from "@/lib/products/queries";
@@ -71,17 +70,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Rate limit (10/min/IP for mutations)
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!(await checkRateLimit(`products:patch:${ip}`, 10))) {
-    return Response.json(
-      { error: { message: "Too many requests. Please wait a moment." } },
-      { status: 429 }
-    );
-  }
-
-  // Auth
+  // Auth first — so we can rate-limit on userId, not IP
   let userId: string;
   if (isDev) {
     userId = DEV_USER_ID;
@@ -95,6 +84,14 @@ export async function PATCH(
       );
     }
     userId = user.id;
+  }
+
+  // Rate limit (10/min per user for mutations)
+  if (!(await checkRateLimit(`products:patch:${userId}`, 10))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
   }
 
   const { id } = await params;
@@ -267,17 +264,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Rate limit (10/min/IP for mutations)
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!(await checkRateLimit(`products:delete:${ip}`, 10))) {
-    return Response.json(
-      { error: { message: "Too many requests. Please wait a moment." } },
-      { status: 429 }
-    );
-  }
-
-  // Auth
+  // Auth first — so we can rate-limit on userId, not IP
   let userId: string;
   if (isDev) {
     userId = DEV_USER_ID;
@@ -291,6 +278,14 @@ export async function DELETE(
       );
     }
     userId = user.id;
+  }
+
+  // Rate limit (10/min per user for mutations)
+  if (!(await checkRateLimit(`products:delete:${userId}`, 10))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
   }
 
   const { id } = await params;

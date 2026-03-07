@@ -262,7 +262,7 @@ async function evaluateBatch(
 
   const { object } = await trackLLM(userId, "verdict_evaluation", "gemini-flash", () =>
     generateObject({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-3-flash-preview"),
       schema: VerdictOutputSchema,
       system: VERDICT_SYSTEM_PROMPT,
       prompt,

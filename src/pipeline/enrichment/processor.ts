@@ -52,9 +52,9 @@ function routeModel(item: RegulatoryItem, google: ReturnType<typeof createGoogle
   const contentLength = (item.raw_content ?? "").length;
 
   if (simpleTypes.has(item.item_type) || (item.item_type === "notice" && contentLength < 2000)) {
-    return { model: google("gemini-2.5-flash"), name: "gemini-flash" };
+    return { model: google("gemini-3-flash-preview"), name: "gemini-flash" };
   }
-  return { model: google("gemini-2.5-pro"), name: "gemini-pro" };
+  return { model: google("gemini-3.1-pro-preview"), name: "gemini-pro" };
 }
 
 // ---------------------------------------------------------------------------

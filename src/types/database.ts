@@ -326,6 +326,8 @@ export interface SubscriberProduct {
   upc_barcode: string | null;
   raw_ingredients_text: string | null;
   product_metadata: Record<string, unknown> | null;
+  manufacturer_name: string | null;
+  manufacturer_fei: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

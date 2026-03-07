@@ -17,16 +17,21 @@ export default async function AppLayout({
   }
 
   // Server-side identify with rich properties (cached — no extra DB calls)
+  let companyName: string | null | undefined;
+  let accessLevel: string | undefined;
   if (user) {
     const [dbUser, productCount] = await Promise.all([
       getDbUser(user.id),
       countActiveProducts(user.id).catch(() => 0),
     ]);
 
+    companyName = dbUser?.company_name;
+    accessLevel = dbUser?.access_level ?? "free";
+
     identifyUser(user.id, {
       email: user.email,
-      company_name: dbUser?.company_name,
-      access_level: dbUser?.access_level ?? "free",
+      company_name: companyName,
+      access_level: accessLevel,
       product_count: productCount,
       max_products: dbUser?.max_products ?? 5,
       onboarding_completed: !!dbUser?.onboarding_completed_at,
@@ -37,7 +42,12 @@ export default async function AppLayout({
   return (
     <>
       {user && (
-        <PostHogIdentify userId={user.id} email={user.email} />
+        <PostHogIdentify
+          userId={user.id}
+          email={user.email}
+          companyName={companyName}
+          accessLevel={accessLevel}
+        />
       )}
       {children}
     </>

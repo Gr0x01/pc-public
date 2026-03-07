@@ -367,7 +367,7 @@ Write the narrative synthesis and select 5 showcase items.`,
     total_substances_flagged: substanceFlaggedItems.size,
     total_deadlines: deadlineCount,
     showcase_items: showcaseItems,
-    model: "gemini-2.5-flash",
+    model: "gemini-3-flash-preview",
   };
 
   const { data: inserted, error } = await adminClient

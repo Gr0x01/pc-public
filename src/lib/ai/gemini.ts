@@ -11,12 +11,10 @@ const google = createGoogleGenerativeAI({ apiKey });
 
 /**
  * geminiFlash — high-volume tasks: category tagging, topic classification, simple summarization.
- * Cost: ~$0.15/1M input, ~$0.60/1M output
  */
-export const geminiFlash = google("gemini-2.5-flash");
+export const geminiFlash = google("gemini-3-flash-preview");
 
 /**
  * geminiPro — complex tasks: impact analysis, action item extraction, regulatory nuance.
- * Cost: ~$1.25/1M input, ~$10/1M output
  */
-export const geminiPro = google("gemini-2.5-pro");
+export const geminiPro = google("gemini-3.1-pro-preview");
