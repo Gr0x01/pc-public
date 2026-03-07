@@ -163,6 +163,10 @@ export default function WelcomeEmail({
               <Link href={`${SITE_URL}/app/products`} style={footerLinkStyle}>
                 Manage your products
               </Link>
+              {" · "}
+              <Link href="https://www.linkedin.com/company/policy-canary/" style={footerLinkStyle}>
+                LinkedIn
+              </Link>
             </Text>
             <Text style={footerAddressStyle} className="text-tertiary">
               {PHYSICAL_ADDRESS}

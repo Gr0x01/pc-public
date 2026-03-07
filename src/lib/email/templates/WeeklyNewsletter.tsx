@@ -199,6 +199,10 @@ export default function WeeklyNewsletter({
               <Link href={`${SITE_URL}/blog`} style={footerLinkStyle}>
                 Read more on our blog
               </Link>
+              {" · "}
+              <Link href="https://www.linkedin.com/company/policy-canary/" style={footerLinkStyle}>
+                LinkedIn
+              </Link>
             </Text>
             <Text style={footerAddressStyle} className="text-tertiary">{PHYSICAL_ADDRESS}</Text>
           </Section>

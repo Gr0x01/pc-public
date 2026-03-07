@@ -129,6 +129,11 @@ export default function AuthEmail({ variant, action_url, new_email }: AuthEmailP
           {/* Divider + Footer */}
           <Hr style={dividerStyle} className="border-light" />
           <Section style={footerStyle} className="footer">
+            <Text style={{ ...footerTextStyle, marginBottom: "8px" }}>
+              <Link href="https://www.linkedin.com/company/policy-canary/" style={{ color: "#94a3b8", textDecoration: "none" }}>
+                LinkedIn
+              </Link>
+            </Text>
             <Text style={footerTextStyle} className="text-tertiary">
               {PHYSICAL_ADDRESS}
             </Text>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Linkedin } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -8,11 +9,11 @@ export default function Footer() {
           {/* Tagline */}
           <p className="text-sm text-slate-400 max-w-md">
             Policy Canary — Regulatory intelligence for supplement, food, and
-            cosmetic brands.
+            cosmetic&nbsp;brands.
           </p>
 
           {/* Links */}
-          <nav className="flex flex-wrap gap-6">
+          <nav className="flex flex-wrap items-center gap-6">
             <Link
               href="/blog"
               className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
@@ -37,6 +38,15 @@ export default function Footer() {
             >
               Terms
             </Link>
+            <a
+              href="https://www.linkedin.com/company/policy-canary/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-400 hover:text-slate-200 transition-colors duration-150"
+              aria-label="Policy Canary on LinkedIn"
+            >
+              <Linkedin className="w-4 h-4" />
+            </a>
           </nav>
         </div>
 

@@ -76,11 +76,11 @@ export default async function BlogPage({
       <section className="bg-surface-dark py-16">
         <div className="max-w-xl mx-auto px-6 text-center">
           <h2 className="text-2xl font-bold text-white mb-3">
-            What if this analysis was about YOUR products?
+            What if this analysis was about YOUR&nbsp;products?
           </h2>
           <p className="text-slate-300 mb-6">
             Policy Canary monitors the FDA for your specific products — by name,
-            by ingredient, by facility. Join the pilot.
+            by ingredient, by facility. Join the&nbsp;pilot.
           </p>
           <div className="flex justify-center">
             <SignupForm dark={true} />
