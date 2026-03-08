@@ -1,10 +1,12 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Loader2, CheckCircle2, Mail } from "lucide-react";
+import Link from "next/link";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { SignupForm } from "@/components/marketing/SignupForm";
 import Logo from "@/components/ui/Logo";
 
 type Status = "idle" | "loading" | "success" | "error";
@@ -12,19 +14,13 @@ type Status = "idle" | "loading" | "success" | "error";
 function LoginForm() {
   const reduce = useReducedMotion();
   const searchParams = useSearchParams();
+  const authFailed = searchParams.get("error") === "auth_failed";
+  const authFailedMessage = "That link has expired or is invalid. Please request a new one.";
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState("");
-
-  useEffect(() => {
-    const errorParam = searchParams.get("error");
-    if (errorParam === "auth_failed") {
-      setStatus("error");
-      setErrorMessage("That link has expired or is invalid. Please request a new one.");
-    }
-  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,6 +53,9 @@ function LoginForm() {
     setSubmittedEmail(trimmed);
     setStatus("success");
   }
+
+  const showError = status === "error" || (status === "idle" && authFailed);
+  const displayedError = status === "error" ? errorMessage : authFailedMessage;
 
   return (
     <AnimatePresence mode="wait">
@@ -123,16 +122,14 @@ function LoginForm() {
             disabled={status === "loading"}
             className="bg-amber text-white px-6 py-3 rounded font-semibold text-sm flex items-center justify-center gap-2 hover:bg-amber-action transition-colors duration-150 disabled:opacity-70 disabled:cursor-not-allowed mt-1"
           >
-            {status === "loading" ? (
+            {status === "loading" && (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <Mail className="h-4 w-4" aria-hidden="true" />
             )}
             Send magic link
           </button>
 
           <AnimatePresence>
-            {status === "error" && (
+            {showError && (
               <motion.div
                 initial={reduce ? { opacity: 1 } : { opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -140,7 +137,7 @@ function LoginForm() {
                 transition={{ duration: 0.2 }}
                 className="bg-urgent-muted border border-urgent/15 rounded px-3 py-2.5 mt-1"
               >
-                <p className="text-sm text-urgent">{errorMessage}</p>
+                <p className="text-sm text-urgent">{displayedError}</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -150,50 +147,110 @@ function LoginForm() {
   );
 }
 
-export default function LoginPage() {
+/* ------------------------------------------------------------------ */
+/*  Pilot promotion panel (left / bottom)                             */
+/* ------------------------------------------------------------------ */
+function PilotPanel({ reduce }: { reduce: boolean | null }) {
+  const fade = (delay: number) =>
+    reduce
+      ? {}
+      : {
+          initial: { opacity: 0, y: 14 } as const,
+          animate: { opacity: 1, y: 0 } as const,
+          transition: { duration: 0.45, ease: "easeOut" as const, delay },
+        };
+
   return (
-    <div className="min-h-screen bg-surface-muted flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <a href="/" className="block text-center mb-8">
-          <Logo className="h-3 text-text-primary mx-auto" />
-        </a>
+    <div className="flex flex-col justify-center h-full">
+      <motion.p
+        className="font-mono text-[11px] text-amber-text uppercase tracking-widest mb-4 font-semibold"
+        {...fade(0)}
+      >
+        Pilot Program
+      </motion.p>
 
-        <div className="bg-surface rounded-lg overflow-hidden border border-border shadow-[0_1px_3px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.04)]">
-          <div className="h-[3px] bg-gradient-to-r from-canary via-amber to-canary" />
+      <motion.h2 className="text-3xl font-bold text-white leading-tight tracking-tight" {...fade(0.06)}>
+        Track FDA changes by product&nbsp;name.
+      </motion.h2>
 
-          <div className="p-8">
-            <div className="mb-6">
-              <h1 className="font-serif text-2xl font-bold text-text-primary">
-                Sign in
-              </h1>
-              <p className="text-sm text-text-secondary mt-1.5 leading-relaxed">
-                Enter your email and we&apos;ll send a secure link.
-              </p>
-            </div>
+      <motion.p
+        className="text-slate-300 mt-4 leading-relaxed max-w-md"
+        {...fade(0.12)}
+      >
+        Product-level FDA monitoring for supplement, food, and
+        cosmetics brands. When a regulation affects your Marine
+        Collagen Powder, you know&nbsp;first.
+      </motion.p>
 
-            <Suspense fallback={<div className="h-24" />}>
-              <LoginForm />
-            </Suspense>
-          </div>
-        </div>
+      <motion.p
+        className="text-slate-500 text-sm mt-3 max-w-md"
+        {...fade(0.16)}
+      >
+        Join the pilot to get early&nbsp;access.
+      </motion.p>
 
-        <p className="text-center text-sm text-text-secondary mt-6">
-          Not signed up yet?{" "}
-          <a
-            href="/#signup"
-            className="text-amber font-medium hover:text-amber-action underline underline-offset-2 transition-colors duration-150"
-          >
-            Join the pilot
-          </a>
-        </p>
-        {process.env.NODE_ENV === "development" && (
-          <p className="text-center text-xs text-text-secondary/50 mt-3">
-            <a href="/app/dashboard" className="hover:text-text-secondary transition-colors duration-150">
-              dev bypass
-            </a>
-          </p>
-        )}
-      </div>
+      <motion.div className="mt-10" {...fade(0.22)}>
+        <SignupForm dark={true} />
+      </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  const reduce = useReducedMotion();
+
+  return (
+    <>
+      <div className="h-[3px] bg-gradient-to-r from-canary via-amber to-canary" />
+
+      <div className="min-h-[calc(100vh-3px)] section-soft px-5 py-10 md:px-8 md:py-14 lg:py-20">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            className="soft-card overflow-hidden"
+            initial={reduce ? { opacity: 1 } : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.35 }}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-[1.02fr_0.98fr]">
+              <div
+                className="px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14"
+                style={{ background: "var(--gradient-dark-surface)" }}
+              >
+                <PilotPanel reduce={reduce} />
+              </div>
+
+              <div className="bg-surface-muted px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14 flex items-center">
+                <div className="w-full max-w-sm mx-auto">
+                  <Link href="/" className="inline-block mb-8">
+                    <Logo className="h-3 text-text-primary" />
+                  </Link>
+
+                  <div className="mb-6">
+                    <h1 className="font-serif text-2xl font-bold text-text-primary">
+                      Sign in
+                    </h1>
+                    <p className="text-sm text-text-secondary mt-1.5 leading-relaxed">
+                      Existing pilot members.
+                    </p>
+                  </div>
+
+                  <Suspense fallback={<div className="h-24" />}>
+                    <LoginForm />
+                  </Suspense>
+
+                  {process.env.NODE_ENV === "development" && (
+                    <p className="text-xs text-text-secondary/50 mt-4">
+                      <Link href="/app/dashboard" className="hover:text-text-secondary transition-colors duration-150">
+                        dev bypass
+                      </Link>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </>
   );
 }
