@@ -81,8 +81,8 @@ export function SignupForm({ dark = false }: SignupFormProps) {
   });
 
   const inputClasses = dark
-    ? "bg-slate-800/80 border border-slate-600/50 text-white placeholder:text-slate-400 rounded px-4 py-2.5 text-sm focus:border-amber focus:outline-none"
-    : "border border-border bg-white rounded px-4 py-2.5 text-sm focus:border-amber focus:outline-none text-text-primary placeholder:text-text-secondary";
+    ? "bg-slate-900/45 border border-slate-600/45 text-white placeholder:text-slate-400 rounded-lg px-4 py-2.5 text-sm focus:border-canary focus:ring-2 focus:ring-canary/25 focus:outline-none transition-colors duration-150"
+    : "border border-border bg-white rounded-lg px-4 py-2.5 text-sm focus:border-amber focus:ring-2 focus:ring-amber/20 focus:outline-none text-text-primary placeholder:text-text-secondary transition-colors duration-150";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -228,13 +228,13 @@ export function SignupForm({ dark = false }: SignupFormProps) {
                 disabled={state.status === "loading"}
                 className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-amber accent-amber focus:ring-amber"
               />
-              <span className={`text-xs leading-relaxed ${dark ? "text-slate-400" : "text-text-secondary"}`}>
+              <span className={`text-xs leading-relaxed ${dark ? "text-slate-300" : "text-text-secondary"}`}>
                 I agree to the{" "}
-                <Link href="/terms" className={`underline ${dark ? "text-slate-300 hover:text-white" : "text-text-primary hover:text-text-primary"}`}>
+                <Link href="/terms" className={`underline underline-offset-2 ${dark ? "text-slate-100 hover:text-white" : "text-text-primary hover:text-text-primary"}`}>
                   Terms of Service
                 </Link>{" "}
                 and{" "}
-                <Link href="/privacy" className={`underline ${dark ? "text-slate-300 hover:text-white" : "text-text-primary hover:text-text-primary"}`}>
+                <Link href="/privacy" className={`underline underline-offset-2 ${dark ? "text-slate-100 hover:text-white" : "text-text-primary hover:text-text-primary"}`}>
                   Privacy Policy
                 </Link>
                 , and I&apos;m open to sharing feedback during the pilot. I can unsubscribe anytime.
@@ -244,7 +244,7 @@ export function SignupForm({ dark = false }: SignupFormProps) {
             <button
               type="submit"
               disabled={state.status === "loading" || !state.feedbackConsent}
-              className="bg-canary text-surface-dark px-6 py-3 rounded font-semibold text-sm flex items-center justify-center gap-2 hover:bg-canary/90 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="bg-canary text-surface-dark px-6 py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-canary/90 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {state.status === "loading" && (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
