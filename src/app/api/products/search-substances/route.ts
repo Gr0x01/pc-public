@@ -42,7 +42,7 @@ export async function GET(request: Request) {
   const { data, error } = await adminClient
     .from("substance_names")
     .select("substance_id, name, substances!inner(canonical_name)")
-    .ilike("name", `${q}%`)
+    .ilike("name", `${q.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`)
     .limit(10);
 
   if (error) {

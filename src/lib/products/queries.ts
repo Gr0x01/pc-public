@@ -25,7 +25,7 @@ export async function searchDSLDProducts(
     .from("dsld_products")
     .select("dsld_id, product_name, brand_name")
     .eq("market_status", "On Market")
-    .ilike("product_name", `${query}%`)
+    .ilike("product_name", `${query.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`)
     .order("product_name")
     .limit(limit);
 

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { extractIngredientsFromImages } from "@/lib/products/vision";
 import { resolveSubstance } from "@/lib/products/queries";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { randomUUID } from "crypto";
 
@@ -36,6 +37,13 @@ export async function POST(request: Request) {
       );
     }
     userId = user.id;
+  }
+
+  if (!(await checkRateLimit(`parse-label:${userId}`, 5))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
   }
 
   // 2. Parse FormData

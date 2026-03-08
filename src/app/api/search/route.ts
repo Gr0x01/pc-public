@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { headers } from "next/headers";
 import { generateText } from "ai";
 import { createClient } from "@/lib/supabase/server";
 import { generateEmbedding } from "@/lib/ai/openai";
@@ -21,18 +20,7 @@ const SearchSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
-  // 1. Rate limit
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-
-  if (!(await checkRateLimit(`search:${ip}`, 10))) {
-    return Response.json(
-      { error: { message: "Too many requests. Please wait a moment." } },
-      { status: 429 }
-    );
-  }
-
-  // 2. Auth check
+  // 1. Auth check
   let userId: string | null = null;
   if (!isDev) {
     const supabase = await createClient();
@@ -46,6 +34,14 @@ export async function POST(request: Request) {
       );
     }
     userId = user.id;
+  }
+
+  // 2. Rate limit (keyed on userId, not IP)
+  if (userId && !(await checkRateLimit(`search:${userId}`, 10))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
   }
 
   // 3. Validate input

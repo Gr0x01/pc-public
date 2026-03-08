@@ -48,7 +48,15 @@ export async function POST(request: Request) {
   }
 
   // Validate
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json(
+      { error: { message: "Invalid request body." } },
+      { status: 400 }
+    );
+  }
   const parsed = OnboardingSchema.safeParse(body);
   if (!parsed.success) {
     return Response.json(

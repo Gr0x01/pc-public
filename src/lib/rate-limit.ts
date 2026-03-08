@@ -59,6 +59,8 @@ export async function checkRateLimit(
     const { success } = await limiter.limit(key);
     return success;
   } catch (err) {
+    // Deliberate fail-open: a Redis outage should not block all users.
+    // Acceptable for this app's threat model — abuse is bounded by auth + per-user keys.
     console.error("[rate-limit] Redis error, failing open:", err);
     return true;
   }
