@@ -5,7 +5,7 @@ import { generateEmbedding } from "@/lib/ai/openai";
 import { claudeSonnet } from "@/lib/ai/anthropic";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { track, trackLLM } from "@/lib/analytics";
-import { isDev } from "@/lib/dev";
+import { isDev, DEV_USER_ID } from "@/lib/dev";
 
 // ---------------------------------------------------------------------------
 // Input schema
@@ -21,8 +21,10 @@ const SearchSchema = z.object({
 
 export async function POST(request: Request) {
   // 1. Auth check
-  let userId: string | null = null;
-  if (!isDev) {
+  let userId: string;
+  if (isDev) {
+    userId = DEV_USER_ID;
+  } else {
     const supabase = await createClient();
     const {
       data: { user },
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
   }
 
   // 2. Rate limit (keyed on userId, not IP)
-  if (userId && !(await checkRateLimit(`search:${userId}`, 10))) {
+  if (!(await checkRateLimit(`search:${userId}`, 10))) {
     return Response.json(
       { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }
