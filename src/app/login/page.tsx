@@ -151,6 +151,12 @@ function LoginForm() {
 /*  Pilot promotion panel (left / bottom)                             */
 /* ------------------------------------------------------------------ */
 function PilotPanel({ reduce }: { reduce: boolean | null }) {
+  const highlights = [
+    "Track by product name, ingredient, and facility.",
+    "Get plain-language impact summaries with action paths.",
+    "Receive alerts before enforcement reaches your inbox.",
+  ] as const;
+
   const fade = (delay: number) =>
     reduce
       ? {}
@@ -162,34 +168,34 @@ function PilotPanel({ reduce }: { reduce: boolean | null }) {
 
   return (
     <div className="flex flex-col justify-center h-full">
-      <motion.p
-        className="font-mono text-[11px] text-amber-text uppercase tracking-widest mb-4 font-semibold"
-        {...fade(0)}
-      >
-        Pilot Program
-      </motion.p>
+      <motion.div className="flex items-center gap-2.5 mb-4" {...fade(0)}>
+        <p className="font-mono text-[11px] text-canary uppercase tracking-widest font-semibold">
+          Pilot Program
+        </p>
+      </motion.div>
 
       <motion.h2 className="text-3xl font-bold text-white leading-tight tracking-tight" {...fade(0.06)}>
-        Track FDA changes by product&nbsp;name.
+        Don&apos;t find out from a recall&nbsp;notice.
       </motion.h2>
 
       <motion.p
         className="text-slate-300 mt-4 leading-relaxed max-w-md"
         {...fade(0.12)}
       >
-        Product-level FDA monitoring for supplement, food, and
-        cosmetics brands. When a regulation affects your Marine
-        Collagen Powder, you know&nbsp;first.
+        Early access to product-level FDA monitoring for supplement,
+        food, and cosmetic brands.
       </motion.p>
 
-      <motion.p
-        className="text-slate-500 text-sm mt-3 max-w-md"
-        {...fade(0.16)}
-      >
-        Join the pilot to get early&nbsp;access.
-      </motion.p>
+      <motion.div className="mt-6 space-y-3.5 max-w-lg" {...fade(0.16)}>
+        {highlights.map((item) => (
+          <div key={item} className="flex items-start gap-3">
+            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-canary shrink-0" />
+            <p className="text-sm text-slate-300 leading-relaxed">{item}</p>
+          </div>
+        ))}
+      </motion.div>
 
-      <motion.div className="mt-10" {...fade(0.22)}>
+      <motion.div className="mt-9" {...fade(0.2)}>
         <SignupForm dark={true} />
       </motion.div>
     </div>
@@ -203,15 +209,15 @@ export default function LoginPage() {
     <>
       <div className="h-[3px] bg-gradient-to-r from-canary via-amber to-canary" />
 
-      <div className="min-h-[calc(100vh-3px)] section-soft px-5 py-10 md:px-8 md:py-14 lg:py-20">
+      <div className="min-h-[calc(100vh-3px)] bg-surface-subtle px-5 py-10 md:px-8 md:py-14 lg:py-20">
         <div className="max-w-5xl mx-auto">
           <motion.div
-            className="soft-card overflow-hidden"
+            className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm"
             initial={reduce ? { opacity: 1 } : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.35 }}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-[1.02fr_0.98fr]">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.04fr_0.96fr]">
               <div
                 className="px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14"
                 style={{ background: "var(--gradient-dark-surface)" }}
@@ -219,7 +225,7 @@ export default function LoginPage() {
                 <PilotPanel reduce={reduce} />
               </div>
 
-              <div className="bg-surface-muted px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14 flex items-center">
+              <div className="bg-white px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14 flex items-center">
                 <div className="w-full max-w-sm mx-auto">
                   <Link href="/" className="inline-block mb-8">
                     <Logo className="h-3 text-text-primary" />

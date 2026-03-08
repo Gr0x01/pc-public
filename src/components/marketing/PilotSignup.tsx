@@ -2,12 +2,21 @@
 
 import { useRef } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
+
 import { SignupForm } from "./SignupForm";
 
 const STATS = [
   { value: 4, display: "4", label: "FDA data sources" },
   { value: 24, display: "<24 hrs", label: "pub to email" },
   { value: 169, display: "169K", label: "substances indexed" },
+] as const;
+
+const BENEFITS = [
+  "Your products monitored by name and ingredient",
+  "Action items with deadlines, not summaries",
+  "Every claim linked to the source document",
+  "All-clear confirmation when nothing affects you",
+  "The FDA cut 3,859 employees. Enforcement is less predictable, not more.",
 ] as const;
 
 export default function PilotSignup() {
@@ -25,7 +34,7 @@ export default function PilotSignup() {
         };
 
   return (
-    <section id="signup" className="relative">
+    <section id="signup" className="relative overflow-hidden">
       {/* 3px canary rule — animates width on viewport entry */}
       <motion.div
         className="h-[3px] bg-canary"
@@ -35,15 +44,14 @@ export default function PilotSignup() {
       />
 
       <div
-        className="py-20 md:py-24 px-6"
+        className="relative py-20 md:py-24 px-6"
         style={{ background: "var(--gradient-dark-surface)" }}
         ref={ref}
       >
-        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-16 items-start">
-          {/* Left column — headline, description, stats */}
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-10 lg:gap-14 items-start">
           <div>
             <motion.p
-              className="font-mono text-[11px] text-amber-text uppercase tracking-widest mb-4 font-semibold"
+              className="font-mono text-[11px] text-canary uppercase tracking-widest mb-4 font-semibold"
               {...fadeUp(0)}
             >
               Pilot Program
@@ -51,31 +59,36 @@ export default function PilotSignup() {
 
             <motion.h2
               className="text-3xl md:text-4xl font-bold text-white leading-tight tracking-tight"
-              {...fadeUp(0.08)}
+              {...fadeUp(0.06)}
             >
               Don&apos;t find out from a recall&nbsp;notice.
             </motion.h2>
 
             <motion.p
-              className="text-slate-400 mt-4 leading-relaxed"
-              {...fadeUp(0.08)}
+              className="text-slate-300 mt-4 leading-relaxed max-w-xl"
+              {...fadeUp(0.1)}
             >
-              We&apos;re onboarding a small group of brands for early access to
-              product-level FDA monitoring.
+              Your Marine Collagen Powder. Your BHA Eye Cream. Monitored by name,
+              matched by ingredient, matched against every FDA&nbsp;change.
             </motion.p>
 
-            <motion.p
-              className="text-slate-500 text-sm mt-3"
-              {...fadeUp(0.08)}
+            {/* Value proof checklist */}
+            <motion.div
+              className="mt-8 flex flex-col gap-3"
+              {...fadeUp(0.14)}
             >
-              Your Marine Collagen Powder. Your BHA Eye Cream. Monitored by
-              name, matched by ingredient.
-            </motion.p>
+              {BENEFITS.map((item) => (
+                <div key={item} className="flex items-start gap-2.5">
+                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-amber-text shrink-0" />
+                  <p className="text-sm text-slate-300">{item}</p>
+                </div>
+              ))}
+            </motion.div>
 
             {/* Stats row */}
             <motion.div
               className="flex mt-10 gap-0"
-              {...fadeUp(0.16)}
+              {...fadeUp(0.18)}
             >
               {STATS.map((stat, i) => (
                 <div
@@ -97,12 +110,22 @@ export default function PilotSignup() {
             </motion.div>
           </div>
 
-          {/* Right column — signup form */}
-          <motion.div
-            className="lg:pt-8"
-            {...fadeUp(0.24)}
-          >
-            <SignupForm dark={true} />
+          <motion.div className="lg:pt-2" {...fadeUp(0.22)}>
+            <div className="soft-card p-6 md:p-8">
+              <p className="font-mono text-[11px] text-text-secondary uppercase tracking-widest">
+                Request pilot access
+              </p>
+              <h3 className="text-2xl font-semibold text-text-primary mt-3 leading-tight">
+                Join the pilot
+              </h3>
+              <p className="text-sm text-text-secondary mt-2 leading-relaxed">
+                Tell us where to send your access link. No sales calls.
+              </p>
+
+              <div className="mt-6">
+                <SignupForm />
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>

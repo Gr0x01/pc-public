@@ -91,7 +91,7 @@ export default function PricingPage() {
           style={{ background: "var(--gradient-dark-surface)" }}
         >
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Don&apos;t find out from a recall notice.
+            Don&apos;t find out from a recall&nbsp;notice.
           </h2>
           <p className="text-slate-400 mb-3 max-w-xl mx-auto">
             We&apos;re onboarding a small group of brands for early access to
