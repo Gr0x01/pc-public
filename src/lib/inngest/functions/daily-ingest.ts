@@ -4,6 +4,9 @@ import { fetchFederalRegister } from "@/pipeline/fetchers/federal-register";
 import { fetchOpenFDAEnforcement } from "@/pipeline/fetchers/openfda-enforcement";
 import { fetchWarningLetters } from "@/pipeline/fetchers/warning-letters";
 import { fetchFdaRss } from "@/pipeline/fetchers/fda-rss";
+import { fetchImportAlerts } from "@/pipeline/fetchers/import-alerts";
+import { fetchGuidanceDocuments } from "@/pipeline/fetchers/guidance-documents";
+import { fetchRegulationsGov } from "@/pipeline/fetchers/regulations-gov";
 import { runEnrichment } from "@/pipeline/enrichment/runner";
 import type { FetcherResult } from "@/pipeline/fetchers/utils";
 
@@ -30,8 +33,8 @@ export const dailyIngest = inngest.createFunction(
   // Runs at 6:00 AM and 6:00 PM UTC (2 AM / 2 PM ET)
   { cron: "0 6,18 * * *" },
   async ({ step }) => {
-    // W1 fix: run all 4 fetchers in parallel — they hit independent APIs
-    const [frResult, enfResult, wlResult, rssResult] = await Promise.all([
+    // Run all 7 fetchers in parallel — they hit independent APIs
+    const [frResult, enfResult, wlResult, rssResult, iaResult, gdResult, regsResult] = await Promise.all([
       step.run("fetch-federal-register", async (): Promise<FetchStepResult> => {
         try {
           const supabase = createSupabase();
@@ -71,6 +74,36 @@ export const dailyIngest = inngest.createFunction(
           return { source: "fda_rss", mode: "incremental", fetched: 0, created: 0, skipped: 0, errors: 1, durationMs: 0, error: safeError(err) };
         }
       }),
+
+      step.run("fetch-import-alerts", async (): Promise<FetchStepResult> => {
+        try {
+          const supabase = createSupabase();
+          return await fetchImportAlerts(supabase, { mode: "incremental" });
+        } catch (err) {
+          console.error("[daily-ingest] import-alerts failed:", safeError(err));
+          return { source: "import_alerts", mode: "incremental", fetched: 0, created: 0, skipped: 0, errors: 1, durationMs: 0, error: safeError(err) };
+        }
+      }),
+
+      step.run("fetch-guidance-documents", async (): Promise<FetchStepResult> => {
+        try {
+          const supabase = createSupabase();
+          return await fetchGuidanceDocuments(supabase, { mode: "incremental" });
+        } catch (err) {
+          console.error("[daily-ingest] guidance-documents failed:", safeError(err));
+          return { source: "guidance_documents", mode: "incremental", fetched: 0, created: 0, skipped: 0, errors: 1, durationMs: 0, error: safeError(err) };
+        }
+      }),
+
+      step.run("fetch-regulations-gov", async (): Promise<FetchStepResult> => {
+        try {
+          const supabase = createSupabase();
+          return await fetchRegulationsGov(supabase, { mode: "incremental" });
+        } catch (err) {
+          console.error("[daily-ingest] regulations-gov failed:", safeError(err));
+          return { source: "regulations_gov", mode: "incremental", fetched: 0, created: 0, skipped: 0, errors: 1, durationMs: 0, error: safeError(err) };
+        }
+      }),
     ]);
 
     // Enrichment must run after fetchers (processes items they just created)
@@ -83,12 +116,17 @@ export const dailyIngest = inngest.createFunction(
       }
     });
 
+    const allFetchResults = [frResult, enfResult, wlResult, rssResult, iaResult, gdResult, regsResult];
+
     const summary = {
       fetchers: {
         federalRegister: { created: frResult.created, errors: frResult.errors, error: frResult.error },
         enforcement: { created: enfResult.created, errors: enfResult.errors, error: enfResult.error },
         warningLetters: { created: wlResult.created, errors: wlResult.errors, error: wlResult.error },
         rss: { created: rssResult.created, errors: rssResult.errors, error: rssResult.error },
+        importAlerts: { created: iaResult.created, errors: iaResult.errors, error: iaResult.error },
+        guidanceDocuments: { created: gdResult.created, errors: gdResult.errors, error: gdResult.error },
+        regulationsGov: { created: regsResult.created, errors: regsResult.errors, error: regsResult.error },
       },
       enrichment: {
         processed: enrichResult.processed,
@@ -100,8 +138,8 @@ export const dailyIngest = inngest.createFunction(
         errors: enrichResult.errors,
         error: "error" in enrichResult ? enrichResult.error : undefined,
       },
-      totalCreated: frResult.created + enfResult.created + wlResult.created + rssResult.created,
-      totalErrors: frResult.errors + enfResult.errors + wlResult.errors + rssResult.errors + enrichResult.errors,
+      totalCreated: allFetchResults.reduce((sum, r) => sum + r.created, 0),
+      totalErrors: allFetchResults.reduce((sum, r) => sum + r.errors, 0) + enrichResult.errors,
     };
 
     console.log("[daily-ingest] complete:", JSON.stringify(summary));

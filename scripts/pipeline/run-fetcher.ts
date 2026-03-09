@@ -81,15 +81,21 @@ const START_DATE = parseFlag("--start") ?? DEFAULT_START;
 const END_DATE = parseFlag("--end") ?? DEFAULT_END;
 
 async function main() {
+  const ALL_COMMANDS = [
+    "fr-backfill", "enforcement-backfill",
+    "wl-backfill", "wl-incremental", "rss-poll",
+    "ia-backfill", "ia-incremental",
+    "guidance-backfill", "guidance-incremental",
+    "regs-backfill", "regs-incremental",
+  ];
+
   if (!command) {
-    console.error(
-      "Usage: npx tsx scripts/run-fetcher.ts [fr-backfill|enforcement-backfill|wl-backfill|wl-incremental|rss-poll]"
-    );
+    console.error(`Usage: npx tsx scripts/run-fetcher.ts [${ALL_COMMANDS.join("|")}]`);
     process.exit(1);
   }
 
   if (command === "fr-backfill") {
-    const { fetchFederalRegister } = await import("../src/pipeline/fetchers/federal-register");
+    const { fetchFederalRegister } = await import("../../src/pipeline/fetchers/federal-register");
     console.log(`Running Federal Register backfill (${START_DATE} → ${END_DATE})...\n`);
     const result = await fetchFederalRegister(supabase, {
       mode: "backfill",
@@ -100,7 +106,7 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
   } else if (command === "enforcement-backfill") {
     const { fetchOpenFDAEnforcement } = await import(
-      "../src/pipeline/fetchers/openfda-enforcement"
+      "../../src/pipeline/fetchers/openfda-enforcement"
     );
     console.log(`Running openFDA enforcement backfill (${START_DATE} → ${END_DATE})...\n`);
     const result = await fetchOpenFDAEnforcement(supabase, {
@@ -111,28 +117,66 @@ async function main() {
     console.log("\n--- Result ---");
     console.log(JSON.stringify(result, null, 2));
   } else if (command === "wl-backfill") {
-    const { fetchWarningLetters } = await import("../src/pipeline/fetchers/warning-letters");
+    const { fetchWarningLetters } = await import("../../src/pipeline/fetchers/warning-letters");
     console.log("Running warning letters backfill (all records)...\n");
     const result = await fetchWarningLetters(supabase, { mode: "backfill" });
     console.log("\n--- Result ---");
     console.log(JSON.stringify(result, null, 2));
   } else if (command === "wl-incremental") {
-    const { fetchWarningLetters } = await import("../src/pipeline/fetchers/warning-letters");
+    const { fetchWarningLetters } = await import("../../src/pipeline/fetchers/warning-letters");
     console.log("Running warning letters incremental (most recent, stops on known page)...\n");
     const result = await fetchWarningLetters(supabase, { mode: "incremental" });
     console.log("\n--- Result ---");
     console.log(JSON.stringify(result, null, 2));
   } else if (command === "rss-poll") {
-    const { fetchFdaRss } = await import("../src/pipeline/fetchers/fda-rss");
+    const { fetchFdaRss } = await import("../../src/pipeline/fetchers/fda-rss");
     console.log("Polling FDA RSS feeds...\n");
     const result = await fetchFdaRss(supabase);
     console.log("\n--- Result ---");
     console.log(JSON.stringify(result, null, 2));
+  } else if (command === "ia-backfill") {
+    const { fetchImportAlerts } = await import("../../src/pipeline/fetchers/import-alerts");
+    console.log("Running import alerts backfill (all alerts)...\n");
+    const result = await fetchImportAlerts(supabase, { mode: "backfill" });
+    console.log("\n--- Result ---");
+    console.log(JSON.stringify(result, null, 2));
+  } else if (command === "ia-incremental") {
+    const { fetchImportAlerts } = await import("../../src/pipeline/fetchers/import-alerts");
+    console.log("Running import alerts incremental...\n");
+    const result = await fetchImportAlerts(supabase, { mode: "incremental" });
+    console.log("\n--- Result ---");
+    console.log(JSON.stringify(result, null, 2));
+  } else if (command === "guidance-backfill") {
+    const { fetchGuidanceDocuments } = await import("../../src/pipeline/fetchers/guidance-documents");
+    console.log("Running guidance documents backfill (all records)...\n");
+    const result = await fetchGuidanceDocuments(supabase, { mode: "backfill" });
+    console.log("\n--- Result ---");
+    console.log(JSON.stringify(result, null, 2));
+  } else if (command === "guidance-incremental") {
+    const { fetchGuidanceDocuments } = await import("../../src/pipeline/fetchers/guidance-documents");
+    console.log("Running guidance documents incremental...\n");
+    const result = await fetchGuidanceDocuments(supabase, { mode: "incremental" });
+    console.log("\n--- Result ---");
+    console.log(JSON.stringify(result, null, 2));
+  } else if (command === "regs-backfill") {
+    const { fetchRegulationsGov } = await import("../../src/pipeline/fetchers/regulations-gov");
+    console.log(`Running Regulations.gov backfill (${START_DATE} → ${END_DATE})...\n`);
+    const result = await fetchRegulationsGov(supabase, {
+      mode: "backfill",
+      startDate: START_DATE,
+      endDate: END_DATE,
+    });
+    console.log("\n--- Result ---");
+    console.log(JSON.stringify(result, null, 2));
+  } else if (command === "regs-incremental") {
+    const { fetchRegulationsGov } = await import("../../src/pipeline/fetchers/regulations-gov");
+    console.log("Running Regulations.gov incremental (last 14 days)...\n");
+    const result = await fetchRegulationsGov(supabase, { mode: "incremental" });
+    console.log("\n--- Result ---");
+    console.log(JSON.stringify(result, null, 2));
   } else {
     console.error(`Unknown command: "${command}"`);
-    console.error(
-      "Available commands: fr-backfill, enforcement-backfill, wl-backfill, wl-incremental, rss-poll"
-    );
+    console.error(`Available commands: ${ALL_COMMANDS.join(", ")}`);
     process.exit(1);
   }
 }
