@@ -46,3 +46,9 @@ next-env.d.ts
 
 /tmp.gsrs-checkpoint
 /tmp
+
+# supabase CLI temp files
+supabase/.temp/
+
+# script demo output
+scripts/demo-output/
