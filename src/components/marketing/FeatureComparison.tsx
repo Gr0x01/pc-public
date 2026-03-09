@@ -163,6 +163,9 @@ function CoverageSources() {
     { name: "Federal Register", count: "847", icon: "doc" },
     { name: "Warning Letters", count: "1,247", icon: "alert" },
     { name: "openFDA", count: "169K", icon: "db" },
+    { name: "Guidance Docs", count: "2,761", icon: "doc" },
+    { name: "Import Alerts", count: "154", icon: "alert" },
+    { name: "Regulations.gov", count: "1,178", icon: "gov" },
     { name: "RSS Feeds", count: "12", icon: "rss" },
   ];
   const icons: Record<string, React.ReactNode> = {
@@ -185,6 +188,13 @@ function CoverageSources() {
         <path d="M2.5 7v3c0 1.1 2 2 4.5 2s4.5-.9 4.5-2V7" stroke="currentColor" strokeWidth="1.2" />
       </svg>
     ),
+    gov: (
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-amber">
+        <path d="M7 1.5L1.5 5h11L7 1.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+        <path d="M3 5v5M5.5 5v5M8.5 5v5M11 5v5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        <path d="M1.5 10h11" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    ),
     rss: (
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-orange-500">
         <circle cx="3.5" cy="10.5" r="1.2" fill="currentColor" />
@@ -194,11 +204,11 @@ function CoverageSources() {
   };
 
   return (
-    <div className="mt-4 grid grid-cols-2 gap-3">
+    <div className="mt-4 grid grid-cols-2 gap-2">
       {sources.map((src) => (
         <div
           key={src.name}
-          className="flex items-center gap-2.5 bg-white/50 border border-white/40 rounded-lg px-3 py-2.5"
+          className="flex items-center gap-2 bg-white/50 border border-white/40 rounded-lg px-2.5 py-2"
         >
           {icons[src.icon]}
           <div className="min-w-0">
@@ -346,11 +356,11 @@ export default function FeatureComparison() {
                 Coverage
               </p>
               <h3 className="text-xl font-semibold text-slate-900">
-                4 FDA data sources
+                7 FDA data sources
               </h3>
               <p className="text-[15px] text-slate-500 mt-2">
-                Federal Register, warning letters, openFDA, and curated RSS —
-                all in one&nbsp;pipeline.
+                Federal Register, guidance documents, warning letters, import alerts,
+                Regulations.gov, openFDA, and RSS — all in one&nbsp;pipeline.
               </p>
               </div>
               <CoverageSources />

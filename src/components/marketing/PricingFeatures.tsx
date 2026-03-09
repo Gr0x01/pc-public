@@ -32,9 +32,9 @@ const FEATURES: Feature[] = [
   },
   {
     kicker: "Sources",
-    title: "4 FDA data pipelines",
+    title: "7 FDA data pipelines",
     description:
-      "Federal Register, warning letters, openFDA enforcement, and curated RSS feeds. Every source linked.",
+      "Federal Register, guidance documents, warning letters, import alerts, Regulations.gov, openFDA, and RSS. Every source linked.",
   },
   {
     kicker: "Dashboard",

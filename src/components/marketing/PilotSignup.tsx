@@ -6,7 +6,7 @@ import { motion, useInView, useReducedMotion } from "framer-motion";
 import { SignupForm } from "./SignupForm";
 
 const STATS = [
-  { value: 4, display: "4", label: "FDA data sources" },
+  { value: 7, display: "7", label: "FDA data sources" },
   { value: 24, display: "<24 hrs", label: "pub to email" },
   { value: 169, display: "169K", label: "substances indexed" },
 ] as const;
