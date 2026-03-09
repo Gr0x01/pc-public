@@ -23,6 +23,16 @@
 
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
+import { createRequire } from "module";
+
+// Shim "server-only" so enrichment pipeline modules can be imported outside Next.js
+const require = createRequire(import.meta.url);
+require.cache[require.resolve("server-only")] = {
+  id: "server-only",
+  filename: require.resolve("server-only"),
+  loaded: true,
+  exports: {},
+} as NodeJS.Module;
 
 // ---------------------------------------------------------------------------
 // Load .env.local before anything else
@@ -133,7 +143,7 @@ async function main() {
   console.log(`Limit: ${limit} items | Concurrency: ${concurrency}${itemTypeFilter ? ` | Type filter: ${itemTypeFilter}` : ""}`);
   console.log("─".repeat(60));
 
-  const { runEnrichment } = await import("../src/pipeline/enrichment/runner");
+  const { runEnrichment } = await import("../../src/pipeline/enrichment/runner");
 
   const result = await runEnrichment({
     limit,
