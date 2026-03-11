@@ -19,6 +19,7 @@ import { logPipelineRun } from "../fetchers/utils";
 import { evaluateItemForAllUsers } from "../../lib/products/verdicts";
 import { inngest } from "../../lib/inngest/client";
 import { URGENT_ACTION_TYPES } from "../../lib/email/alerts";
+import { flagIntelligencePagesForRefresh } from "../../lib/intelligence/refresh";
 import type { RegulatoryItem } from "../../types/database";
 
 // ---------------------------------------------------------------------------
@@ -220,6 +221,15 @@ export async function runEnrichment(
       } catch (alertErr) {
         const alertMsg = alertErr instanceof Error ? alertErr.message : String(alertErr);
         console.error(`${label} alert queue failed: ${alertMsg}`);
+      }
+
+      // f. Flag intelligence pages that need refresh based on new item
+      try {
+        await flagIntelligencePagesForRefresh(item.id);
+      } catch (refreshErr) {
+        // Non-fatal — page refresh is best-effort
+        const msg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
+        console.error(`${label} intel page refresh flag failed: ${msg}`);
       }
 
       counters.processed++;
