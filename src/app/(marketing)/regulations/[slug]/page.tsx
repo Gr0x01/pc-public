@@ -18,6 +18,7 @@ import { IntelPageSidebar } from "@/components/intelligence/IntelPageSidebar";
 import { StatusBadge } from "@/components/intelligence/StatusBadge";
 import { CrossLinkSection } from "@/components/intelligence/CrossLinkSection";
 import { IntelPageCard } from "@/components/intelligence/IntelPageCard";
+import { DeadlineCallout } from "@/components/intelligence/DeadlineCallout";
 import { SignupForm } from "@/components/marketing/SignupForm";
 
 export const revalidate = 3600;
@@ -177,6 +178,9 @@ export default async function RegulationDetailPage({
         {/* Two-column layout */}
         <div className="flex gap-12 lg:gap-16">
           <main className="flex-1 min-w-0 max-w-[720px]">
+            {structured.key_deadlines?.length > 0 && (
+              <DeadlineCallout deadlines={structured.key_deadlines} />
+            )}
             <MarkdownContent content={page.content} />
           </main>
 

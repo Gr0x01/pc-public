@@ -3,13 +3,22 @@ interface Deadline {
   label: string;
 }
 
-export function DeadlineTimeline({ deadlines }: { deadlines: Deadline[] }) {
+export function DeadlineTimeline({
+  deadlines,
+  compact = false,
+}: {
+  deadlines: Deadline[];
+  compact?: boolean;
+}) {
   if (deadlines.length === 0) return null;
 
   const now = new Date();
   const sorted = [...deadlines].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
+
+  const dotSize = compact ? "w-2 h-2" : "w-2.5 h-2.5";
+  const lineLeft = compact ? "left-[3.5px]" : "left-[4.5px]";
 
   return (
     <div className="space-y-0">
@@ -25,26 +34,30 @@ export function DeadlineTimeline({ deadlines }: { deadlines: Deadline[] }) {
           <div key={i} className="flex gap-3 relative">
             {/* Vertical line */}
             {i < sorted.length - 1 && (
-              <div className="absolute left-[7px] top-4 bottom-0 w-px bg-border" />
+              <div
+                className={`absolute ${lineLeft} top-3 bottom-0 w-px bg-slate-200`}
+              />
             )}
             {/* Dot */}
             <div
-              className={`w-[15px] h-[15px] rounded-full border-2 flex-shrink-0 mt-0.5 ${
-                isFuture
-                  ? "border-amber bg-amber/20"
-                  : "border-slate-300 bg-slate-100"
+              className={`${dotSize} rounded-full flex-shrink-0 mt-1.5 ${
+                isFuture ? "bg-amber" : "bg-slate-300"
               }`}
             />
             {/* Content */}
-            <div className="pb-4">
+            <div className={compact ? "pb-3" : "pb-4"}>
               <p
-                className={`text-xs font-medium ${
+                className={`text-xs font-medium font-mono ${
                   isFuture ? "text-amber" : "text-text-secondary"
                 }`}
               >
                 {dateStr}
               </p>
-              <p className="text-sm text-text-primary">{d.label}</p>
+              <p
+                className={`${compact ? "text-xs" : "text-sm"} text-text-primary`}
+              >
+                {d.label}
+              </p>
             </div>
           </div>
         );
