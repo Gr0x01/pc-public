@@ -5,49 +5,113 @@ export default function Footer() {
   return (
     <footer className="bg-surface-dark border-t border-border-dark">
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          {/* Tagline */}
-          <p className="text-sm text-slate-400 max-w-md">
-            Policy Canary — Regulatory intelligence for supplement, food, and
-            cosmetic&nbsp;brands.
-          </p>
+        {/* Link columns */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+          <div>
+            <p className="text-sm text-slate-400 max-w-xs">
+              Policy Canary — Regulatory intelligence for supplement, food, and
+              cosmetic&nbsp;brands.
+            </p>
+          </div>
 
-          {/* Links */}
-          <nav className="flex flex-wrap items-center gap-6">
-            <Link
-              href="/blog"
-              className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
-            >
-              Blog
-            </Link>
-            <Link
-              href="/sample"
-              className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
-            >
-              Sample Report
-            </Link>
-            <Link
-              href="/privacy"
-              className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
-            >
-              Privacy Policy
-            </Link>
-            <Link
-              href="/terms"
-              className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
-            >
-              Terms
-            </Link>
-            <a
-              href="https://www.linkedin.com/company/policy-canary/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-400 hover:text-slate-200 transition-colors duration-150"
-              aria-label="Policy Canary on LinkedIn"
-            >
-              <Linkedin className="w-4 h-4" />
-            </a>
-          </nav>
+          <div>
+            <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-3">
+              Product
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/sample"
+                  className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
+                >
+                  Sample Report
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/signup"
+                  className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
+                >
+                  Join the Pilot
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-3">
+              Intelligence
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/blog"
+                  className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/ingredients"
+                  className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
+                >
+                  Ingredients
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/enforcement"
+                  className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
+                >
+                  Enforcement Actions
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/regulations"
+                  className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
+                >
+                  Regulations
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-3">
+              Company
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/privacy"
+                  className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/terms"
+                  className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
+                >
+                  Terms
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="https://www.linkedin.com/company/policy-canary/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150 inline-flex items-center gap-1.5"
+                >
+                  <Linkedin className="w-4 h-4" />
+                  LinkedIn
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div className="mt-8 pt-8 border-t border-border-dark">
