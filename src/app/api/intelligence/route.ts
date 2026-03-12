@@ -1,8 +1,9 @@
 import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
-import { INTEL_PAGE_TYPES, LINK_TYPES } from "@/lib/intelligence/types";
+import { INTEL_PAGE_TYPES, LINK_TYPES, PAGE_TYPE_ROUTES, type IntelPageType } from "@/lib/intelligence/types";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { notifyIndexNow } from "@/lib/indexnow";
 
 const IntelPageSchema = z.object({
   page_type: z.enum(INTEL_PAGE_TYPES),
@@ -209,6 +210,11 @@ export async function POST(request: Request) {
         console.error("[intelligence] linked pages error:", linkErr);
       }
     }
+  }
+
+  if (data.status === "published") {
+    const route = PAGE_TYPE_ROUTES[data.page_type as IntelPageType];
+    notifyIndexNow(`/${route}/${data.slug}`);
   }
 
   return Response.json({ data, error: null });

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
 import { BLOG_CATEGORIES } from "@/lib/blog/types";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { notifyIndexNow } from "@/lib/indexnow";
 
 const BlogPostSchema = z.object({
   slug: z
@@ -116,6 +117,10 @@ export async function POST(request: Request) {
       { error: { message: "Failed to save post" } },
       { status: 500 }
     );
+  }
+
+  if (data.status === "published") {
+    notifyIndexNow(`/blog/${data.slug}`);
   }
 
   return Response.json({ data, error: null });
