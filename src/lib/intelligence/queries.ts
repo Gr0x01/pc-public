@@ -133,6 +133,41 @@ export async function getPageItems(
 }
 
 /**
+ * Published pages for RSS feed — minimal projection.
+ */
+export async function getPagesForRSS(): Promise<
+  {
+    page_type: IntelPageType;
+    slug: string;
+    title: string;
+    excerpt: string;
+    cover_image_url: string | null;
+    published_at: string | null;
+  }[]
+> {
+  const { data, error } = await adminClient
+    .from("intelligence_pages")
+    .select("page_type, slug, title, excerpt, cover_image_url, published_at")
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error("[intelligence] getPagesForRSS error:", error);
+    return [];
+  }
+
+  return data as {
+    page_type: IntelPageType;
+    slug: string;
+    title: string;
+    excerpt: string;
+    cover_image_url: string | null;
+    published_at: string | null;
+  }[];
+}
+
+/**
  * Related pages — same type, excluding current slug.
  */
 export async function getRelatedPages(

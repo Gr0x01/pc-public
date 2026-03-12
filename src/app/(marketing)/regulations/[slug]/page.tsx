@@ -19,6 +19,7 @@ import { StatusBadge } from "@/components/intelligence/StatusBadge";
 import { CrossLinkSection } from "@/components/intelligence/CrossLinkSection";
 import { IntelPageCard } from "@/components/intelligence/IntelPageCard";
 import { DeadlineCallout } from "@/components/intelligence/DeadlineCallout";
+import { ShareButtons } from "@/components/blog/ShareButtons";
 import { SignupForm } from "@/components/marketing/SignupForm";
 
 export const revalidate = 3600;
@@ -42,13 +43,17 @@ export async function generateMetadata({
   const title = page.seo_title || page.title;
   const description = page.seo_description || page.excerpt;
 
+  const pageUrl = `https://policycanary.io/regulations/${slug}`;
+
   return {
     title: `${title} | Policy Canary`,
     description,
+    alternates: { canonical: pageUrl },
     openGraph: {
       title,
       description,
       type: "article",
+      url: pageUrl,
       publishedTime: page.published_at ?? undefined,
       ...(page.cover_image_url && {
         images: [{ url: page.cover_image_url }],
@@ -182,6 +187,25 @@ export default async function RegulationDetailPage({
               <DeadlineCallout deadlines={structured.key_deadlines} />
             )}
             <MarkdownContent content={page.content} />
+
+            {/* Mobile-only: share + newsletter */}
+            <div className="lg:hidden mt-12 space-y-8">
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-3">
+                  Share this article
+                </h4>
+                <ShareButtons url={pageUrl} title={page.title} />
+              </div>
+              <div className="bg-surface-dark rounded-lg p-6 text-center">
+                <h4 className="text-base font-semibold text-white mb-1">
+                  Policy Canary Weekly
+                </h4>
+                <p className="text-sm text-slate-400 mb-4">
+                  Free FDA intelligence every Friday.
+                </p>
+                <SignupForm dark={true} />
+              </div>
+            </div>
           </main>
 
           <IntelPageSidebar

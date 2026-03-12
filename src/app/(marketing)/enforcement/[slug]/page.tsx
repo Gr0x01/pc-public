@@ -17,6 +17,7 @@ import { ReadingProgress } from "@/components/blog/ReadingProgress";
 import { IntelPageSidebar } from "@/components/intelligence/IntelPageSidebar";
 import { CrossLinkSection } from "@/components/intelligence/CrossLinkSection";
 import { IntelPageCard } from "@/components/intelligence/IntelPageCard";
+import { ShareButtons } from "@/components/blog/ShareButtons";
 import { SignupForm } from "@/components/marketing/SignupForm";
 
 export const revalidate = 3600;
@@ -40,13 +41,17 @@ export async function generateMetadata({
   const title = page.seo_title || page.title;
   const description = page.seo_description || page.excerpt;
 
+  const pageUrl = `https://policycanary.io/enforcement/${slug}`;
+
   return {
     title: `${title} | Policy Canary`,
     description,
+    alternates: { canonical: pageUrl },
     openGraph: {
       title,
       description,
       type: "article",
+      url: pageUrl,
       publishedTime: page.published_at ?? undefined,
       ...(page.cover_image_url && {
         images: [{ url: page.cover_image_url }],
@@ -177,6 +182,25 @@ export default async function EnforcementDetailPage({
         <div className="flex gap-12 lg:gap-16">
           <main className="flex-1 min-w-0 max-w-[720px]">
             <MarkdownContent content={page.content} />
+
+            {/* Mobile-only: share + newsletter */}
+            <div className="lg:hidden mt-12 space-y-8">
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-3">
+                  Share this article
+                </h4>
+                <ShareButtons url={pageUrl} title={page.title} />
+              </div>
+              <div className="bg-surface-dark rounded-lg p-6 text-center">
+                <h4 className="text-base font-semibold text-white mb-1">
+                  Policy Canary Weekly
+                </h4>
+                <p className="text-sm text-slate-400 mb-4">
+                  Free FDA intelligence every Friday.
+                </p>
+                <SignupForm dark={true} />
+              </div>
+            </div>
           </main>
 
           <IntelPageSidebar url={pageUrl} title={page.title} />
