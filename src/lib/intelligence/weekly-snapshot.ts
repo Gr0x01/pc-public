@@ -142,7 +142,41 @@ export async function generateWeeklySnapshot(
     .order("published_date", { ascending: false });
 
   if (!items || items.length === 0) {
-    throw new Error(`No enriched items found for week ${startStr} to ${endStr}`);
+    console.warn(`[weekly-snapshot] No enriched items for ${startStr} to ${endStr} — saving quiet week`);
+
+    const quietRow = {
+      week_start: startStr,
+      week_end: endStr,
+      narrative: "A quiet week across FDA sectors, with no major regulatory actions or enforcement signals.",
+      sector_counts: {},
+      total_items: 0,
+      total_sectors: 0,
+      total_substances_flagged: 0,
+      total_deadlines: 0,
+      showcase_items: [],
+      model: "none",
+    };
+
+    const { data: inserted, error } = await adminClient
+      .from("weekly_intelligence_snapshots")
+      .upsert(quietRow, { onConflict: "week_start" })
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to save quiet snapshot: ${error.message}`);
+
+    return {
+      id: inserted.id,
+      week_start: inserted.week_start,
+      week_end: inserted.week_end,
+      narrative: inserted.narrative,
+      sector_counts: {},
+      total_items: 0,
+      total_sectors: 0,
+      total_substances_flagged: 0,
+      total_deadlines: 0,
+      showcase_items: [],
+    };
   }
 
   // 2. Get sector counts via enrichment tags

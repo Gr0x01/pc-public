@@ -7,7 +7,6 @@ import { fetchFdaRss } from "@/pipeline/fetchers/fda-rss";
 import { fetchImportAlerts } from "@/pipeline/fetchers/import-alerts";
 import { fetchGuidanceDocuments } from "@/pipeline/fetchers/guidance-documents";
 import { fetchRegulationsGov } from "@/pipeline/fetchers/regulations-gov";
-import { runEnrichment } from "@/pipeline/enrichment/runner";
 import type { FetcherResult } from "@/pipeline/fetchers/utils";
 
 function createSupabase() {
@@ -106,17 +105,16 @@ export const dailyIngest = inngest.createFunction(
       }),
     ]);
 
-    // Enrichment must run after fetchers (processes items they just created)
-    const enrichResult = await step.run("run-enrichment", async () => {
-      try {
-        return await runEnrichment({ limit: 100 });
-      } catch (err) {
-        console.error("[daily-ingest] enrichment failed:", safeError(err));
-        return { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, verdicts: 0, alertsQueued: 0, errors: 1, skipped: 0, durationMs: 0, error: safeError(err) };
-      }
-    });
-
     const allFetchResults = [frResult, enfResult, wlResult, rssResult, iaResult, gdResult, regsResult];
+    const totalCreated = allFetchResults.reduce((sum, r) => sum + r.created, 0);
+
+    // Trigger enrichment as a separate Inngest function via event.
+    // This decouples enrichment from fetchers — a slow or failed fetcher
+    // can never block enrichment from running.
+    await step.sendEvent("trigger-enrichment", {
+      name: "pipeline/enrich.requested",
+      data: { limit: 100 },
+    });
 
     const summary = {
       fetchers: {
@@ -128,18 +126,9 @@ export const dailyIngest = inngest.createFunction(
         guidanceDocuments: { created: gdResult.created, errors: gdResult.errors, error: gdResult.error },
         regulationsGov: { created: regsResult.created, errors: regsResult.errors, error: regsResult.error },
       },
-      enrichment: {
-        processed: enrichResult.processed,
-        enriched: enrichResult.enriched,
-        crossReferenced: enrichResult.crossReferenced,
-        embedded: enrichResult.embedded,
-        verdicts: enrichResult.verdicts,
-        alertsQueued: enrichResult.alertsQueued,
-        errors: enrichResult.errors,
-        error: "error" in enrichResult ? enrichResult.error : undefined,
-      },
-      totalCreated: allFetchResults.reduce((sum, r) => sum + r.created, 0),
-      totalErrors: allFetchResults.reduce((sum, r) => sum + r.errors, 0) + enrichResult.errors,
+      totalCreated,
+      totalErrors: allFetchResults.reduce((sum, r) => sum + r.errors, 0),
+      enrichmentTriggered: true,
     };
 
     console.log("[daily-ingest] complete:", JSON.stringify(summary));

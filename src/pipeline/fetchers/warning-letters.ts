@@ -193,7 +193,10 @@ export async function fetchWarningLetters(
     let pageData: ReturnType<typeof WLAjaxResponseSchema.parse> | null = null;
 
     try {
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      const res = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(30_000),
+      });
       if (!res.ok) {
         throw new Error(`AJAX request failed: ${res.status} ${res.statusText}`);
       }
@@ -293,6 +296,7 @@ export async function fetchWarningLetters(
         await sleep(PAGE_FETCH_DELAY_MS);
         const pageRes = await fetch(letterUrl, {
           headers: { Accept: "text/html" },
+          signal: AbortSignal.timeout(30_000),
         });
 
         if (!pageRes.ok) {

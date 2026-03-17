@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FetcherResult } from "./utils";
-import { sleep, logPipelineRun, extractMainContent } from "./utils";
-import { GuidanceResponseSchema, type GuidanceDocument } from "./schemas/guidance-documents";
+import { logPipelineRun } from "./utils";
+import { GuidanceResponseSchema } from "./schemas/guidance-documents";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -16,9 +16,6 @@ const FDA_BASE = "https://www.fda.gov";
  */
 const GUIDANCE_JSON_URL =
   `${FDA_BASE}/files/api/datatables/static/search-for-guidance.json`;
-
-/** Delay between individual guidance page fetches (ms) */
-const PAGE_FETCH_DELAY_MS = 200;
 
 // ---------------------------------------------------------------------------
 // HTML parsing helpers
@@ -100,8 +97,8 @@ function extractDocketNumber(html: string): string | null {
  * Fetches FDA guidance documents from the static JSON endpoint.
  * All ~2,786 records come in a single request — no pagination needed.
  *
- * Backfill: processes all records, skips page fetch (too slow for 2K+ docs)
- * Incremental: processes all records, fetches individual pages for new items
+ * Inserts metadata only (no per-item page fetches). The enrichment pipeline's
+ * content-fetch step handles retrieving full page content via source_url.
  */
 export async function fetchGuidanceDocuments(
   supabase: SupabaseClient,
@@ -129,7 +126,10 @@ export async function fetchGuidanceDocuments(
 
   // 2. Fetch the full guidance JSON
   console.log(`[GD] Fetching static guidance JSON...`);
-  const res = await fetch(GUIDANCE_JSON_URL, { headers: { Accept: "application/json" } });
+  const res = await fetch(GUIDANCE_JSON_URL, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(120_000), // 2 min timeout — FDA servers can be slow
+  });
   if (!res.ok) {
     throw new Error(`[GD] Static JSON fetch failed: ${res.status} ${res.statusText}`);
   }
@@ -141,27 +141,37 @@ export async function fetchGuidanceDocuments(
   const docs = parsed.data;
   console.log(`[GD] Loaded ${docs.length} guidance documents`);
 
-  // 3. Batch load known source_refs for dedup (avoids N+1 queries)
-  const { data: existingRefs } = await supabase
-    .from("regulatory_items")
-    .select("source_ref")
-    .eq("source_id", sourceId);
-  const knownRefs = new Set(existingRefs?.map((r) => r.source_ref) ?? []);
+  // 3. Batch load known source_refs for dedup.
+  //    Supabase JS defaults to 1000 rows — paginate to get all refs.
+  const knownRefs = new Set<string>();
+  let page = 0;
+  const PAGE_SIZE = 1000;
+  while (true) {
+    const { data: refPage } = await supabase
+      .from("regulatory_items")
+      .select("source_ref")
+      .eq("source_id", sourceId)
+      .order("source_ref")
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    if (!refPage || refPage.length === 0) break;
+    for (const r of refPage) knownRefs.add(r.source_ref);
+    if (refPage.length < PAGE_SIZE) break;
+    page++;
+  }
+  console.log(`[GD] Loaded ${knownRefs.size} known source_refs for dedup`);
 
-  // 4. Process each document
+  // 4. Process each document — metadata only, no page fetches
   for (const doc of docs) {
     fetched++;
 
     const guidancePath = extractHref(doc.title);
     if (!guidancePath) {
-      // Some records may lack links
       continue;
     }
 
     const slug = slugFromPath(guidancePath);
     const title = extractText(doc.title) || "Unknown Guidance Document";
 
-    // Dedup check
     if (knownRefs.has(slug)) {
       skipped++;
       continue;
@@ -178,30 +188,7 @@ export async function fetchGuidanceDocuments(
     const issuingOffice = doc.field_issuing_office_taxonomy.trim() || null;
     const docketNumber = extractDocketNumber(doc.field_docket_number);
     const commentDeadline = parseGuidanceDate(doc.field_comment_close_date);
-
-    // Fetch individual guidance page for richer content — only in incremental mode.
-    // Backfill would take hours for 2K+ documents.
-    let rawContent = "";
-    let processingStatus: "ok" | "incomplete_source" =
-      params.mode === "backfill" ? "incomplete_source" : "ok";
     const guidanceUrl = `${FDA_BASE}${guidancePath}`;
-
-    if (params.mode === "incremental") {
-      try {
-        await sleep(PAGE_FETCH_DELAY_MS);
-        const pageRes = await fetch(guidanceUrl, { headers: { Accept: "text/html" } });
-        if (!pageRes.ok) {
-          console.warn(`[GD] Page ${guidanceUrl} → ${pageRes.status}`);
-          processingStatus = "incomplete_source";
-        } else {
-          const html = await pageRes.text();
-          rawContent = extractMainContent(html);
-        }
-      } catch (err) {
-        console.warn(`[GD] Error fetching page ${guidanceUrl}:`, err);
-        processingStatus = "incomplete_source";
-      }
-    }
 
     const itemRow = {
       source_id: sourceId,
@@ -213,9 +200,9 @@ export async function fetchGuidanceDocuments(
       issuing_office: issuingOffice,
       docket_number: docketNumber,
       comment_deadline: commentDeadline,
-      raw_content: rawContent || null,
+      raw_content: null,
       source_url: guidanceUrl,
-      processing_status: processingStatus,
+      processing_status: "ok" as const,
     };
 
     const { error: insertError } = await supabase
@@ -235,7 +222,7 @@ export async function fetchGuidanceDocuments(
     }
 
     created++;
-    knownRefs.add(slug); // Prevent duplicates within same run
+    knownRefs.add(slug);
   }
 
   // Log pipeline run

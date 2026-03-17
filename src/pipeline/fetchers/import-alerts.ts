@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FetcherResult } from "./utils";
-import { sleep, logPipelineRun, extractMainContent } from "./utils";
+import { logPipelineRun } from "./utils";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -8,9 +8,6 @@ import { sleep, logPipelineRun, extractMainContent } from "./utils";
 
 const IA_LIST_URL = "https://www.accessdata.fda.gov/cms_ia/ialist.html";
 const IA_BASE_URL = "https://www.accessdata.fda.gov/cms_ia/";
-
-/** Delay between individual alert page fetches (ms) */
-const PAGE_FETCH_DELAY_MS = 200;
 
 // ---------------------------------------------------------------------------
 // HTML parsing helpers
@@ -101,11 +98,9 @@ function parseImportAlertDate(raw: string): string | null {
 // ---------------------------------------------------------------------------
 
 /**
- * Fetches FDA import alerts from the listing page, then scrapes each
- * individual alert page for full content.
- *
- * Backfill: fetches all ~156 alerts
- * Incremental: fetches listing, skips known source_refs
+ * Fetches FDA import alerts from the listing page.
+ * Inserts metadata only — the enrichment pipeline's content-fetch step
+ * handles retrieving full page content via source_url.
  */
 export async function fetchImportAlerts(
   supabase: SupabaseClient,
@@ -133,7 +128,10 @@ export async function fetchImportAlerts(
 
   // 2. Fetch listing page
   console.log(`[IA] Fetching listing page...`);
-  const listRes = await fetch(IA_LIST_URL, { headers: { Accept: "text/html" } });
+  const listRes = await fetch(IA_LIST_URL, {
+    headers: { Accept: "text/html" },
+    signal: AbortSignal.timeout(60_000),
+  });
   if (!listRes.ok) {
     throw new Error(`[IA] Listing page fetch failed: ${listRes.status} ${listRes.statusText}`);
   }
@@ -145,55 +143,44 @@ export async function fetchImportAlerts(
     console.warn("[IA] No alerts parsed from listing page — HTML structure may have changed");
   }
 
-  // 3. Batch load known source_refs for dedup (avoids N+1 queries)
-  const { data: existingRefs } = await supabase
-    .from("regulatory_items")
-    .select("source_ref")
-    .eq("source_id", sourceId);
-  const knownRefs = new Set(existingRefs?.map((r) => r.source_ref) ?? []);
+  // 3. Batch load known source_refs for dedup.
+  //    Supabase JS defaults to 1000 rows — paginate to get all refs.
+  const knownRefs = new Set<string>();
+  let page = 0;
+  const PAGE_SIZE = 1000;
+  while (true) {
+    const { data: refPage } = await supabase
+      .from("regulatory_items")
+      .select("source_ref")
+      .eq("source_id", sourceId)
+      .order("source_ref")
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    if (!refPage || refPage.length === 0) break;
+    for (const r of refPage) knownRefs.add(r.source_ref);
+    if (refPage.length < PAGE_SIZE) break;
+    page++;
+  }
+  console.log(`[IA] Loaded ${knownRefs.size} known source_refs for dedup`);
 
-  // 4. Process each alert
+  // 4. Process each alert — metadata only, no page fetches
   for (const row of alertRows) {
     fetched++;
 
-    // Dedup check against batch-loaded refs
     if (knownRefs.has(row.alertNumber)) {
       skipped++;
       continue;
     }
 
-    // Skip items with no parseable date BEFORE fetching the page — don't waste HTTP requests
     if (!row.publishDate) {
       console.warn(`[IA] No parseable date for alert ${row.alertNumber}, skipping`);
       errors++;
       continue;
     }
 
-    // Fetch individual alert page for full content
     const alertUrl = row.detailPath.startsWith("http")
       ? row.detailPath
       : `${IA_BASE_URL}${row.detailPath.replace(/^\/?(cms_ia\/)?/, "")}`;
 
-    let rawContent = "";
-    let processingStatus: "ok" | "incomplete_source" = "ok";
-
-    try {
-      await sleep(PAGE_FETCH_DELAY_MS);
-      const pageRes = await fetch(alertUrl, { headers: { Accept: "text/html" } });
-
-      if (!pageRes.ok) {
-        console.warn(`[IA] Alert page ${alertUrl} → ${pageRes.status}`);
-        processingStatus = "incomplete_source";
-      } else {
-        const html = await pageRes.text();
-        rawContent = extractMainContent(html);
-      }
-    } catch (err) {
-      console.warn(`[IA] Error fetching alert page ${alertUrl}:`, err);
-      processingStatus = "incomplete_source";
-    }
-
-    // Build title: "Import Alert 16-131 — Title Here"
     const title = `Import Alert ${row.alertNumber} — ${row.title}`.slice(0, 500);
 
     const itemRow = {
@@ -204,9 +191,9 @@ export async function fetchImportAlerts(
       jurisdiction: "federal" as const,
       published_date: row.publishDate,
       issuing_office: "ORA",
-      raw_content: rawContent || null,
+      raw_content: null,
       source_url: alertUrl,
-      processing_status: processingStatus,
+      processing_status: "ok" as const,
     };
 
     const { error: insertError } = await supabase
@@ -226,6 +213,7 @@ export async function fetchImportAlerts(
     }
 
     created++;
+    knownRefs.add(row.alertNumber);
   }
 
   // Log pipeline run
