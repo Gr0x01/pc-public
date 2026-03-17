@@ -110,18 +110,19 @@ export async function generateWeeklySnapshot(
   weekStart?: Date,
   weekEnd?: Date,
 ): Promise<WeeklySnapshot> {
-  // Default to most recent Mon-Fri
-  const now = new Date();
+  // Default to most recent Mon-Fri, using UTC consistently
   if (!weekEnd) {
-    // Find last Friday (or today if Friday)
-    const day = now.getDay();
-    const daysToFri = day >= 5 ? day - 5 : day + 2;
-    weekEnd = new Date(now);
-    weekEnd.setDate(now.getDate() - daysToFri);
+    const now = new Date();
+    const utcDay = now.getUTCDay();
+    const daysToFri = utcDay >= 5 ? utcDay - 5 : utcDay + 2;
+    weekEnd = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysToFri, 12,
+    ));
   }
   if (!weekStart) {
-    weekStart = new Date(weekEnd);
-    weekStart.setDate(weekEnd.getDate() - 4); // Monday
+    weekStart = new Date(Date.UTC(
+      weekEnd.getUTCFullYear(), weekEnd.getUTCMonth(), weekEnd.getUTCDate() - 4, 12,
+    ));
   }
 
   const startStr = weekStart.toISOString().slice(0, 10);
