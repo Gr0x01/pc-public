@@ -6,8 +6,8 @@ export const weeklySnapshot = inngest.createFunction(
     id: "weekly-intelligence-snapshot",
     concurrency: [{ limit: 1 }],
   },
-  // Runs Friday at 2 PM UTC (10 AM ET), after the morning ingest
-  { cron: "0 14 * * 5" },
+  // Runs Friday at 1 PM UTC (9 AM ET) — before send-weekly-emails at 2 PM UTC
+  { cron: "0 13 * * 5" },
   async ({ step }) => {
     const snapshot = await step.run("generate-snapshot", async () => {
       return await generateWeeklySnapshot();

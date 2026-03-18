@@ -230,6 +230,23 @@ export async function fetchWarningLetters(
     let pageHadNewRecord = false;
     let pageErrorCount = 0;
 
+    // Batch dedup: pre-extract slugs and check all at once
+    const pageSlugs = rows
+      .filter((r) => r.length >= 7)
+      .map((r) => slugFromPath(extractHref(r[2] ?? "") ?? ""))
+      .filter(Boolean);
+    const existingSlugs = new Set<string>();
+    if (pageSlugs.length > 0) {
+      const { data: existingRows } = await supabase
+        .from("regulatory_items")
+        .select("source_ref")
+        .eq("source_id", sourceId)
+        .in("source_ref", pageSlugs);
+      for (const r of existingRows ?? []) {
+        existingSlugs.add(r.source_ref);
+      }
+    }
+
     for (const row of rows) {
       // Validate column count — FDA DataTables has 7 columns
       if (row.length < 7) {
@@ -269,15 +286,8 @@ export async function fetchWarningLetters(
         continue;
       }
 
-      // Quick dedup check against slug before fetching the letter page
-      const { data: existingBySlug } = await supabase
-        .from("regulatory_items")
-        .select("id")
-        .eq("source_id", sourceId)
-        .eq("source_ref", slug)
-        .maybeSingle();
-
-      if (existingBySlug) {
+      // Quick dedup check against slug (batch-loaded above)
+      if (existingSlugs.has(slug)) {
         skipped++;
         batchSkipped++;
         continue;

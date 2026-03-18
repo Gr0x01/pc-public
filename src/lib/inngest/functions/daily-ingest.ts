@@ -116,13 +116,16 @@ export const dailyIngest = inngest.createFunction(
     const allFetchResults = [frResult, enfResult, wlResult, rssResult, iaResult, gdResult, regsResult];
     const totalCreated = allFetchResults.reduce((sum, r) => sum + r.created, 0);
 
-    // Trigger enrichment as a separate Inngest function via event.
-    // This decouples enrichment from fetchers — a slow or failed fetcher
-    // can never block enrichment from running.
-    await step.sendEvent("trigger-enrichment", {
-      name: "pipeline/enrich.requested",
-      data: { limit: 100 },
-    });
+    // Trigger enrichment only if new items were fetched.
+    // Skips unnecessary DB scans when all fetchers returned 0 new items.
+    let enrichmentTriggered = false;
+    if (totalCreated > 0) {
+      await step.sendEvent("trigger-enrichment", {
+        name: "pipeline/enrich.requested",
+        data: { limit: 100 },
+      });
+      enrichmentTriggered = true;
+    }
 
     const summary = {
       fetchers: {
@@ -136,7 +139,7 @@ export const dailyIngest = inngest.createFunction(
       },
       totalCreated,
       totalErrors: allFetchResults.reduce((sum, r) => sum + r.errors, 0),
-      enrichmentTriggered: true,
+      enrichmentTriggered,
     };
 
     console.log("[daily-ingest] complete:", JSON.stringify(summary));

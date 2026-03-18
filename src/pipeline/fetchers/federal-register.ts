@@ -154,6 +154,7 @@ export async function fetchFederalRegister(
         try {
           const res = await fetch(buildListUrl(fromStr, toStr, page), {
             headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(30_000),
           });
           if (!res.ok) {
             throw new Error(`FR list API error: ${res.status} ${res.statusText}`);
@@ -207,6 +208,7 @@ export async function fetchFederalRegister(
           try {
             const res = await fetch(buildDetailUrl(doc.document_number), {
               headers: { Accept: "application/json" },
+              signal: AbortSignal.timeout(30_000),
             });
             if (res.ok) {
               const raw = await res.json();

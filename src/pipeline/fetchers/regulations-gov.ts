@@ -192,26 +192,36 @@ export async function fetchRegulationsGov(
 
       fetched += docs.length;
 
+      // Batch dedup: check all source_refs for this page in one query
+      const candidateRefs = docs
+        .filter((d) => !(d.attributes.frDocNum && FR_DEDUP_TYPES.has(d.attributes.documentType ?? "")))
+        .map((d) => d.id);
+      const frDedupCount = docs.length - candidateRefs.length;
+      skipped += frDedupCount;
+
+      const existingRefs = new Set<string>();
+      if (candidateRefs.length > 0) {
+        const { data: existingRows } = await supabase
+          .from("regulatory_items")
+          .select("source_ref")
+          .eq("source_id", sourceId)
+          .in("source_ref", candidateRefs);
+        for (const row of existingRows ?? []) {
+          existingRefs.add(row.source_ref);
+        }
+      }
+
       for (const doc of docs) {
         const attrs = doc.attributes;
 
         // FR dedup: skip if frDocNum exists and type is Rule/Proposed Rule/Notice
         if (attrs.frDocNum && FR_DEDUP_TYPES.has(attrs.documentType ?? "")) {
-          skipped++;
-          continue;
+          continue; // already counted above
         }
 
         const sourceRef = doc.id;
 
-        // Dedup check
-        const { data: existing } = await supabase
-          .from("regulatory_items")
-          .select("id")
-          .eq("source_id", sourceId)
-          .eq("source_ref", sourceRef)
-          .maybeSingle();
-
-        if (existing) {
+        if (existingRefs.has(sourceRef)) {
           skipped++;
           continue;
         }

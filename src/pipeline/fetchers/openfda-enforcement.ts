@@ -134,7 +134,7 @@ export async function fetchOpenFDAEnforcement(
         let pageData: ReturnType<typeof EnforcementResponseSchema.parse> | null = null;
 
         try {
-          const res = await fetch(url, { headers: { Accept: "application/json" } });
+          const res = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(30_000) });
 
           // openFDA returns 404 when there are no results for a window
           if (res.status === 404) {
