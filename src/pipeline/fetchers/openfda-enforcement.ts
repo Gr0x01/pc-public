@@ -198,13 +198,21 @@ export async function fetchOpenFDAEnforcement(
             published_date: publishedDate,
             raw_content: `${record.reason_for_recall}\n\n${record.product_description}`,
             processing_status: "ok" as const,
+            // Enforcement fields included in initial insert (no separate update)
+            enforcement_company_name: record.recalling_firm,
+            enforcement_recall_classification:
+              (record.classification as "Class I" | "Class II" | "Class III" | undefined) ??
+              null,
+            enforcement_recall_status: mapRecallStatus(record.status),
+            enforcement_voluntary_mandated: record.voluntary_mandated ?? null,
+            enforcement_distribution_pattern: record.distribution_pattern ?? null,
+            enforcement_product_quantity: record.product_quantity ?? null,
+            enforcement_products: [record.product_description],
           };
 
-          const { data: inserted, error: insertError } = await supabase
+          const { error: insertError } = await supabase
             .from("regulatory_items")
-            .insert(itemRow)
-            .select("id")
-            .single();
+            .insert(itemRow);
 
           if (insertError) {
             if (insertError.code === "23505") {
@@ -220,36 +228,7 @@ export async function fetchOpenFDAEnforcement(
             continue;
           }
 
-          if (!inserted) {
-            windowErrors++;
-            continue;
-          }
-
-          // Update enforcement fields on the regulatory_item
-          const { error: enfError } = await supabase
-            .from("regulatory_items")
-            .update({
-              enforcement_company_name: record.recalling_firm,
-              enforcement_recall_classification:
-                (record.classification as "Class I" | "Class II" | "Class III" | undefined) ??
-                null,
-              enforcement_recall_status: mapRecallStatus(record.status),
-              enforcement_voluntary_mandated: record.voluntary_mandated ?? null,
-              enforcement_distribution_pattern: record.distribution_pattern ?? null,
-              enforcement_product_quantity: record.product_quantity ?? null,
-              enforcement_products: [record.product_description],
-            })
-            .eq("id", inserted.id);
-
-          if (enfError) {
-            console.error(
-              `[openFDA] enforcement fields update error for ${sourceRef}:`,
-              enfError.message
-            );
-            windowErrors++;
-          } else {
-            windowCreated++;
-          }
+          windowCreated++;
         }
 
         // Guard against infinite loop: if API returns 0 results on a non-404 response

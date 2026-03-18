@@ -1,5 +1,9 @@
 import { inngest } from "../client";
-import { getActiveSubscribers } from "@/lib/email/queries";
+import {
+  getActiveSubscribers,
+  createCampaign,
+  updateCampaignStatus,
+} from "@/lib/email/queries";
 import {
   generateWeeklyContent,
   sendPaidBriefings,
@@ -32,20 +36,44 @@ export const sendWeeklyEmails = inngest.createFunction(
     );
     paidResults.total = subscribers.length;
 
-    // Step 3: Send paid briefings in batches (each batch is its own step
+    // Step 3: Create one campaign for all paid briefings
+    const paidCampaignId = subscribers.length > 0
+      ? await step.run("create-paid-campaign", () =>
+          createCampaign({
+            campaign_type: "weekly_paid",
+            subject_line: "Weekly Product Intelligence Briefing",
+            html_content: "",
+            period_start: digestData.period.start,
+            period_end: digestData.period.end,
+            recipient_count: subscribers.length,
+          })
+        )
+      : null;
+
+    // Step 4: Send paid briefings in batches (each batch is its own step
     // with independent retry and timeout)
     for (let i = 0; i < subscribers.length; i += PAID_BATCH_SIZE) {
       const batch = subscribers.slice(i, i + PAID_BATCH_SIZE);
       const batchNum = Math.floor(i / PAID_BATCH_SIZE) + 1;
       const batchResult = await step.run(
         `send-paid-batch-${batchNum}`,
-        () => sendPaidBriefings(batch)
+        () => sendPaidBriefings(batch, paidCampaignId)
       );
       paidResults.sent += batchResult.sent;
       paidResults.failed += batchResult.failed;
     }
 
-    // Step 4: Send free newsletters (same content, per-subscriber unsub)
+    // Step 5: Update campaign status
+    if (paidCampaignId) {
+      await step.run("update-paid-campaign-status", () =>
+        updateCampaignStatus(
+          paidCampaignId,
+          paidResults.failed === paidResults.total ? "failed" : "sent"
+        )
+      );
+    }
+
+    // Step 6: Send free newsletters (same content, per-subscriber unsub)
     const freeResults = await step.run(
       "send-free-newsletters",
       () => sendFreeNewsletters(digestData, newsletterContent)

@@ -1,6 +1,11 @@
 import { NextRequest } from "next/server";
 import { timingSafeEqual } from "crypto";
 import {
+  getActiveSubscribers,
+  createCampaign,
+  updateCampaignStatus,
+} from "@/lib/email/queries";
+import {
   generateWeeklyContent,
   sendPaidBriefings,
   sendFreeNewsletters,
@@ -33,8 +38,24 @@ export async function POST(request: NextRequest) {
 
   const { digestData, newsletterContent } = await generateWeeklyContent();
 
-  // Sequential: paid first so a dual-subscribed user doesn't get both simultaneously
-  const paid = await sendPaidBriefings();
+  // Create one campaign for all paid briefings, then send
+  const subscribers = await getActiveSubscribers();
+  const paidCampaignId = subscribers.length > 0
+    ? await createCampaign({
+        campaign_type: "weekly_paid",
+        subject_line: "Weekly Product Intelligence Briefing",
+        html_content: "",
+        period_start: digestData.period.start,
+        period_end: digestData.period.end,
+        recipient_count: subscribers.length,
+      })
+    : null;
+
+  const paid = await sendPaidBriefings(subscribers, paidCampaignId);
+  if (paidCampaignId) {
+    await updateCampaignStatus(paidCampaignId, paid.failed === paid.total ? "failed" : "sent");
+  }
+
   const free = await sendFreeNewsletters(digestData, newsletterContent);
 
   const results = { paid, free };

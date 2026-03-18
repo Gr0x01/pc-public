@@ -361,13 +361,19 @@ export async function fetchWarningLetters(
         raw_content: rawContent || null,
         source_url: letterUrl,
         processing_status: processingStatus,
+        // Enforcement fields included in initial insert (no separate update)
+        enforcement_company_name: companyName,
+        enforcement_company_address: companyAddress ?? null,
+        enforcement_marcs_cms_number: marcsNumber ?? null,
+        enforcement_recipient_name: recipientName ?? null,
+        enforcement_recipient_title: recipientTitle ?? null,
+        enforcement_response_received: parseYesNo(responseLetterRaw),
+        enforcement_closeout: parseYesNo(closeoutLetterRaw),
       };
 
-      const { data: inserted, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from("regulatory_items")
-        .insert(itemRow)
-        .select("id")
-        .single();
+        .insert(itemRow);
 
       if (insertError) {
         if (insertError.code === "23505") {
@@ -382,40 +388,9 @@ export async function fetchWarningLetters(
         continue;
       }
 
-      if (!inserted) {
-        batchErrors++;
-        errors++;
-        pageErrorCount++;
-        continue;
-      }
-
       pageHadNewRecord = true;
-
-      // Update enforcement fields on the regulatory_item
-      const { error: enfError } = await supabase
-        .from("regulatory_items")
-        .update({
-          enforcement_company_name: companyName,
-          enforcement_company_address: companyAddress ?? null,
-          enforcement_marcs_cms_number: marcsNumber ?? null,
-          enforcement_recipient_name: recipientName ?? null,
-          enforcement_recipient_title: recipientTitle ?? null,
-          enforcement_response_received: parseYesNo(responseLetterRaw),
-          enforcement_closeout: parseYesNo(closeoutLetterRaw),
-        })
-        .eq("id", inserted.id);
-
-      if (enfError) {
-        console.error(
-          `[WL] enforcement fields update error for ${sourceRef}:`,
-          enfError.message
-        );
-        batchErrors++;
-        errors++;
-      } else {
-        created++;
-        batchCreated++;
-      }
+      created++;
+      batchCreated++;
     }
 
     // Incremental: stop early only if no new records AND no errors on this page

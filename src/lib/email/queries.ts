@@ -374,6 +374,7 @@ export async function createCampaign(params: {
   period_start?: string;
   period_end?: string;
   recipient_count: number;
+  reference_item_id?: string;
 }): Promise<string | null> {
   const { data, error } = await adminClient
     .from("email_campaigns")
@@ -385,6 +386,7 @@ export async function createCampaign(params: {
       period_start: params.period_start ?? null,
       period_end: params.period_end ?? null,
       recipient_count: params.recipient_count,
+      reference_item_id: params.reference_item_id ?? null,
       status: "sending",
     })
     .select("id")

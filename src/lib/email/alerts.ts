@@ -35,15 +35,13 @@ export async function sendUrgentAlerts(itemId: string): Promise<number> {
   }
 
   // 2. Idempotency: skip if we already successfully sent alerts for this item.
-  //    DEDUP CONTRACT: urgent_alert campaigns store the bare regulatory item UUID
-  //    in `html_content` (NOT rendered HTML). This field is used solely for
-  //    dedup lookup — do NOT store actual HTML here for urgent_alert campaigns.
+  //    Uses dedicated reference_item_id column for dedup (not html_content).
   //    Failed campaigns are excluded so retries work after transient failures.
   const { count: existingCount } = await adminClient
     .from("email_campaigns")
     .select("id", { count: "exact", head: true })
     .eq("campaign_type", "urgent_alert")
-    .eq("html_content", itemId)
+    .eq("reference_item_id", itemId)
     .eq("status", "sent");
 
   if (existingCount && existingCount > 0) {
@@ -92,8 +90,9 @@ export async function sendUrgentAlerts(itemId: string): Promise<number> {
   const campaignId = await createCampaign({
     campaign_type: "urgent_alert",
     subject_line: `Alert: ${item.title}`,
-    html_content: itemId, // bare itemId for dedup lookup (see DEDUP CONTRACT above)
+    html_content: "",
     recipient_count: sendableVerdicts.length,
+    reference_item_id: itemId,
   });
 
   // 7. Send one alert per user-product pair

@@ -57,7 +57,8 @@ export async function generateWeeklyContent(): Promise<WeeklyContentResult> {
 // ---------------------------------------------------------------------------
 
 export async function sendPaidBriefings(
-  subscribers?: EmailSubscriber[]
+  subscribers?: EmailSubscriber[],
+  campaignId?: string | null,
 ): Promise<SendResults> {
   const results: SendResults = { total: 0, sent: 0, failed: 0 };
   const subs = subscribers ?? await getActiveSubscribers();
@@ -73,15 +74,6 @@ export async function sendPaidBriefings(
       }
 
       const { subject, html } = await compileBriefing(briefingData);
-
-      const campaignId = await createCampaign({
-        campaign_type: "weekly_paid",
-        subject_line: subject,
-        html_content: html,
-        period_start: briefingData.period.start,
-        period_end: briefingData.period.end,
-        recipient_count: 1,
-      });
 
       const unsubUrl = `${SITE_URL}/api/email/unsubscribe?token=${sub.email_unsubscribe_token}`;
       const result = await sendEmail({
@@ -101,10 +93,6 @@ export async function sendPaidBriefings(
           provider_message_id: result.messageId,
           status: result.success ? "sent" : "failed",
         });
-        await updateCampaignStatus(
-          campaignId,
-          result.success ? "sent" : "failed"
-        );
       }
 
       if (result.success) {
