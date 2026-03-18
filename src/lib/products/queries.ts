@@ -429,13 +429,17 @@ export async function getFeedItems(
   const { type, range, myProducts, showArchived } = filters;
 
   // When myProducts is on, pre-fetch item IDs that have relevant verdicts
+  // Bounded to last 180 days to avoid unbounded query + PostgREST URL limits
   let myProductItemIds: string[] | null = null;
   if (myProducts) {
+    const verdictFloor = new Date();
+    verdictFloor.setDate(verdictFloor.getDate() - 180);
     const { data: verdictRows } = await adminClient
       .from("product_match_verdicts")
       .select("item_id")
       .eq("user_id", userId)
-      .eq("relevant", true);
+      .eq("relevant", true)
+      .gte("evaluated_at", verdictFloor.toISOString());
 
     myProductItemIds = [...new Set((verdictRows ?? []).map((r) => r.item_id))];
     if (myProductItemIds.length === 0) {

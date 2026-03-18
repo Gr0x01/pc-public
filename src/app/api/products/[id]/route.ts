@@ -3,7 +3,6 @@ import { adminClient } from "@/lib/supabase/admin";
 import { getProductById, getProductVerdicts, getIngredientUseCodes, resolveIngredients, replaceProductIngredients } from "@/lib/products/queries";
 import { UpdateProductSchema } from "@/lib/products/types";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { invalidateUserMatches } from "@/lib/products/matches";
 import { evaluateProductHistory } from "@/lib/products/verdicts";
 import { classifyProduct } from "@/lib/products/classify";
 import { track } from "@/lib/analytics";
@@ -182,7 +181,6 @@ export async function PATCH(
     }
 
     // Re-evaluate verdicts with new ingredients (non-blocking)
-    invalidateUserMatches(userId);
     if (ingredientCount > 0) {
       evaluateProductHistory(id, userId).catch((err) =>
         console.error("[products] verdict re-evaluation error:", err)
@@ -316,8 +314,6 @@ export async function DELETE(
       { status: 404 }
     );
   }
-
-  invalidateUserMatches(userId);
 
   track(userId, "product_deleted", { product_id: id });
 

@@ -299,34 +299,36 @@ export async function enrichItem(
 
     const enrichmentId = enrichmentRow.id as string;
 
-    // 11. UPSERT item_categories (topic tags)
-    for (const topic of validTopics) {
-      const categoryId = categoryIdMap.topics[topic.slug];
-      if (!categoryId) continue;
-
-      const { error: catErr } = await supabase.from("item_categories").upsert(
-        {
-          item_id: item.id,
-          category_id: categoryId,
-          confidence: topic.confidence,
-        },
-        { onConflict: "item_id,category_id" }
-      );
-      if (catErr) throw new Error(`item_categories upsert (${topic.slug}): ${catErr.message}`);
+    // 11. UPSERT item_categories (topic tags) — batched
+    const catRows = validTopics
+      .filter((t) => categoryIdMap.topics[t.slug])
+      .map((t) => ({
+        item_id: item.id,
+        category_id: categoryIdMap.topics[t.slug],
+        confidence: t.confidence,
+      }));
+    if (catRows.length > 0) {
+      const { error: catErr } = await supabase
+        .from("item_categories")
+        .upsert(catRows, { onConflict: "item_id,category_id" });
+      if (catErr) throw new Error(`item_categories batch upsert: ${catErr.message}`);
     }
 
-    // 13. INSERT regulatory_item_substances
-    for (const resolved of resolvedSubstances) {
-      const { error: subErr } = await supabase.from("regulatory_item_substances").insert({
-        regulatory_item_id: item.id,
-        substance_id: resolved.substance_id,
-        raw_substance_name: resolved.ingredient,
-        match_status: resolved.match_status,
-        extraction_method: "llm_extraction",
-        confidence: output.confidence,
-      });
+    // 13. INSERT regulatory_item_substances — batched
+    const subRows = resolvedSubstances.map((r) => ({
+      regulatory_item_id: item.id,
+      substance_id: r.substance_id,
+      raw_substance_name: r.ingredient,
+      match_status: r.match_status,
+      extraction_method: "llm_extraction" as const,
+      confidence: output.confidence,
+    }));
+    if (subRows.length > 0) {
+      const { error: subErr } = await supabase
+        .from("regulatory_item_substances")
+        .insert(subRows);
       if (subErr) {
-        console.warn(`  substance insert failed (${resolved.ingredient}): ${subErr.message}`);
+        console.warn(`  substance batch insert failed: ${subErr.message}`);
       }
     }
 
@@ -382,17 +384,18 @@ export async function enrichItem(
       if (tagErr) throw new Error(`item_enrichment_tags insert: ${tagErr.message}`);
     }
 
-    // 15. INSERT item_citations
-    for (const citation of verifiedCitations) {
-      const { error: citErr } = await supabase.from("item_citations").insert({
+    // 15. INSERT item_citations — batched
+    if (verifiedCitations.length > 0) {
+      const citRows = verifiedCitations.map((c) => ({
         item_id: item.id,
         enrichment_id: enrichmentId,
-        claim_text: citation.claim_text,
-        quote_text: citation.quote_text,
-        source_section: citation.source_section,
-        quote_verified: citation.verified,
-      });
-      if (citErr) throw new Error(`item_citations insert: ${citErr.message}`);
+        claim_text: c.claim_text,
+        quote_text: c.quote_text,
+        source_section: c.source_section,
+        quote_verified: c.verified,
+      }));
+      const { error: citErr } = await supabase.from("item_citations").insert(citRows);
+      if (citErr) throw new Error(`item_citations batch insert: ${citErr.message}`);
     }
 
     // 16. UPDATE regulatory_items processing_status → enriched

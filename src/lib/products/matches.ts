@@ -25,39 +25,6 @@ export interface ProductMatch {
 }
 
 // ---------------------------------------------------------------------------
-// Cache — simple TTL map, keyed by userId + since
-// ---------------------------------------------------------------------------
-
-const cache = new Map<string, { data: ProductMatch[]; expires: number }>();
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
-
-function getCached(key: string): ProductMatch[] | null {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (Date.now() > entry.expires) {
-    cache.delete(key);
-    return null;
-  }
-  return entry.data;
-}
-
-function setCache(key: string, data: ProductMatch[]) {
-  cache.set(key, { data, expires: Date.now() + CACHE_TTL_MS });
-}
-
-/** Clear cached matches for a user (call when they add/remove products). */
-export function invalidateUserMatches(userId: string) {
-  for (const key of cache.keys()) {
-    if (key.startsWith(userId)) cache.delete(key);
-  }
-}
-
-/** Clear all cached matches (call after enrichment batch completes). */
-export function invalidateAllMatches() {
-  cache.clear();
-}
-
-// ---------------------------------------------------------------------------
 // RPC result row types
 // ---------------------------------------------------------------------------
 
@@ -70,11 +37,10 @@ interface SubstanceRow {
   product_id: string;
   product_name: string;
   ingredient_name: string;
-  substance_id: string;
+  substance_item_count: number;
   summary: string | null;
   regulatory_action_type: string | null;
   deadline: string | null;
-  substance_item_count: number; // how many reg items mention this substance
 }
 
 interface CategoryRow {
@@ -154,16 +120,13 @@ function computeRelevance(
  * Combines substance matches (ingredient-level) and category matches,
  * scored by relevance (substance specificity + category overlap + action type).
  *
- * Results are cached for 15 minutes per user and sorted by relevance desc.
+ * No cross-request caching — RPC calls are fast (~4ms) and in-memory caches
+ * do not work reliably across Vercel serverless isolates.
  */
 export async function getMatchesForUser(
   userId: string,
   since?: Date
 ): Promise<ProductMatch[]> {
-  const cacheKey = `${userId}:${since?.toISOString() ?? "all"}`;
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
-
   const sinceParam = since ? since.toISOString().split("T")[0] : null;
 
   const [substanceRes, categoryRes] = await Promise.all([
@@ -285,7 +248,5 @@ export async function getMatchesForUser(
     return new Date(b.published_date).getTime() - new Date(a.published_date).getTime();
   });
 
-  setCache(cacheKey, results);
   return results;
 }
-

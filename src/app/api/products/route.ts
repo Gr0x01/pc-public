@@ -10,7 +10,6 @@ import {
 } from "@/lib/products/queries";
 import { CreateProductSchema } from "@/lib/products/types";
 import { evaluateProductHistory } from "@/lib/products/verdicts";
-import { invalidateUserMatches } from "@/lib/products/matches";
 import { classifyProduct } from "@/lib/products/classify";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
@@ -221,8 +220,7 @@ export async function POST(request: Request) {
     ingredientCount = await ingestParsedIngredients(product.id, parsed_ingredients);
   }
 
-  // 8. Invalidate match cache + evaluate historical regulatory items (non-blocking)
-  invalidateUserMatches(userId);
+  // 8. Evaluate historical regulatory items against new product (non-blocking)
   if (ingredientCount > 0) {
     evaluateProductHistory(product.id, userId).catch((err) =>
       console.error("[products] verdict evaluation error:", err)
