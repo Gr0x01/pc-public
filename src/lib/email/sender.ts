@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { Resend } from "resend";
 import { FROM_ADDRESS, REPLY_TO } from "./constants";
 
@@ -53,6 +54,10 @@ export async function sendEmail(params: SendEmailParams): Promise<SendResult> {
     });
 
     if (error) {
+      Sentry.captureException(new Error(`Resend API error: ${error.message}`), {
+        tags: { service: "email", provider: "resend" },
+        extra: { to_domain: params.to.split("@")[1], subject: params.subject },
+      });
       console.error("[email-sender] Resend error:", error);
       return { success: false, error: error.message };
     }
@@ -60,6 +65,10 @@ export async function sendEmail(params: SendEmailParams): Promise<SendResult> {
     return { success: true, messageId: data?.id };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown send error";
+    Sentry.captureException(err, {
+      tags: { service: "email", provider: "resend" },
+      extra: { to_domain: params.to.split("@")[1], subject: params.subject },
+    });
     console.error("[email-sender] send failed:", msg);
     return { success: false, error: msg };
   }

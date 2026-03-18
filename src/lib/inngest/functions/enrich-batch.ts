@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { inngest } from "../client";
 import { runEnrichment } from "@/pipeline/enrichment/runner";
 
@@ -20,6 +21,7 @@ export const enrichBatch = inngest.createFunction(
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        Sentry.captureException(err, { tags: { pipeline: "enrich-batch" } });
         console.error("[enrich-batch] enrichment failed:", msg.slice(0, 500));
         return { processed: 0, enriched: 0, embedded: 0, contentFetched: 0, crossReferenced: 0, verdicts: 0, alertsQueued: 0, errors: 1, skipped: 0, durationMs: 0, error: msg.slice(0, 500) };
       }

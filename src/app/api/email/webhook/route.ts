@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextRequest } from "next/server";
 import { timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
 import { adminClient } from "@/lib/supabase/admin";
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
     const event: ResendWebhookEvent = JSON.parse(body);
     await handleEvent(event);
   } catch (err) {
+    Sentry.captureException(err, { tags: { service: "email", handler: "webhook" } });
     console.error("[email/webhook] Error processing event:", err);
   }
 

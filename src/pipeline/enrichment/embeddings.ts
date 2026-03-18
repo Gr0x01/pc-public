@@ -132,7 +132,10 @@ export async function generateItemEmbeddings(
       };
     });
 
-    await supabase.from("item_chunks").insert(rows);
+    const { error: insertErr } = await supabase.from("item_chunks").insert(rows);
+    if (insertErr) {
+      throw new Error(`item_chunks insert failed: ${insertErr.message}`);
+    }
 
     // Rate limit: pause between batches (not after the last one)
     if (batchStart + BATCH_SIZE < chunks.length) {

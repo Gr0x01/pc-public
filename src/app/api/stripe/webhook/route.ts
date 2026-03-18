@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
   try {
     event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
+    Sentry.captureException(err, { tags: { service: "stripe", handler: "webhook", step: "signature-verification" } });
     console.error("[stripe/webhook] Signature verification failed:", err);
     return new Response("Invalid signature", { status: 400 });
   }
@@ -60,6 +62,10 @@ export async function POST(request: NextRequest) {
     }
   } catch (err) {
     // Log but still return 200 — Stripe shouldn't retry on our DB errors
+    Sentry.captureException(err, {
+      tags: { service: "stripe", handler: "webhook" },
+      extra: { event_type: event.type, event_id: event.id },
+    });
     console.error(`[stripe/webhook] Error processing ${event.type} (${event.id}):`, err);
   }
 

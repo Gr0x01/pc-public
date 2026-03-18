@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { adminClient } from "@/lib/supabase/admin";
 import { compileAlert } from "./compiler";
 import { sendEmail } from "./sender";
@@ -152,6 +153,10 @@ export async function sendUrgentAlerts(itemId: string): Promise<number> {
         console.error(`[alerts] Failed for user ${verdict.user_id}:`, result.error);
       }
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { service: "email", campaign: "urgent_alert" },
+        extra: { product_id: verdict.product_id, user_id: verdict.user_id, item_id: itemId },
+      });
       console.error(
         `[alerts] Error sending alert for product ${verdict.product_id}:`,
         err instanceof Error ? err.message : err

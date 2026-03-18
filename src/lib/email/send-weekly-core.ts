@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import {
   getActiveSubscribers,
   getNewsletterSubscribers,
@@ -103,10 +104,18 @@ export async function sendPaidBriefings(
         results.sent++;
       } else {
         results.failed++;
+        Sentry.captureMessage(`Paid briefing send failed for user ${sub.user_id}: ${result.error}`, {
+          level: "error",
+          tags: { service: "email", campaign: "weekly_paid" },
+        });
         console.error(`[send-weekly] Failed for ${sub.email}:`, result.error);
       }
     } catch (err) {
       results.failed++;
+      Sentry.captureException(err, {
+        tags: { service: "email", campaign: "weekly_paid" },
+        extra: { user_id: sub.user_id },
+      });
       console.error(`[send-weekly] Error for subscriber ${sub.user_id}:`, err);
     }
   }
@@ -183,6 +192,10 @@ export async function sendFreeNewsletters(
       }
     } catch (err) {
       results.failed++;
+      Sentry.captureException(err, {
+        tags: { service: "email", campaign: "weekly_free" },
+        extra: { subscriber_id: sub.id },
+      });
       console.error(`[send-weekly] Newsletter error for ${sub.email}:`, err);
     }
   }

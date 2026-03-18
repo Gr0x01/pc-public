@@ -9,6 +9,7 @@
  * Concurrency controlled via p-limit (default: 5 parallel items).
  */
 
+import * as Sentry from "@sentry/nextjs";
 import pLimit from "p-limit";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -180,6 +181,7 @@ export async function runEnrichment(
         await generateItemEmbeddings(item, supabase, openaiApiKey);
         counters.embedded++;
       } catch (embErr) {
+        Sentry.captureException(embErr, { tags: { pipeline: "enrichment", step: "embeddings" }, extra: { item_id: item.id } });
         const msg = embErr instanceof Error ? embErr.message : String(embErr);
         console.log(`${label} enriched (embedding failed: ${msg})`);
       }
@@ -194,6 +196,7 @@ export async function runEnrichment(
           console.log(`${label} done`);
         }
       } catch (verdictErr) {
+        Sentry.captureException(verdictErr, { tags: { pipeline: "enrichment", step: "verdicts" }, extra: { item_id: item.id } });
         const msg = verdictErr instanceof Error ? verdictErr.message : String(verdictErr);
         console.log(`${label} enriched (verdict eval failed: ${msg})`);
       }
@@ -219,6 +222,7 @@ export async function runEnrichment(
           }
         }
       } catch (alertErr) {
+        Sentry.captureException(alertErr, { tags: { pipeline: "enrichment", step: "alert-queue" }, extra: { item_id: item.id } });
         const alertMsg = alertErr instanceof Error ? alertErr.message : String(alertErr);
         console.error(`${label} alert queue failed: ${alertMsg}`);
       }
@@ -228,6 +232,7 @@ export async function runEnrichment(
         await flagIntelligencePagesForRefresh(item.id);
       } catch (refreshErr) {
         // Non-fatal — page refresh is best-effort
+        Sentry.captureException(refreshErr, { tags: { pipeline: "enrichment", step: "intel-refresh" }, extra: { item_id: item.id } });
         const msg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr);
         console.error(`${label} intel page refresh flag failed: ${msg}`);
       }

@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { generateText } from "ai";
 import { render } from "@react-email/components";
 import { claudeSonnet } from "@/lib/ai/anthropic";
@@ -186,6 +187,7 @@ Total items reviewed this week: ${data.total_items_reviewed}`,
 
     return text.trim() || undefined;
   } catch (err) {
+    Sentry.captureException(err, { tags: { service: "email", step: "editorial-generation" } });
     console.error("[email-compiler] editorial generation failed:", err);
     return undefined;
   }
@@ -238,6 +240,7 @@ Context: This week saw ${data.total_items} total regulatory actions.`,
       source_url: topItem.source_url ?? undefined,
     };
   } catch (err) {
+    Sentry.captureException(err, { tags: { service: "email", step: "lead-story-generation" } });
     console.error("[email-compiler] lead story generation failed:", err);
     return null;
   }
@@ -284,6 +287,7 @@ Pick one compelling number from this week's data.`,
       context: lines.slice(1).join(" ").trim(),
     };
   } catch (err) {
+    Sentry.captureException(err, { tags: { service: "email", step: "the-number-generation" } });
     console.error("[email-compiler] the_number generation failed:", err);
     return null;
   }
