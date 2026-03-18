@@ -100,11 +100,11 @@ export async function getActiveSubscribers(): Promise<EmailSubscriber[]> {
 // ---------------------------------------------------------------------------
 
 export async function getNewsletterSubscribers(): Promise<
-  Array<{ id: string; email: string; first_name: string | null; unsubscribe_token: string | null }>
+  Array<{ id: string; email: string; unsubscribe_token: string | null }>
 > {
   const { data, error } = await adminClient
     .from("email_subscribers")
-    .select("id, email, first_name, unsubscribe_token")
+    .select("id, email, unsubscribe_token")
     .eq("status", "active");
 
   if (error) {
