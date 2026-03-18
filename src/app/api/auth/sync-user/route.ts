@@ -21,6 +21,13 @@ export async function POST() {
     );
   }
 
+  if (!user.email) {
+    return NextResponse.json(
+      { error: { message: "No email on auth user" } },
+      { status: 400 }
+    );
+  }
+
   const meta = user.user_metadata ?? {};
 
   // Check if user already exists — only grant pilot access on first login
@@ -34,11 +41,15 @@ export async function POST() {
     // Existing user — update email only, preserve onboarding profile data
     const { error: updateError } = await adminClient
       .from("users")
-      .update({ email: user.email! })
+      .update({ email: user.email })
       .eq("id", user.id);
 
     if (updateError) {
       console.error("[auth/sync-user] users update failed:", updateError.message);
+      return NextResponse.json(
+        { error: { message: "Failed to sync user" } },
+        { status: 500 }
+      );
     }
   } else {
     // New user — grant pilot access
@@ -46,7 +57,7 @@ export async function POST() {
 
     const { error: insertError } = await adminClient.from("users").insert({
       id: user.id,
-      email: user.email!,
+      email: user.email,
       first_name: meta.first_name ?? null,
       last_name: meta.last_name ?? null,
       company_name: meta.company_name ?? null,
@@ -59,14 +70,18 @@ export async function POST() {
 
     if (insertError) {
       console.error("[auth/sync-user] users insert failed:", insertError.message);
+      return NextResponse.json(
+        { error: { message: "Failed to sync user" } },
+        { status: 500 }
+      );
     }
   }
 
-  // Link email_subscribers to this user
+  // Link email_subscribers to this user (non-fatal)
   const { error: linkError } = await adminClient
     .from("email_subscribers")
     .update({ user_id: user.id })
-    .eq("email", user.email!)
+    .eq("email", user.email)
     .is("user_id", null);
 
   if (linkError) {

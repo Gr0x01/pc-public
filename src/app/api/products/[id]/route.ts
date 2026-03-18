@@ -33,6 +33,13 @@ export async function GET(
     userId = user.id;
   }
 
+  if (!(await checkRateLimit(`products:detail:${userId}`, 30))) {
+    return Response.json(
+      { error: { message: "Too many requests. Please wait a moment." } },
+      { status: 429 }
+    );
+  }
+
   const { id } = await params;
   if (!UUID_RE.test(id)) {
     return Response.json(

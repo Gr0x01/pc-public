@@ -134,13 +134,17 @@ async function handleEvent(event: ResendWebhookEvent): Promise<void> {
           .eq("id", sendRecord.id);
       }
 
-      // Deactivate newsletter subscriber
+      // Deactivate newsletter subscriber + paid user email
       if (email) {
         await adminClient
           .from("email_subscribers")
           .update({ status: "unsubscribed" })
           .eq("email", email);
-        console.warn(`[email/webhook] ${status}: deactivated subscriber ${email}`);
+        await adminClient
+          .from("users")
+          .update({ email_opted_out: true })
+          .eq("email", email);
+        console.warn(`[email/webhook] ${status}: deactivated subscriber + user ${email}`);
       }
 
       trackEmailEvent(`email_${status}`, sendRecord, email, event);

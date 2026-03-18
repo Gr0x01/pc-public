@@ -12,12 +12,12 @@ export async function POST() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
   }
 
   if (!(await checkRateLimit(`portal:${user.id}`, 10))) {
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment." },
+      { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }
     );
   }
@@ -31,7 +31,7 @@ export async function POST() {
 
   if (!dbUser?.stripe_customer_id) {
     return NextResponse.json(
-      { error: "No billing account found" },
+      { error: { message: "No billing account found" } },
       { status: 400 }
     );
   }
@@ -48,7 +48,7 @@ export async function POST() {
   } catch (err) {
     console.error("[stripe/portal] Failed to create portal session:", err);
     return NextResponse.json(
-      { error: "Failed to create billing session" },
+      { error: { message: "Failed to create billing session" } },
       { status: 500 }
     );
   }

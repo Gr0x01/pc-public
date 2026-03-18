@@ -13,19 +13,19 @@ export async function POST() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
   }
 
   if (!(await checkRateLimit(`checkout:${user.id}`, 5))) {
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment." },
+      { error: { message: "Too many requests. Please wait a moment." } },
       { status: 429 }
     );
   }
 
   if (!user.email) {
     return NextResponse.json(
-      { error: "Account has no email address" },
+      { error: { message: "Account has no email address" } },
       { status: 400 }
     );
   }
@@ -35,7 +35,7 @@ export async function POST() {
   if (!priceId) {
     console.error("[stripe/checkout] STRIPE_PRICE_MONITOR not configured");
     return NextResponse.json(
-      { error: "Server misconfigured" },
+      { error: { message: "Server misconfigured" } },
       { status: 500 }
     );
   }
@@ -53,7 +53,7 @@ export async function POST() {
     dbUser?.access_level === "monitor_research"
   ) {
     return NextResponse.json(
-      { error: "Already subscribed" },
+      { error: { message: "Already subscribed" } },
       { status: 400 }
     );
   }
@@ -86,7 +86,7 @@ export async function POST() {
         } else {
           console.error("[stripe/checkout] Failed to persist stripe_customer_id:", updateError.message);
           return NextResponse.json(
-            { error: "Failed to set up billing" },
+            { error: { message: "Failed to set up billing" } },
             { status: 500 }
           );
         }
@@ -116,7 +116,7 @@ export async function POST() {
   } catch (err) {
     console.error("[stripe/checkout] Unexpected error:", err);
     return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
+      { error: { message: "Something went wrong. Please try again." } },
       { status: 500 }
     );
   }
