@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextRequest } from "next/server";
 import { timingSafeEqual } from "crypto";
 import {
@@ -50,6 +51,13 @@ export async function POST(request: NextRequest) {
         recipient_count: subscribers.length,
       })
     : null;
+
+  if (subscribers.length > 0 && !paidCampaignId) {
+    Sentry.captureMessage("Paid campaign creation failed — sends will proceed without audit trail", {
+      level: "warning",
+      tags: { service: "email", campaign: "weekly_paid" },
+    });
+  }
 
   const paid = await sendPaidBriefings(subscribers, paidCampaignId);
   if (paidCampaignId) {

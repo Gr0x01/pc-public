@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { inngest } from "../client";
 import {
   getActiveSubscribers,
@@ -49,6 +50,13 @@ export const sendWeeklyEmails = inngest.createFunction(
           })
         )
       : null;
+
+    if (subscribers.length > 0 && !paidCampaignId) {
+      Sentry.captureMessage("Paid campaign creation failed — sends will proceed without audit trail", {
+        level: "warning",
+        tags: { service: "email", campaign: "weekly_paid" },
+      });
+    }
 
     // Step 4: Send paid briefings in batches (each batch is its own step
     // with independent retry and timeout)

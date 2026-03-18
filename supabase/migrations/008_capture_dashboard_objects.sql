@@ -47,6 +47,9 @@ CREATE TABLE IF NOT EXISTS weekly_intelligence_snapshots (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- RLS enabled, no SELECT policy = service-role only access
+ALTER TABLE weekly_intelligence_snapshots ENABLE ROW LEVEL SECURITY;
+
 -- =========================================================================
 -- RPC Functions
 -- =========================================================================
