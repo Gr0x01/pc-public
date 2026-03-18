@@ -68,6 +68,7 @@ export async function sendPaidBriefings(
       const briefingData = await getBriefingData(sub.user_id);
       if (!briefingData) {
         console.warn(`[send-weekly] No briefing data for ${sub.user_id}, skipping`);
+        results.total--;
         continue;
       }
 
