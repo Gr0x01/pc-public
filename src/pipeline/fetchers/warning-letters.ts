@@ -243,7 +243,7 @@ export async function fetchWarningLetters(
       const issueDateRaw = row[1] ?? "";
       const companyHtml = row[2] ?? "";
       const issuingOffice = row[3] ?? "";
-      const subject = row[4] ?? "";
+      const subject = stripHtml(row[4] ?? "");
       const responseLetterRaw = row[5] ?? "";
       const closeoutLetterRaw = row[6] ?? "";
 
