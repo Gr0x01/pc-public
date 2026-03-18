@@ -94,6 +94,12 @@ export async function sendPaidBriefings(
       });
 
       if (campaignId) {
+        await recordEmailSend({
+          campaign_id: campaignId,
+          subscriber_id: sub.user_id,
+          provider_message_id: result.messageId,
+          status: result.success ? "sent" : "failed",
+        });
         await updateCampaignStatus(
           campaignId,
           result.success ? "sent" : "failed"
@@ -181,7 +187,7 @@ export async function sendFreeNewsletters(
           campaign_id: campaignId,
           subscriber_id: sub.id,
           provider_message_id: result.messageId,
-          status: result.success ? "sent" : "queued",
+          status: result.success ? "sent" : "failed",
         });
       }
 

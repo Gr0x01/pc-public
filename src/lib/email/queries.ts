@@ -402,7 +402,7 @@ export async function recordEmailSend(params: {
   campaign_id: string;
   subscriber_id: string;
   provider_message_id?: string;
-  status: "queued" | "sent" | "delivered" | "bounced" | "complained";
+  status: "queued" | "sent" | "failed" | "delivered" | "bounced" | "complained";
 }): Promise<void> {
   const { error } = await adminClient.from("email_sends").insert({
     campaign_id: params.campaign_id,

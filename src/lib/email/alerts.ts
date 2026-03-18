@@ -142,7 +142,7 @@ export async function sendUrgentAlerts(itemId: string): Promise<number> {
           campaign_id: campaignId,
           subscriber_id: verdict.user_id,
           provider_message_id: result.messageId,
-          status: result.success ? "sent" : "queued",
+          status: result.success ? "sent" : "failed",
         });
       }
 
