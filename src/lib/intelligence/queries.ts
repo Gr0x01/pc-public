@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { adminClient } from "@/lib/supabase/admin";
 import type {
   IntelPageType,
@@ -14,8 +15,9 @@ const FULL_COLUMNS =
 
 /**
  * Single page by type and slug — only published pages.
+ * Wrapped in cache() to deduplicate generateMetadata + page component calls.
  */
-export async function getPageByTypeAndSlug(
+export const getPageByTypeAndSlug = cache(async function getPageByTypeAndSlug(
   type: IntelPageType,
   slug: string
 ): Promise<IntelligencePage | null> {
@@ -33,7 +35,7 @@ export async function getPageByTypeAndSlug(
   }
 
   return data as IntelligencePage | null;
-}
+});
 
 /**
  * Published pages for index. Optionally filtered by type.

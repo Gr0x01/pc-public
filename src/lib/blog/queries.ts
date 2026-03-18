@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { adminClient } from "@/lib/supabase/admin";
 import type { BlogPost, BlogPostSummary, BlogPostRSS, BlogCategory } from "./types";
 
@@ -31,8 +32,9 @@ export async function getPublishedPosts(
 
 /**
  * Single post by slug — only published posts.
+ * Wrapped in cache() to deduplicate generateMetadata + page component calls.
  */
-export async function getPostBySlug(
+export const getPostBySlug = cache(async function getPostBySlug(
   slug: string
 ): Promise<BlogPost | null> {
   const { data, error } = await adminClient
@@ -48,7 +50,7 @@ export async function getPostBySlug(
   }
 
   return data as BlogPost | null;
-}
+});
 
 /**
  * Posts for the RSS feed — last 50 published, minimal columns.

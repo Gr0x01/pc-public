@@ -93,20 +93,23 @@ export const getUserProducts = cache(async function getUserProducts(userId: stri
     return [];
   }
 
-  // Single extra query to count ingredients across all products — avoids N+1
+  // Parallel count queries per product (N is small, bounded by plan limit).
+  // Uses head:true to count at DB level without transferring rows.
   const productIds = data.map((p) => p.id);
   if (productIds.length === 0) return data.map((p) => ({ ...p, ingredient_count: 0 }));
 
   const countMap = new Map<string, number>();
-  const { data: counts } = await adminClient
-    .from("product_ingredients")
-    .select("product_id")
-    .in("product_id", productIds);
-
-  if (counts) {
-    for (const row of counts) {
-      countMap.set(row.product_id, (countMap.get(row.product_id) ?? 0) + 1);
-    }
+  const countResults = await Promise.all(
+    productIds.map(async (pid) => {
+      const { count } = await adminClient
+        .from("product_ingredients")
+        .select("id", { count: "exact", head: true })
+        .eq("product_id", pid);
+      return { pid, count: count ?? 0 };
+    })
+  );
+  for (const { pid, count } of countResults) {
+    countMap.set(pid, count);
   }
 
   return data.map((p) => ({

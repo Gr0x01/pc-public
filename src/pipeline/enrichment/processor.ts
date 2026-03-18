@@ -142,15 +142,24 @@ export async function enrichItem(
       .maybeSingle();
 
     if (existing) {
-      await supabase.from("item_citations").delete().eq("enrichment_id", existing.id);
-      await supabase.from("item_enrichments").delete().eq("id", existing.id);
-      await supabase.from("regulatory_item_substances").delete().eq("regulatory_item_id", item.id);
-      await supabase.from("item_enrichment_tags").delete().eq("item_id", item.id);
-      await supabase.from("item_categories").delete().eq("item_id", item.id);
-      // Clear stale verdicts — re-enrichment changes the enrichment data,
-      // so old verdicts based on previous analysis are invalid.
-      // The runner will re-evaluate after enrichment completes.
-      await supabase.from("product_match_verdicts").delete().eq("item_id", item.id);
+      // Citations must be deleted before enrichments (FK constraint).
+      // Everything else can run in parallel.
+      const { error: citDelErr } = await supabase.from("item_citations").delete().eq("enrichment_id", existing.id);
+      if (citDelErr) throw new Error(`cleanup item_citations: ${citDelErr.message}`);
+
+      const { error: enrDelErr } = await supabase.from("item_enrichments").delete().eq("id", existing.id);
+      if (enrDelErr) throw new Error(`cleanup item_enrichments: ${enrDelErr.message}`);
+
+      // Remaining deletes have no FK dependencies on each other — parallel
+      const cleanupResults = await Promise.all([
+        supabase.from("regulatory_item_substances").delete().eq("regulatory_item_id", item.id),
+        supabase.from("item_enrichment_tags").delete().eq("item_id", item.id),
+        supabase.from("item_categories").delete().eq("item_id", item.id),
+        supabase.from("product_match_verdicts").delete().eq("item_id", item.id),
+      ]);
+      for (const { error } of cleanupResults) {
+        if (error) throw new Error(`cleanup parallel delete: ${error.message}`);
+      }
     }
 
     // ── 1. Build prompt + select model ──────────────────────────────────────
