@@ -211,22 +211,16 @@ function LoginPageInner() {
       <div className="h-[3px] bg-gradient-to-r from-canary via-amber to-canary" />
 
       <div className="min-h-[calc(100vh-3px)] bg-surface-subtle px-5 py-10 md:px-8 md:py-14 lg:py-20">
-        <div className="max-w-5xl mx-auto">
+        <div className={`mx-auto ${isCheckoutFlow ? "max-w-lg" : "max-w-5xl"}`}>
           <motion.div
             className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm"
             initial={reduce ? { opacity: 1 } : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.35 }}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-[1.04fr_0.96fr]">
-              <div
-                className="px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14"
-                style={{ background: "var(--gradient-dark-surface)" }}
-              >
-                <ValuePanel reduce={reduce} />
-              </div>
-
-              <div className="bg-white px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14 flex items-center">
+            {isCheckoutFlow ? (
+              /* Checkout flow — single centered column */
+              <div className="bg-white px-6 py-10 md:px-10 md:py-14 lg:px-16 lg:py-20 flex items-center justify-center">
                 <div className="w-full max-w-sm mx-auto">
                   <Link href="/" className="inline-block mb-8">
                     <Logo className="h-3 text-text-primary" />
@@ -234,12 +228,10 @@ function LoginPageInner() {
 
                   <div className="mb-6">
                     <h1 className="font-serif text-2xl font-bold text-text-primary">
-                      {isCheckoutFlow ? "Start your free trial" : "Sign in"}
+                      Start your free trial
                     </h1>
                     <p className="text-sm text-text-secondary mt-1.5 leading-relaxed">
-                      {isCheckoutFlow
-                        ? "Enter your email to get started. New or existing account."
-                        : "Welcome back."}
+                      Enter your work email to get started. 14 days free, then $99/mo.
                     </p>
                   </div>
 
@@ -248,9 +240,9 @@ function LoginPageInner() {
                   </Suspense>
 
                   <p className="text-sm text-text-secondary mt-6">
-                    Don&apos;t have an account?{" "}
-                    <Link href="/login?next=checkout" className="text-amber font-medium hover:text-amber-action transition-colors duration-150">
-                      Start your free trial
+                    Already have an account?{" "}
+                    <Link href="/login" className="text-amber font-medium hover:text-amber-action transition-colors duration-150">
+                      Sign in
                     </Link>
                   </p>
 
@@ -263,7 +255,53 @@ function LoginPageInner() {
                   )}
                 </div>
               </div>
-            </div>
+            ) : (
+              /* Sign-in flow — two-column: value prop + login form */
+              <div className="grid grid-cols-1 lg:grid-cols-[1.04fr_0.96fr]">
+                <div
+                  className="px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14"
+                  style={{ background: "var(--gradient-dark-surface)" }}
+                >
+                  <ValuePanel reduce={reduce} />
+                </div>
+
+                <div className="bg-white px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14 flex items-center">
+                  <div className="w-full max-w-sm mx-auto">
+                    <Link href="/" className="inline-block mb-8">
+                      <Logo className="h-3 text-text-primary" />
+                    </Link>
+
+                    <div className="mb-6">
+                      <h1 className="font-serif text-2xl font-bold text-text-primary">
+                        Sign in
+                      </h1>
+                      <p className="text-sm text-text-secondary mt-1.5 leading-relaxed">
+                        Welcome back.
+                      </p>
+                    </div>
+
+                    <Suspense fallback={<div className="h-24" />}>
+                      <LoginForm />
+                    </Suspense>
+
+                    <p className="text-sm text-text-secondary mt-6">
+                      Don&apos;t have an account?{" "}
+                      <Link href="/login?next=checkout" className="text-amber font-medium hover:text-amber-action transition-colors duration-150">
+                        Start your free trial
+                      </Link>
+                    </p>
+
+                    {process.env.NODE_ENV === "development" && (
+                      <p className="text-xs text-text-secondary/50 mt-4">
+                        <Link href="/app/dashboard" className="hover:text-text-secondary transition-colors duration-150">
+                          dev bypass
+                        </Link>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
