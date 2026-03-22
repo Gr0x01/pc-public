@@ -29,10 +29,10 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/signup"
+                  href="/pricing"
                   className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
                 >
-                  Join the Pilot
+                  Pricing
                 </Link>
               </li>
             </ul>

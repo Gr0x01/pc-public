@@ -10,7 +10,7 @@ const SignupSchema = z.object({
   last_name: z.string().min(1, "Last name is required").max(50),
   company: z.string().min(1, "Company name is required").max(200),
   feedback_consent: z.literal(true, {
-    message: "You must agree to the pilot terms",
+    message: "You must agree to the terms",
   }),
 });
 
@@ -111,7 +111,6 @@ export async function POST(request: Request) {
         first_name,
         last_name,
         company_name: company,
-        pilot_feedback_consent: true,
         terms_version: "2026-03",
       },
     },
@@ -125,7 +124,7 @@ export async function POST(request: Request) {
     );
   }
 
-  track(null, "pilot_signup", { company });
+  track(null, "account_created", { company });
 
   return Response.json({ data: { message: "magic_link_sent" }, error: null });
 }

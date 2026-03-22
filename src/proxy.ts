@@ -45,17 +45,17 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Pilot: hide pricing page, redirect to homepage
-  if (pathname === "/pricing") {
-    const homeUrl = request.nextUrl.clone();
-    homeUrl.pathname = "/";
-    return NextResponse.redirect(homeUrl);
-  }
-
   if (pathname === "/login" && user) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/app/dashboard";
-    return NextResponse.redirect(dashboardUrl);
+    const next = request.nextUrl.searchParams.get("next");
+    const redirectUrl = request.nextUrl.clone();
+    if (next === "checkout") {
+      redirectUrl.pathname = "/app/feed";
+      redirectUrl.search = "?checkout=start";
+    } else {
+      redirectUrl.pathname = "/app/dashboard";
+      redirectUrl.search = "";
+    }
+    return NextResponse.redirect(redirectUrl);
   }
 
   return supabaseResponse;

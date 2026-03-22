@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getPublishedPages } from "@/lib/intelligence/queries";
 import { IntelPageCard } from "@/components/intelligence/IntelPageCard";
-import { SignupForm } from "@/components/marketing/SignupForm";
+import ContentCTA from "@/components/marketing/ContentCTA";
 
 export const revalidate = 3600;
 
@@ -43,20 +43,10 @@ export default async function RegulationsPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-surface-dark py-16">
-        <div className="max-w-xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">
-            Stop reading the Federal Register — let us do it
-          </h2>
-          <p className="text-slate-300 mb-6">
-            Policy Canary tracks regulations that affect your product categories
-            and tells you exactly what to do. Join the&nbsp;pilot.
-          </p>
-          <div className="flex justify-center">
-            <SignupForm dark={true} />
-          </div>
-        </div>
-      </section>
+      <ContentCTA
+        heading="Stop reading the Federal Register \u2014 let us do it"
+        description="Policy Canary tracks regulations that affect your product categories and tells you exactly what to do. Start your free trial."
+      />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import ProductShowcase from "@/components/marketing/ProductShowcase";
 import BuyerRoleCard from "@/components/marketing/BuyerRoleCard";
 import { RevealSection } from "@/components/marketing/RevealSection";
 import WeeklyIntelligence from "@/components/marketing/WeeklyIntelligence";
-import PilotSignup from "@/components/marketing/PilotSignup";
+import HomepageCTA from "@/components/marketing/HomepageCTA";
 import { getLatestSnapshot } from "@/lib/intelligence/weekly-snapshot";
 
 export const metadata: Metadata = {
@@ -51,8 +51,8 @@ export default async function LandingPage() {
       {/* Who It's For — handles its own staggered reveal */}
       <BuyerRoleCard />
 
-      {/* Pilot Signup — full-bleed dark, merged stats + form */}
-      <PilotSignup />
+      {/* CTA — full-bleed dark, stats + pricing calculator */}
+      <HomepageCTA />
     </>
   );
 }

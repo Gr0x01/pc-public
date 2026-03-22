@@ -140,6 +140,10 @@ export default function AlertEmail({
                 Manage your products
               </Link>
               {" · "}
+              <Link href={`${SITE_URL}/app/settings`} style={footerLinkStyle}>
+                Manage your subscription
+              </Link>
+              {" · "}
               <Link href="https://www.linkedin.com/company/policy-canary/" style={footerLinkStyle}>
                 LinkedIn
               </Link>

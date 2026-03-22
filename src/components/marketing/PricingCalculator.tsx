@@ -157,7 +157,7 @@ export default function PricingCalculator() {
                 </div>
 
                 {/* Product count */}
-                <div className="p-6 rounded-xl bg-white border border-slate-100 shadow-sm flex flex-col justify-center items-center text-center">
+                <div className="p-6 rounded-xl bg-white border border-slate-200 flex flex-col justify-center items-center text-center">
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
                     Included Products
                   </p>

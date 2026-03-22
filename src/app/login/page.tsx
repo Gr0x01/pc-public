@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { SignupForm } from "@/components/marketing/SignupForm";
 import Logo from "@/components/ui/Logo";
 
 type Status = "idle" | "loading" | "success" | "error";
@@ -14,6 +13,7 @@ type Status = "idle" | "loading" | "success" | "error";
 function LoginForm() {
   const reduce = useReducedMotion();
   const searchParams = useSearchParams();
+  const isCheckout = searchParams.get("next") === "checkout";
   const authFailed = searchParams.get("error") === "auth_failed";
   const authFailedMessage = "That link has expired or is invalid. Please request a new one.";
 
@@ -42,7 +42,7 @@ function LoginForm() {
       email: trimmed,
       options: {
         emailRedirectTo: callbackUrl,
-        shouldCreateUser: false,
+        shouldCreateUser: isCheckout,
       },
     });
     if (error) {
@@ -148,9 +148,9 @@ function LoginForm() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Pilot promotion panel (left / bottom)                             */
+/*  Value prop panel (left / bottom)                                   */
 /* ------------------------------------------------------------------ */
-function PilotPanel({ reduce }: { reduce: boolean | null }) {
+function ValuePanel({ reduce }: { reduce: boolean | null }) {
   const highlights = [
     "Track by product name, ingredient, and facility.",
     "Get plain-language impact summaries with action paths.",
@@ -168,12 +168,6 @@ function PilotPanel({ reduce }: { reduce: boolean | null }) {
 
   return (
     <div className="flex flex-col justify-center h-full">
-      <motion.div className="flex items-center gap-2.5 mb-4" {...fade(0)}>
-        <p className="font-mono text-[11px] text-canary uppercase tracking-widest font-semibold">
-          Pilot Program
-        </p>
-      </motion.div>
-
       <motion.h2 className="text-3xl font-bold text-white leading-tight tracking-tight" {...fade(0.06)}>
         Don&apos;t find out from a recall&nbsp;notice.
       </motion.h2>
@@ -182,8 +176,8 @@ function PilotPanel({ reduce }: { reduce: boolean | null }) {
         className="text-slate-300 mt-4 leading-relaxed max-w-md"
         {...fade(0.12)}
       >
-        Early access to product-level FDA monitoring for supplement,
-        food, and cosmetic brands.
+        Product-level FDA monitoring for supplement,
+        food, and cosmetic brands. $99/mo, 14-day free trial.
       </motion.p>
 
       <motion.div className="mt-6 space-y-3.5 max-w-lg" {...fade(0.16)}>
@@ -196,14 +190,21 @@ function PilotPanel({ reduce }: { reduce: boolean | null }) {
       </motion.div>
 
       <motion.div className="mt-9" {...fade(0.2)}>
-        <SignupForm dark={true} />
+        <Link
+          href="/login?next=checkout"
+          className="inline-block bg-canary text-surface-dark px-6 py-3 rounded-lg font-semibold text-sm hover:bg-canary/90 transition-colors duration-150"
+        >
+          Start Free Trial
+        </Link>
       </motion.div>
     </div>
   );
 }
 
-export default function LoginPage() {
+function LoginPageInner() {
   const reduce = useReducedMotion();
+  const searchParams = useSearchParams();
+  const isCheckoutFlow = searchParams.get("next") === "checkout";
 
   return (
     <>
@@ -222,7 +223,7 @@ export default function LoginPage() {
                 className="px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14"
                 style={{ background: "var(--gradient-dark-surface)" }}
               >
-                <PilotPanel reduce={reduce} />
+                <ValuePanel reduce={reduce} />
               </div>
 
               <div className="bg-white px-6 py-10 md:px-10 md:py-12 lg:px-12 lg:py-14 flex items-center">
@@ -233,16 +234,25 @@ export default function LoginPage() {
 
                   <div className="mb-6">
                     <h1 className="font-serif text-2xl font-bold text-text-primary">
-                      Sign in
+                      {isCheckoutFlow ? "Start your free trial" : "Sign in"}
                     </h1>
                     <p className="text-sm text-text-secondary mt-1.5 leading-relaxed">
-                      Existing pilot members.
+                      {isCheckoutFlow
+                        ? "Enter your email to get started. New or existing account."
+                        : "Welcome back."}
                     </p>
                   </div>
 
                   <Suspense fallback={<div className="h-24" />}>
                     <LoginForm />
                   </Suspense>
+
+                  <p className="text-sm text-text-secondary mt-6">
+                    Don&apos;t have an account?{" "}
+                    <Link href="/login?next=checkout" className="text-amber font-medium hover:text-amber-action transition-colors duration-150">
+                      Start your free trial
+                    </Link>
+                  </p>
 
                   {process.env.NODE_ENV === "development" && (
                     <p className="text-xs text-text-secondary/50 mt-4">
@@ -258,5 +268,13 @@ export default function LoginPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-surface-subtle" />}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

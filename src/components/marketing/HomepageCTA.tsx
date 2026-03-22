@@ -2,8 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
-
-import { SignupForm } from "./SignupForm";
+import PricingCalculator from "./PricingCalculator";
 
 const STATS = [
   { value: 7, display: "7", label: "FDA data sources" },
@@ -19,7 +18,7 @@ const BENEFITS = [
   "The FDA cut 3,859 employees. Enforcement is less predictable, not more.",
 ] as const;
 
-export default function PilotSignup() {
+export default function HomepageCTA() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const reduce = useReducedMotion();
@@ -35,7 +34,7 @@ export default function PilotSignup() {
 
   return (
     <section id="signup" className="relative overflow-hidden">
-      {/* 3px canary rule — animates width on viewport entry */}
+      {/* 3px canary rule */}
       <motion.div
         className="h-[3px] bg-canary"
         initial={reduce ? { width: "100%" } : { width: "0%" }}
@@ -50,13 +49,6 @@ export default function PilotSignup() {
       >
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-10 lg:gap-14 items-start">
           <div>
-            <motion.p
-              className="font-mono text-[11px] text-canary uppercase tracking-widest mb-4 font-semibold"
-              {...fadeUp(0)}
-            >
-              Pilot Program
-            </motion.p>
-
             <motion.h2
               className="text-3xl md:text-4xl font-bold text-white leading-tight tracking-tight"
               {...fadeUp(0.06)}
@@ -111,21 +103,7 @@ export default function PilotSignup() {
           </div>
 
           <motion.div className="lg:pt-2" {...fadeUp(0.22)}>
-            <div className="soft-card p-6 md:p-8">
-              <p className="font-mono text-[11px] text-text-secondary uppercase tracking-widest">
-                Request pilot access
-              </p>
-              <h3 className="text-2xl font-semibold text-text-primary mt-3 leading-tight">
-                Join the pilot
-              </h3>
-              <p className="text-sm text-text-secondary mt-2 leading-relaxed">
-                Tell us where to send your access link. No sales calls.
-              </p>
-
-              <div className="mt-6">
-                <SignupForm />
-              </div>
-            </div>
+            <PricingCalculator />
           </motion.div>
         </div>
       </div>

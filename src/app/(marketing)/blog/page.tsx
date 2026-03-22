@@ -5,7 +5,7 @@ import { BLOG_CATEGORIES, type BlogCategory } from "@/lib/blog/types";
 import { PostCard } from "@/components/blog/PostCard";
 import { CategoryFilter } from "@/components/blog/CategoryFilter";
 import { FeaturedPost } from "@/components/blog/FeaturedPost";
-import { SignupForm } from "@/components/marketing/SignupForm";
+import ContentCTA from "@/components/marketing/ContentCTA";
 
 export const revalidate = 3600;
 
@@ -73,20 +73,7 @@ export default async function BlogPage({
       </section>
 
       {/* CTA */}
-      <section className="bg-surface-dark py-16">
-        <div className="max-w-xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">
-            What if this analysis was about YOUR&nbsp;products?
-          </h2>
-          <p className="text-slate-300 mb-6">
-            Policy Canary monitors the FDA for your specific products — by name,
-            by ingredient, by facility. Join the&nbsp;pilot.
-          </p>
-          <div className="flex justify-center">
-            <SignupForm dark={true} />
-          </div>
-        </div>
-      </section>
+      <ContentCTA />
     </div>
   );
 }

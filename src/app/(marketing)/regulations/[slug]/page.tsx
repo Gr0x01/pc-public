@@ -20,7 +20,7 @@ import { CrossLinkSection } from "@/components/intelligence/CrossLinkSection";
 import { IntelPageCard } from "@/components/intelligence/IntelPageCard";
 import { DeadlineCallout } from "@/components/intelligence/DeadlineCallout";
 import { ShareButtons } from "@/components/blog/ShareButtons";
-import { SignupForm } from "@/components/marketing/SignupForm";
+import ContentCTA from "@/components/marketing/ContentCTA";
 
 export const revalidate = 3600;
 
@@ -198,12 +198,17 @@ export default async function RegulationDetailPage({
               </div>
               <div className="bg-surface-dark rounded-lg p-6 text-center">
                 <h4 className="text-base font-semibold text-white mb-1">
-                  Policy Canary Weekly
+                  Monitor your products
                 </h4>
                 <p className="text-sm text-slate-400 mb-4">
-                  Free FDA intelligence every Friday.
+                  FDA intelligence for your specific products. 14-day free trial.
                 </p>
-                <SignupForm dark={true} />
+                <a
+                  href="/login?next=checkout"
+                  className="inline-block bg-canary text-surface-dark px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-canary/90 transition-colors duration-150"
+                >
+                  Start Free Trial
+                </a>
               </div>
             </div>
           </main>
@@ -234,20 +239,7 @@ export default async function RegulationDetailPage({
       )}
 
       {/* CTA */}
-      <section className="bg-surface-dark py-16">
-        <div className="max-w-xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">
-            What if this analysis was about YOUR&nbsp;products?
-          </h2>
-          <p className="text-slate-300 mb-6">
-            Policy Canary monitors the FDA for your specific products — by name,
-            by ingredient, by facility. Join the&nbsp;pilot.
-          </p>
-          <div className="flex justify-center">
-            <SignupForm dark={true} />
-          </div>
-        </div>
-      </section>
+      <ContentCTA />
     </div>
   );
 }

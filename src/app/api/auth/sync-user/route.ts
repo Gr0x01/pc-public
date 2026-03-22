@@ -30,7 +30,7 @@ export async function POST() {
 
   const meta = user.user_metadata ?? {};
 
-  // Check if user already exists — only grant pilot access on first login
+  // Check if user already exists — only create record on first login
   const { data: existingUser } = await adminClient
     .from("users")
     .select("id")
@@ -52,20 +52,16 @@ export async function POST() {
       );
     }
   } else {
-    // New user — grant pilot access
-    const isPilot = meta.pilot_feedback_consent === true;
-
+    // New user — create record (free tier, must subscribe for Monitor)
     const { error: insertError } = await adminClient.from("users").insert({
       id: user.id,
       email: user.email,
       first_name: meta.first_name ?? null,
       last_name: meta.last_name ?? null,
       company_name: meta.company_name ?? null,
-      pilot_feedback_consent: isPilot,
-      pilot_consented_at: isPilot ? new Date().toISOString() : null,
       terms_version: meta.terms_version ?? null,
-      access_level: "monitor",
-      max_products: 5,
+      access_level: "free",
+      max_products: 1,
     });
 
     if (insertError) {

@@ -376,8 +376,8 @@ export default function AddProductPanel({ onCancel, onProductAdded, editingProdu
         <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-700">{error}</p>
           {error.includes("limit") && (
-            <a href="/pricing" className="text-sm text-amber font-medium hover:underline mt-1 inline-block">
-              View plans
+            <a href="/app/feed?checkout=start" className="text-sm text-amber font-medium hover:underline mt-1 inline-block">
+              Upgrade
             </a>
           )}
         </div>

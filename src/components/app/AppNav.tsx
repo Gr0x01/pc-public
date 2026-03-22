@@ -4,10 +4,11 @@ import Logo from "@/components/ui/Logo";
 
 interface AppNavProps {
   initials: string;
+  accessLevel: string;
   signOut: () => Promise<void>;
 }
 
-export default function AppNav({ initials, signOut }: AppNavProps) {
+export default function AppNav({ initials, accessLevel, signOut }: AppNavProps) {
   return (
     <header className="h-14 bg-[#07111F] border-b border-border-dark flex items-center px-4 shrink-0">
       {/* Logo */}
@@ -38,7 +39,21 @@ export default function AppNav({ initials, signOut }: AppNavProps) {
             {initials}
           </span>
         </Link>
-        {/* Upgrade/Billing hidden during pilot program */}
+        {accessLevel === "free" ? (
+          <Link
+            href="/app/feed?checkout=start"
+            className="text-xs font-semibold text-surface-dark bg-canary px-3 py-1.5 rounded hover:bg-canary/90 transition-colors duration-100 leading-none"
+          >
+            Upgrade
+          </Link>
+        ) : (
+          <Link
+            href="/app/settings"
+            className="text-xs text-slate-400 hover:text-slate-200 transition-colors duration-100 leading-none"
+          >
+            Billing
+          </Link>
+        )}
         <form action={signOut}>
           <button
             type="submit"

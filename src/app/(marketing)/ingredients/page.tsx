@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getPublishedPages } from "@/lib/intelligence/queries";
 import { IntelPageCard } from "@/components/intelligence/IntelPageCard";
-import { SignupForm } from "@/components/marketing/SignupForm";
+import ContentCTA from "@/components/marketing/ContentCTA";
 
 export const revalidate = 3600;
 
@@ -43,20 +43,10 @@ export default async function IngredientsPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-surface-dark py-16">
-        <div className="max-w-xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">
-            Get alerts when ingredient regulations change
-          </h2>
-          <p className="text-slate-300 mb-6">
-            Policy Canary monitors FDA actions for your specific ingredients and
-            products. Join the&nbsp;pilot.
-          </p>
-          <div className="flex justify-center">
-            <SignupForm dark={true} />
-          </div>
-        </div>
-      </section>
+      <ContentCTA
+        heading="Get alerts when ingredient regulations change"
+        description="Policy Canary monitors FDA actions for your specific ingredients and products. Start your free trial."
+      />
     </div>
   );
 }

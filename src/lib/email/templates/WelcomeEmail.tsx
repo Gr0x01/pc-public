@@ -21,7 +21,7 @@ export interface WelcomeEmailProps {
   first_name: string;
   /** The products the subscriber added during onboarding. */
   products: Array<{ id: string; name: string }>;
-  /** Maximum products allowed on their plan (pilot: 5). */
+  /** Maximum products allowed on their plan. */
   max_products: number;
 }
 

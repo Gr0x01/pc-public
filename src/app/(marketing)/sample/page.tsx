@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import SampleWalkthrough from "@/components/marketing/SampleWalkthrough";
-import { SignupForm } from "@/components/marketing/SignupForm";
+import ContentCTA from "@/components/marketing/ContentCTA";
 import { RevealSection } from "@/components/marketing/RevealSection";
 
 export const metadata: Metadata = {
@@ -76,22 +76,10 @@ export default function SamplePage() {
       </RevealSection>
 
       {/* CTA */}
-      <section className="bg-surface-dark py-24 px-6">
-        <div className="max-w-xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Add your products.
-            <br />
-            Get this in your inbox.
-          </h2>
-          <p className="text-slate-300 mb-8">
-            Add your products. We review every FDA action against your specific
-            ingredients and deliver the analysis — so you don&apos;t have to.
-          </p>
-          <div className="flex justify-center">
-            <SignupForm />
-          </div>
-        </div>
-      </section>
+      <ContentCTA
+        heading="Add your products. Get this in your inbox."
+        description="We review every FDA action against your specific ingredients and deliver the analysis \u2014 so you don't have to. Start your free trial."
+      />
     </>
   );
 }

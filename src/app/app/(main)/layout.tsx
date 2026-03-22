@@ -39,7 +39,7 @@ export default async function MainAppLayout({
 
   return (
     <div className="min-h-screen bg-surface-muted text-text-primary flex flex-col">
-      <AppNav initials={initials} signOut={signOut} />
+      <AppNav initials={initials} accessLevel={dbUser?.access_level ?? "free"} signOut={signOut} />
       <main className="flex-1">{children}</main>
     </div>
   );

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import PricingHero from "@/components/marketing/PricingHero";
 import PricingFeatures from "@/components/marketing/PricingFeatures";
 import { RevealSection } from "@/components/marketing/RevealSection";
-import { SignupForm } from "@/components/marketing/SignupForm";
 
 export const metadata: Metadata = {
   title: "Pricing — Policy Canary",
@@ -36,11 +36,6 @@ const faqs = [
 export default function PricingPage() {
   return (
     <>
-      {/* Pilot banner */}
-      <div className="bg-amber/10 border-b border-amber/20 px-6 py-3 text-center text-sm text-amber-text font-medium">
-        Pilot program active — pilot partners get full Monitor access. Pricing shown for reference.
-      </div>
-
       {/* Hero + Calculator — warm gradient, glass-morph card */}
       <PricingHero />
 
@@ -66,7 +61,7 @@ export default function PricingPage() {
               {faqs.map(({ q, a }) => (
                 <div
                   key={q}
-                  className="p-6 bg-white rounded-xl border border-slate-100 shadow-sm"
+                  className="p-6 bg-white rounded-xl border border-slate-200"
                 >
                   <h3 className="font-semibold text-slate-900 mb-3 text-lg">
                     {q}
@@ -81,29 +76,24 @@ export default function PricingPage() {
         </section>
       </RevealSection>
 
-      {/* Signup CTA — dark gradient, pilot framing */}
-      <section
-        id="signup"
-        className="py-24 px-6 bg-white"
-      >
+      {/* Bottom CTA — dark gradient */}
+      <section className="py-24 px-6 bg-white">
         <div
           className="max-w-4xl mx-auto text-center rounded-xl px-6 py-12 md:p-14 border border-white/10"
           style={{ background: "var(--gradient-dark-surface)" }}
         >
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Don&apos;t find out from a recall&nbsp;notice.
+            One warning letter costs $25,000–$100,000+.
           </h2>
-          <p className="text-slate-400 mb-3 max-w-xl mx-auto">
-            We&apos;re onboarding a small group of brands for early access to
-            product-level FDA monitoring.
+          <p className="text-slate-400 mb-8 max-w-xl mx-auto">
+            Policy Canary monitors your products for $99/month. 14 days free.
           </p>
-          <p className="text-slate-500 mb-8 text-sm">
-            Your Marine Collagen Powder. Your BHA Eye Cream. Monitored by name,
-            matched by ingredient.
-          </p>
-          <div className="flex justify-center">
-            <SignupForm dark={true} />
-          </div>
+          <Link
+            href="#calculator"
+            className="inline-block bg-amber text-white font-bold py-3.5 px-8 rounded-xl shadow-md shadow-amber/20 hover:bg-amber-action hover:-translate-y-0.5 transition-all"
+          >
+            Start 14-Day Trial
+          </Link>
         </div>
       </section>
     </>
