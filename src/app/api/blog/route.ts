@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "crypto";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
 import { BLOG_CATEGORIES } from "@/lib/blog/types";
@@ -120,6 +121,8 @@ export async function POST(request: Request) {
   }
 
   if (data.status === "published") {
+    revalidatePath(`/blog/${data.slug}`);
+    revalidatePath("/blog");
     notifyIndexNow(`/blog/${data.slug}`);
   }
 
