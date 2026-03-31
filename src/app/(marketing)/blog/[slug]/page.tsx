@@ -10,6 +10,7 @@ import { BlogSidebar } from "@/components/blog/BlogSidebar";
 import { ShareButtons } from "@/components/blog/ShareButtons";
 import { PostCard } from "@/components/blog/PostCard";
 import ContentCTA from "@/components/marketing/ContentCTA";
+import { NewsletterEndCTA } from "@/components/blog/NewsletterEndCTA";
 
 export const revalidate = 3600;
 
@@ -159,28 +160,15 @@ export default async function BlogPostPage({
           <main className="flex-1 min-w-0 max-w-[720px]">
             <MarkdownContent content={post.content} />
 
-            {/* Mobile-only: share + newsletter */}
-            <div className="lg:hidden mt-12 space-y-8">
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-3">
-                  Share this article
-                </h4>
-                <ShareButtons url={postUrl} title={post.title} />
-              </div>
-              <div className="bg-surface-dark rounded-lg p-6 text-center">
-                <h4 className="text-base font-semibold text-white mb-1">
-                  Monitor your products
-                </h4>
-                <p className="text-sm text-slate-400 mb-4">
-                  FDA intelligence for your specific products. 14-day free trial.
-                </p>
-                <a
-                  href="/login?next=checkout"
-                  className="inline-block bg-canary text-surface-dark px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-canary/90 transition-colors duration-150"
-                >
-                  Start Free Trial
-                </a>
-              </div>
+            {/* Newsletter CTA — all screen sizes */}
+            <NewsletterEndCTA />
+
+            {/* Mobile-only: share */}
+            <div className="lg:hidden mt-8">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-3">
+                Share this article
+              </h4>
+              <ShareButtons url={postUrl} title={post.title} />
             </div>
           </main>
 

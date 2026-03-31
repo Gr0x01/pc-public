@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ShareButtons } from "@/components/blog/ShareButtons";
+import { NewsletterSidebarCTA } from "@/components/shared/NewsletterSidebarCTA";
 import { DeadlineTimeline } from "./DeadlineTimeline";
 
 interface TocItem {
@@ -141,51 +142,7 @@ export function IntelPageSidebar({
         </div>
 
         {/* Newsletter CTA */}
-        <div className="bg-surface-dark rounded-lg p-5">
-          <h4 className="text-sm font-semibold text-white mb-1">
-            Policy Canary Weekly
-          </h4>
-          <p className="text-xs text-slate-400 mb-3">
-            Free FDA intelligence every Friday.
-          </p>
-          <form
-            action="/api/signup"
-            method="POST"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const form = e.currentTarget;
-              const email = new FormData(form).get("email") as string;
-              if (!email) return;
-              fetch("/api/signup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, source: "intel_sidebar" }),
-              });
-              form.reset();
-              const btn = form.querySelector("button");
-              if (btn) {
-                btn.textContent = "Subscribed!";
-                setTimeout(() => {
-                  btn.textContent = "Subscribe";
-                }, 2000);
-              }
-            }}
-          >
-            <input
-              type="email"
-              name="email"
-              placeholder="you@company.com"
-              required
-              className="w-full text-sm px-3 py-2 rounded bg-white/10 border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:border-amber mb-2"
-            />
-            <button
-              type="submit"
-              className="w-full text-sm font-medium px-3 py-2 rounded bg-amber text-surface-dark hover:bg-amber/90 transition-colors"
-            >
-              Subscribe
-            </button>
-          </form>
-        </div>
+        <NewsletterSidebarCTA />
       </div>
     </aside>
   );
