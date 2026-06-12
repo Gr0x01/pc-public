@@ -52,3 +52,7 @@ supabase/.temp/
 
 # script demo output
 scripts/demo-output/
+# build/test artifacts (kept out of the public mirror)
+/playwright-report/
+/test-results/
+.mcp.json

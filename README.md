@@ -1,77 +1,81 @@
-# Directory Site Template
+# Policy Canary
 
-Template for creating SEO-optimized directory websites with Claude Code configuration.
+**FDA regulatory monitoring for product companies.** Policy Canary watches every change across the FDA's regulated sectors — recalls, warning letters, rule changes, import alerts, guidance — and tells a company which of *their specific products* are affected, down to the ingredient, with the deadlines that matter.
 
-## Usage
+Live: **[policycanary.io](https://policycanary.io)**
 
-1. Copy this folder to create a new project:
-   ```bash
-   cp -r directory-template my-new-directory
-   cd my-new-directory
-   ```
+This is a **public, sanitized mirror** of the private production repository, published as a code sample. It preserves the real commit history and the full application architecture. See [What's redacted](#whats-redacted) below for what was removed.
 
-2. Update the memory bank files with your project details:
-   - `memory-bank/core/quickstart.md` - Project overview and commands
-   - `memory-bank/core/projectbrief.md` - Product definition and schema
-   - `memory-bank/development/activeContext.md` - Current focus
-   - `memory-bank/architecture/techStack.md` - Technology stack
+---
 
-3. Replace `[PROJECT_NAME]` and other placeholders with your actual values
+## What it does
 
-4. Initialize your project:
-   ```bash
-   npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir
-   npm install @supabase/supabase-js zod lucide-react
-   ```
+1. **Ingest** — fetchers pull from FDA sources (Federal Register, enforcement reports / recalls, warning letters, RSS) on a schedule.
+2. **Enrich** — each regulatory item runs through a multi-model LLM pipeline that extracts a structured signal: affected ingredients, affected product categories (controlled vocabulary across food, supplements, cosmetics, pharma, devices, biologics, tobacco, veterinary), action type, deadlines, citations, and a confidence score — all validated against a Zod schema.
+3. **Cross-reference** — enriched signals are matched against a substance database and a company's own product list to decide who is actually affected.
+4. **Notify** — affected customers get a tailored briefing email; the dashboard surfaces the live feed and per-product impact.
 
-## Structure
+A programmatic-SEO surface (ingredient / enforcement / regulation intelligence pages) and a blog sit in front of the product.
+
+## Architecture
+
+| Layer | Tech |
+|-------|------|
+| App | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 |
+| Data | Supabase (Postgres + RLS), pgvector embeddings |
+| LLM | Vercel AI SDK — Google Gemini (enrichment + cross-reference), Anthropic Claude (email/editorial writing + AI search), OpenAI (embeddings) |
+| Background jobs | Inngest (scheduled ingest, enrichment, weekly sends) |
+| Payments | Stripe (checkout, webhooks, billing portal) |
+| Email | Resend + React Email templates |
+| Monitoring | Sentry |
+| Hosting | Vercel |
+
+### Repo layout
 
 ```
-.claude/
-├── settings.local.json          # Claude permissions
-├── agents/                      # Specialized agents
-│   ├── backend-architect.md
-│   ├── code-architect.md
-│   ├── code-reviewer.md
-│   ├── frontend-developer.md
-│   ├── trend-researcher.md
-│   ├── ui-designer.md
-│   └── visual-storyteller.md
-└── skills/
-    ├── settings.local.json
-    └── frontend-design/
-        └── SKILL.md             # Frontend design guidelines
-
-memory-bank/
-├── core/
-│   ├── quickstart.md            # Project overview
-│   └── projectbrief.md          # Product definition
-├── development/
-│   ├── activeContext.md         # Current focus
-│   └── progress.md              # Work log
-├── architecture/
-│   └── techStack.md             # Technology decisions
-└── archive/                     # Historical docs
-
-CLAUDE.md                        # Main Claude instructions
+src/
+├── app/                  # Next.js routes — marketing, dashboard, API
+├── components/           # UI (marketing, app, intelligence, shared)
+├── lib/                  # ai/ supabase/ stripe/ email/ inngest/ products/ intelligence/
+├── pipeline/
+│   ├── fetchers/         # FDA source fetchers
+│   └── enrichment/       # LLM enrichment: processor, cross-reference, embeddings, prompts
+└── types/
+scripts/
+├── pipeline/             # CLI entry points for fetch / enrich / classify / snapshot
+└── bootstrap/            # one-time substance-DB loaders (DSLD, GSRS)
+supabase/migrations/      # schema
+emails/                   # React Email previews
 ```
 
-## Included Agents
+## Running it locally
 
-| Agent | Use For |
-|-------|---------|
-| **backend-architect** | API design, database architecture |
-| **code-architect** | Project structure, folder organization |
-| **code-reviewer** | Code quality and security reviews |
-| **frontend-developer** | UI implementation, performance |
-| **ui-designer** | Interface design, visual aesthetics |
-| **trend-researcher** | Market research, trend analysis |
-| **visual-storyteller** | Infographics, presentations |
+```bash
+npm install
+cp .env.local.example .env.local   # fill in real values
+npm run dev
+```
 
-## Tech Stack (Default)
+Pipeline tasks are exposed as npm scripts, e.g.:
 
-- **Frontend**: Next.js 15+, React 19+, Tailwind CSS 4
-- **Backend**: Next.js API routes, Supabase (PostgreSQL)
-- **Maps**: MapLibre GL JS (if needed)
-- **Analytics**: PostHog
-- **Hosting**: Vercel
+```bash
+npm run pipeline:enrich-test       # enrich a handful of items
+npm run pipeline:rss-poll          # poll FDA RSS
+npm run email:dev                  # preview email templates
+```
+
+Requires Supabase, and API keys for Google / OpenAI / Anthropic, Stripe, Resend, and Inngest. See `.env.local.example` for the full list.
+
+## What's redacted
+
+This mirror is sanitized for public release. Removed from the entire history:
+
+- **The enrichment system prompt** — the production regulatory-analyst instructions, anti-hallucination rules, and confidence-scoring rubric in `src/pipeline/enrichment/prompts.ts` are redacted. The output schema, controlled vocabularies, and prompt-assembly scaffolding remain so the pipeline is fully readable.
+- **Internal docs & tooling** — the project memory bank, research notes, and AI-assistant configuration.
+- **Growth & ops scripts** — outreach, content-agent, and CRM/analytics tooling.
+
+No secrets are, or ever were, committed — only `.env.local.example` placeholders.
+
+## Author
+
+Built solo by **Rashaad Baten** — design, product, and engineering. [rbaten.com](https://rbaten.com)
